@@ -1,0 +1,24 @@
+@import "tailwindcss";
+
+@custom-variant dark (&:where(.dark, .dark *));
+
+html,
+body {
+  height: 100%;
+  overflow: hidden;
+  background: #f4ead9;
+  color: #2b2722;
+}
+.dark body {
+  background: #0b1022;
+  color: #e6e9f2;
+}
+
+@keyframes input-shake {
+  0%, 100% { transform: translateX(0); }
+  25% { transform: translateX(-6px); }
+  75% { transform: translateX(6px); }
+}
+.shake {
+  animation: input-shake 0.18s ease-in-out 2;
+}
