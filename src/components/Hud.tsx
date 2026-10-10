@@ -9,6 +9,7 @@ import { WEATHERS, type Settings } from "@/game/settings";
 import type { Snapshot } from "@/game/sim";
 import type { GameEvent, Mode, Weather } from "@/game/types";
 import { MIN_CUSTOM_WORDS, PACK_IDS, parseWordList, type PackId } from "@/game/words";
+import { SECTIONS, type Section } from "./Rail";
 import { shareRun } from "./shareCard";
 
 export const MODE_INFO: Record<Mode, [name: string, blurb: string]> = {
@@ -35,7 +36,7 @@ const Bar = ({ pct, className, thin = false }: { pct: number; className: string;
 export function Dashboard({ snap }: { snap: Snapshot }) {
   const mode = snap.nitro ? "nitro" : snap.brake ? "brake" : "";
   return (
-    <div className="grid grid-cols-[auto_1fr_auto] gap-4 rounded-2xl bg-black/40 px-4 py-2.5 text-white tabular-nums shadow-lg backdrop-blur-md">
+    <div className="grid grid-cols-[auto_1fr_auto] gap-4 rounded-[22px] border border-white/10 bg-black/40 px-4 py-2.5 text-white tabular-nums shadow-lg backdrop-blur-md">
       <div className="w-20">
         <div className={`text-3xl font-extrabold leading-none ${snap.nitro ? "text-orange-300" : snap.brake ? "text-rose-300" : ""}`}>{Math.round(snap.speedMph)}</div>
         <div className="text-[10px] font-semibold uppercase tracking-widest opacity-70">mph {mode && `· ${mode}`}</div>
@@ -135,7 +136,7 @@ function Controls({ cut = "text-amber-300" }: { cut?: string }) {
 
 export function ReadyOverlay({ best, mode, pack, day, weather }: { best: number; mode: Mode; pack: PackId; day: string; weather: Weather }) {
   return (
-    <div className="pointer-events-none absolute inset-x-4 top-[26%] rounded-2xl bg-black/45 p-5 text-center text-white shadow-xl backdrop-blur-md">
+    <div className="pointer-events-none absolute inset-x-4 top-[26%] mx-auto max-w-md rounded-[24px] border border-white/10 bg-black/45 p-6 text-center text-white shadow-xl backdrop-blur-md">
       <h1 className="text-3xl font-black italic tracking-tight">TYPENCUT</h1>
       <p className="mb-3 mt-1 text-xs font-semibold uppercase tracking-widest text-amber-200">
         {MODE_INFO[mode][0]}
@@ -168,7 +169,7 @@ export function GameOver({ snap, board, runDate, day, news, onRestart }: {
   ];
   return (
     <div className="absolute inset-0 grid place-items-center overflow-y-auto bg-black/50 p-4 backdrop-blur-sm">
-      <div role="dialog" aria-modal="true" aria-labelledby="go-title" className="w-full max-w-sm rounded-2xl bg-white p-5 text-center text-stone-800 tabular-nums shadow-2xl dark:bg-slate-900 dark:text-slate-100">
+      <div role="dialog" aria-modal="true" aria-labelledby="go-title" className="w-full max-w-sm rounded-panel border border-line bg-surface p-6 text-center text-fg tabular-nums shadow-elev-2">
         <h2 id="go-title" className="text-sm font-semibold uppercase tracking-widest opacity-60">
           {snap.mode === "timeAttack" && snap.timeLeft === 0 ? "Time's up" : snap.mode === "zen" ? "Run ended" : "Run over"} · {MODE_INFO[snap.mode][0]}
         </h2>
@@ -257,10 +258,11 @@ export function Leaderboard({ board, highlight, mode, day, compact = false }: { 
 
 type Toggle = "muted" | "engine" | "reduceMotion" | "touch";
 
-/** Slide-in panel on the left with the settings. The game pauses while it is open (Game.tsx); Escape or the backdrop closes it. */
-export function Menu({ open, onClose, settings, onSettings, progress, onEnd }: {
-  open: boolean;
+/** One menu section as a panel beside the rail. The game pauses while it is open (Game.tsx); Escape or the backdrop closes it. */
+export function Menu({ section, onClose, settings, onSettings, progress, onEnd, board }: {
+  section: Section | null;
   onClose: () => void;
+  board: React.ReactNode; // the leaderboard, for the Leaderboard section
   settings: Settings;
   onSettings: (s: Settings) => void;
   progress: Progress;
@@ -269,13 +271,17 @@ export function Menu({ open, onClose, settings, onSettings, progress, onEnd }: {
   const [draft, setDraft] = useState(settings.customWords);
   const draftCount = parseWordList(draft).length;
   const first = useRef<HTMLButtonElement>(null);
+  const open = section !== null;
+  const [shown, setShown] = useState(section); // keeps the content while the panel slides out
+  if (section && section !== shown) setShown(section);
+  const title = SECTIONS.find(([id]) => id === shown)?.[1];
   useEffect(() => {
     if (!open) return;
     first.current?.focus();
     const onKey = (e: KeyboardEvent) => e.key === "Escape" && onClose();
     window.addEventListener("keydown", onKey);
     return () => window.removeEventListener("keydown", onKey);
-  }, [open, onClose]);
+  }, [open, section, onClose]);
   const set = <K extends keyof Settings>(k: K, v: Settings[K]) => onSettings({ ...settings, [k]: v });
   const label = (text: string, hint?: string) => (
     <span>
@@ -301,29 +307,34 @@ export function Menu({ open, onClose, settings, onSettings, progress, onEnd }: {
     </li>
   );
   return (
-    <div className={`fixed inset-0 z-30 ${open ? "" : "pointer-events-none"}`} aria-hidden={!open}>
-      <div className={`absolute inset-0 bg-black/40 transition-opacity duration-200 ${open ? "opacity-100" : "opacity-0"}`} onClick={onClose} />
-      <nav
+    <div className={`absolute inset-0 z-30 ${open ? "" : "pointer-events-none"}`} aria-hidden={!open}>
+      <div className={`fixed inset-0 bg-black/30 transition-opacity duration-200 ${open ? "opacity-100" : "opacity-0"}`} onClick={onClose} />
+      <section
         id="game-menu"
-        aria-label="Menu"
+        aria-label={title}
         inert={!open}
-        className={`absolute inset-y-0 left-0 flex w-72 max-w-[85vw] flex-col gap-5 overflow-y-auto bg-[#f4ead9] p-5 shadow-2xl transition-transform duration-200 dark:bg-[#0b1022] ${open ? "translate-x-0" : "-translate-x-full"}`}
+        className={`absolute inset-x-0 bottom-0 top-[82px] flex flex-col gap-5 overflow-y-auto rounded-panel border border-line bg-surface p-5 shadow-elev-2 transition duration-200 sm:left-auto sm:right-[80px] sm:top-0 sm:w-80 ${open ? "translate-x-0 opacity-100" : "translate-x-6 opacity-0"}`}
       >
         <div className="flex items-center justify-between">
-          <span className="text-xl font-black italic tracking-tight">TYPENCUT</span>
-          <button ref={first} onClick={onClose} className="rounded-full px-3 py-1 text-sm font-semibold hover:bg-black/5 dark:hover:bg-white/10">
+          <span>
+            <span className="block text-lg font-bold">{title}</span>
+            <span className="block text-xs font-semibold uppercase tracking-widest text-fg-subtle">Paused</span>
+          </span>
+          <button ref={first} onClick={onClose} className="rounded-full border border-line px-3 py-1 text-sm font-semibold hover:bg-surface-muted">
             Close
           </button>
         </div>
-        <p className="text-xs font-semibold uppercase tracking-widest opacity-60">Paused</p>
-        <ul className="-mx-3 space-y-1">
-          {soon("Multiplayer", "Race friends live")}
-        </ul>
-        {onEnd && (
+        {shown === "play" && (
+          <ul className="-mx-3 space-y-1">
+            {soon("Multiplayer", "Race friends live")}
+          </ul>
+        )}
+        {shown === "play" && onEnd && (
           <button onClick={onEnd} className="-mt-2 rounded-xl bg-black/5 px-3 py-2 text-left text-sm font-semibold hover:bg-black/10 dark:bg-white/10 dark:hover:bg-white/15">
             End this run
           </button>
         )}
+        {shown === "play" && (<>
         <fieldset className="text-sm">
           <legend className="mb-1 text-xs font-semibold uppercase tracking-widest opacity-60">Mode</legend>
           {(Object.keys(MODE_INFO) as Mode[]).map((m) => (
@@ -372,6 +383,8 @@ export function Menu({ open, onClose, settings, onSettings, progress, onEnd }: {
           )}
           <p className="mt-2 text-xs opacity-60">Changing the mode or words starts a new run.</p>
         </section>
+        </>)}
+        {shown === "garage" && (
         <section className="text-sm">
           <h2 className="mb-1 flex justify-between text-xs font-semibold uppercase tracking-widest opacity-60">
             Garage <span className="normal-case tracking-normal tabular-nums">{progress.total.toLocaleString()} lifetime pts</span>
@@ -397,7 +410,7 @@ export function Menu({ open, onClose, settings, onSettings, progress, onEnd }: {
                   aria-pressed={settings.paint === p.id}
                   aria-label={locked ? `${p.name}, unlocks at ${p.cost.toLocaleString()} lifetime points` : p.name}
                   title={locked ? `${p.name} · ${p.cost.toLocaleString()} pts` : p.name}
-                  className="grid h-8 w-8 place-items-center rounded-full border-2 border-black/15 text-xs aria-pressed:ring-2 aria-pressed:ring-amber-500 aria-pressed:ring-offset-2 disabled:opacity-40 dark:border-white/20 dark:ring-offset-[#0b1022]"
+                  className="grid h-8 w-8 place-items-center rounded-full border-2 border-black/15 text-xs aria-pressed:ring-2 aria-pressed:ring-amber-500 aria-pressed:ring-offset-2 disabled:opacity-40 dark:border-white/20 ring-offset-surface"
                   style={{ background: p.color }}
                 >
                   {locked && "🔒"}
@@ -407,6 +420,8 @@ export function Menu({ open, onClose, settings, onSettings, progress, onEnd }: {
           </div>
           <p className="mt-2 text-xs opacity-60">Every finished run adds its score to your lifetime points.</p>
         </section>
+        )}
+        {shown === "achievements" && (
         <section className="text-sm">
           <h2 className="mb-1 flex justify-between text-xs font-semibold uppercase tracking-widest opacity-60">
             Achievements <span className="tabular-nums">{Object.keys(progress.earned).length}/{ACHIEVEMENTS.length}</span>
@@ -426,8 +441,10 @@ export function Menu({ open, onClose, settings, onSettings, progress, onEnd }: {
             })}
           </ul>
         </section>
+        )}
+        {shown === "board" && board}
+        {shown === "settings" && (
         <section className="text-sm">
-          <h2 className="mb-1 text-xs font-semibold uppercase tracking-widest opacity-60">Settings</h2>
           <label className="block py-1.5">
             <span className="flex justify-between font-semibold">
               Volume <span className="tabular-nums opacity-60">{settings.muted ? "muted" : `${Math.round(settings.volume * 100)}%`}</span>
@@ -471,13 +488,13 @@ export function Menu({ open, onClose, settings, onSettings, progress, onEnd }: {
           {toggle("reduceMotion", "Reduce motion", "No camera shake, nitro zoom or edge blur")}
           {toggle("touch", "On-screen controls", "Steering buttons, and vibration on crashes")}
         </section>
-        <section>
-          <h2 className="mb-2 text-xs font-semibold uppercase tracking-widest opacity-60">How to play</h2>
+        )}
+        {shown === "help" && (
           <div className="[&_kbd]:bg-black/10 dark:[&_kbd]:bg-white/15">
             <Controls cut="text-amber-700 dark:text-amber-300" />
           </div>
-        </section>
-      </nav>
+        )}
+      </section>
     </div>
   );
 }

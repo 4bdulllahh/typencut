@@ -10,6 +10,7 @@ import { rollWeather, seedFromDate, snapshot } from "@/game/sim";
 import type { Weather } from "@/game/types";
 import { packWords } from "@/game/words";
 import { Dashboard, GameOver, Leaderboard, Menu, Popups, ReadyOverlay, type RunNews } from "./Hud";
+import { Rail, type Section } from "./Rail";
 import { Scene } from "./scene/Scene";
 import { TypingDock } from "./TypingDock";
 
@@ -45,8 +46,9 @@ export function Game() {
   const [snap, setSnap] = useState(() => snapshot(engine.state));
   const [night, setNight] = useState(() => readTheme() === "night");
   const [runDate, setRunDate] = useState<number>();
-  const [menu, setMenu] = useState(false);
-  const closeMenu = useCallback(() => setMenu(false), []);
+  const [section, setSection] = useState<Section | null>(null);
+  const menu = section !== null;
+  const closeMenu = useCallback(() => setSection(null), []);
   const [settings, setSettings] = useState(loadSettings);
   const [day, setDay] = useState(today); // fixed when a mode is applied, so a run that crosses midnight keeps its board
   const key = boardKey(settings.mode, day);
@@ -157,21 +159,17 @@ export function Game() {
   }, [engine, menu]);
 
   return (
-    <main className="flex h-dvh justify-center xl:gap-6">
-      <div className="hidden w-72 shrink-0 xl:block" aria-hidden />
-      <div className="relative aspect-[9/16] h-full max-w-full overflow-hidden">
+    <main className="flex h-dvh flex-col gap-3 p-3 sm:flex-row sm:justify-center">
+      <aside className="hidden w-72 shrink-0 overflow-y-auto rounded-panel border border-line bg-surface p-5 shadow-elev-1 xl:block">
+        <Leaderboard board={board} highlight={runDate} mode={settings.mode} day={day} />
+      </aside>
+      {/* Game + rail; the menu panel opens inside this box, right beside the rail. */}
+      <div className="relative flex min-h-0 min-w-0 flex-1 flex-col gap-3 sm:flex-initial sm:flex-row">
+      <div className="relative min-h-0 min-w-0 flex-1 overflow-hidden rounded-panel border border-line shadow-elev-1 sm:aspect-[3/4] sm:flex-initial">
         <Scene engine={engine} night={night} quality={settings.quality} reduceMotion={settings.reduceMotion} car={car} paint={paint} weather={weather} />
         <EdgeFx speedMph={snap.speedMph} nitro={snap.nitro} still={settings.reduceMotion} />
         <div className="pointer-events-none absolute inset-x-3 top-3 flex flex-col gap-2">
           <Dashboard snap={snap} />
-          <div className="flex justify-between [&>button]:pointer-events-auto [&>button]:rounded-full [&>button]:bg-black/30 [&>button]:px-3 [&>button]:py-1 [&>button]:text-xs [&>button]:font-semibold [&>button]:text-white [&>button]:backdrop-blur">
-            <button onClick={() => setMenu(true)} aria-expanded={menu} aria-controls="game-menu">
-              ☰ Menu
-            </button>
-            <button onClick={() => setNight((n) => !n)} aria-pressed={night}>
-              {night ? "☾ Night" : "☀ Day"}
-            </button>
-          </div>
           {toast && (
             <div key={toast.id} role="status" className="self-center rounded-full bg-amber-300 px-3 py-1 text-xs font-bold text-stone-900 shadow-lg">
               ★ Achievement · {toast.text}
@@ -185,17 +183,17 @@ export function Game() {
         </div>
         {snap.status === "over" && <GameOver snap={snap} board={board} runDate={runDate} day={day} news={news} onRestart={() => (engine.restart(), reroll())} />}
       </div>
-      <aside className="hidden w-72 shrink-0 overflow-y-auto py-6 xl:block">
-        <Leaderboard board={board} highlight={runDate} mode={settings.mode} day={day} />
-      </aside>
+      <Rail open={section} onOpen={setSection} night={night} onTheme={() => setNight((n) => !n)} />
       <Menu
-        open={menu}
+        section={section}
+        board={<Leaderboard board={board} highlight={runDate} mode={settings.mode} day={day} />}
         onClose={closeMenu}
         settings={settings}
         onSettings={setSettings}
         progress={progress}
-        onEnd={snap.status === "running" ? () => (engine.send({ type: "end" }), setMenu(false)) : undefined}
+        onEnd={snap.status === "running" ? () => (engine.send({ type: "end" }), closeMenu()) : undefined}
       />
+      </div>
     </main>
   );
 }

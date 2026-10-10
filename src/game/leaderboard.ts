@@ -19,7 +19,7 @@ export interface Board {
  */
 export const boardKey = (mode: Mode, date: string) =>
   mode === "classic" ? "typencut.board" : mode === "daily" ? `typencut.board.daily.${date}` : `typencut.board.${mode}`;
-export const TOP_N = 10;
+export const TOP_N = 7;
 const STATS = ["score", "accuracy", "maxSpeedMph", "cleanCuts"] as const;
 
 export const emptyBoard = (): Board => ({ runs: [], best: { score: 0, accuracy: 0, maxSpeedMph: 0, cleanCuts: 0 } });

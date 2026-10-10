@@ -6,7 +6,7 @@ export const metadata: Metadata = {
   description: "Type to weave through highway traffic. A low-poly speed-typing game.",
 };
 
-export const viewport: Viewport = { themeColor: "#f4ead9" };
+export const viewport: Viewport = { themeColor: "#ebdfc9" };
 
 export default function RootLayout({ children }: { children: React.ReactNode }) {
   return (

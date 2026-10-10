@@ -1,6 +1,6 @@
 # Typencut: handover (compact)
 
-_Updated 2026-10-10 · M11 pushed, **all 13 picked features done** · **live** https://typencut-two.vercel.app · repo `C:\Users\Computer\Documents\GitHub\typencut`, remote https://github.com/4bdulllahh/typencut · full brief in `docs/spec.md`._
+_Updated 2026-10-10 · M12 pushed, M13 in progress · **live** https://typencut-two.vercel.app · repo `C:\Users\Computer\Documents\GitHub\typencut`, remote https://github.com/4bdulllahh/typencut · full brief in `docs/spec.md`._
 
 ## Resume here
 - **v1.0, v1.1, M7–M11** are on `origin/main`.
@@ -10,7 +10,9 @@ _Updated 2026-10-10 · M11 pushed, **all 13 picked features done** · **live** h
   - Audio: `attachAudio` settings take `rain`; looped band-passed noise fades in.
   - Menu: Weather segmented control under Graphics.
 
-**First thing next session:** `git status`; all 13 picked features are done (M7–M11); ask the owner what is next.
+**Now (2026-10-10): owner asked for M12 + M13** (table below). **M12 pushed**: typecheck + build clean, 29 tests pass, headless shots (1264, 1424 with the leaderboard card, 390 phone; day + night; rail hover; Settings panel) looked at, no console errors. Version 1.7.0. Now building M13.
+- M12 shell: Paperless look (owner's `../Paperless` repo: `src/index.css` tokens, `src/app/NavRail.tsx`), canvas + rounded `rounded-panel` (28px) cards with border + soft shadow, typencut's own colours (amber accent, not Paperless orange). Right-side rail, collapsed to icons, expands on hover/focus over the game; items open one menu section as a panel; Day/Night toggle lives in the rail. Game column 3:4 (was 9:16). Leaderboard top 7.
+- M13 gameplay: `drive` mode (no typing: A/D or ←/→ lanes, W/↑ tap = small boost, double-tap W/↑ = nitro, S/↓ = brake); heart pickups on the road (6.5% of lane spawns become a heart, +1 life up to 3, not in zen); lane-switch keys rebindable in Settings (default `,` `.`, stored as `KeyboardEvent.code`, letters/Enter/Backspace/Tab/Escape refused).
 
 Not picked (don't build): police chase, ghost of best run, online leaderboard.
 
@@ -36,6 +38,8 @@ Open ideas, none promised: hide the floating word while a popup is on screen; ES
 | M9 | Modes + content: Zen (no crashes), Rush hour (dense traffic), Time attack (90 s); word packs (driving, programming, common English, other languages, your own list); daily challenge (same seed for everyone per day, its own daily best) | done |
 | M10 | Progression: achievements (16, shown in the menu, toast when earned); unlocks by lifetime score (6 paints, 911 Turbo S, M4 Competition); share card (image of the run's stats) | done |
 | M11 | Weather: rain (wet-road reflections, spray behind cars) and fog, random or chosen in Settings | done |
+| M12 | Shell redesign: Paperless-style rounded panels, right hover-expand rail (menu sections + Day/Night), wider 3:4 game, leaderboard top 7 | done |
+| M13 | Drive mode (WASD/arrows, W boost, double-tap nitro), heart pickups (6.5% of spawns), custom lane-switch keys in Settings | in progress |
 
 ## Rules the code must keep
 | Rule | How |
@@ -66,9 +70,13 @@ Next.js 16 + React 19 + TypeScript 5.9 (strict) · R3F 9 + drei 10 + three 0.186
 - `src/game/progress.ts` achievements + unlocks + lifetime points (`typencut.progress`) · `components/shareCard.ts` result image.
 - `src/game/leaderboard.ts` `typencut.board` in localStorage: pure `addRun` (top 10 by score + per-stat bests) and `parseBoard` (drops malformed data), tested; `saveRun` called from `Game.tsx` on `gameOver`.
 - `Scene.tsx` `WordTag`: projects a point over the nearest car ahead in the player's lane (else 35 m ahead) and writes the transform/text of a plain DOM tag beside the canvas each frame.
-- `Game.tsx` also: Dashboard + a row with Menu (left) and Day/Night (right) in one top stack; `menu` state pauses the engine (`engine.stop()`) and disables the dock; layout = left spacer + 9:16 column + right `Leaderboard` sidebar at `xl` (≥1280 px); theme (`typencut.theme` = day|night in localStorage, toggles `.dark` on `<html>`), `EdgeFx` (masked `backdrop-filter` blur scaled by speed + vignette).
+- `components/Rail.tsx` `Rail` + `SECTIONS` (play, garage, achievements, board, settings, help) + inline Lucide icon paths (no icon dep). Collapsed 68 px; the inner card is absolute and widens to `w-56` on hover/focus-within over the game (no layout shift); phones (<sm) get a row of icons above the game. `Menu` (Hud.tsx) takes `section` and shows only that part; it is positioned inside the game+rail wrapper (`right-[80px]`), backdrop is `fixed`.
+- Theme tokens in `globals.css` (`--canvas`, `--surface`, `--surface-muted`, `--line`, `--fg`, `--fg-subtle`, `--accent`, `--elev-1/2`; `.dark` overrides) → Tailwind `bg-canvas`, `bg-surface`, `border-line`, `text-fg-subtle`, `bg-accent-soft`, `shadow-elev-1`, `rounded-panel` (28 px).
+- `Game.tsx` also: Dashboard + toast in one top stack; `section` state (non-null = menu open) pauses the engine (`engine.stop()`) and disables the dock; layout = `p-3 gap-3` canvas: `Leaderboard` card at `xl` + [3:4 game card + `Rail` + `Menu`] wrapper; theme (`typencut.theme` = day|night in localStorage, toggles `.dark` on `<html>`), `EdgeFx` (masked `backdrop-filter` blur scaled by speed + vignette).
 
 ## Traps already found
+- `next start` launched in the background survives `TaskStop` (the node child keeps port 3123): `taskkill //PID <pid> //T //F` from `netstat -ano | grep :3123`, then restart, or shots show the old build.
+- Never put a bare `cat > file` before a heredoc'd command in one Bash call: it waits on stdin until the 2-minute timeout.
 - Next 16 has breaking changes: read `node_modules/next/dist/docs/` before using a Next API. `ssr:false` dynamic must live in a client component.
 - `node --test src/game/` fails on Windows (treated as a module path): quote a glob, `"src/game/*.test.ts"`.
 - Don't remount the dock to replay a CSS animation (`key=`): the input loses focus. Toggle a class with a timeout.

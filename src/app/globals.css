@@ -2,16 +2,51 @@
 
 @custom-variant dark (&:where(.dark, .dark *));
 
+/* Soft rounded panels after the owner's Paperless app, in typencut's own sand/navy + amber colours. */
+@theme {
+  --radius-panel: 28px;
+}
+:root {
+  --canvas: #ebdfc9;
+  --surface: #f7efe1;
+  --surface-muted: #efe4d1;
+  --line: #e0d2b9;
+  --fg: #2b2722;
+  --fg-subtle: #6f665a;
+  --accent: #d97706;
+  --elev-1: 0 1px 2px rgb(43 39 34 / 0.05), 0 4px 16px rgb(43 39 34 / 0.06);
+  --elev-2: 0 2px 6px rgb(43 39 34 / 0.08), 0 16px 40px rgb(43 39 34 / 0.14);
+}
+.dark {
+  --canvas: #070b18;
+  --surface: #0f1630;
+  --surface-muted: #172042;
+  --line: #222c50;
+  --fg: #e6e9f2;
+  --fg-subtle: #97a0bc;
+  --accent: #fbbf24;
+  --elev-1: 0 1px 2px rgb(0 0 0 / 0.3), 0 4px 16px rgb(0 0 0 / 0.25);
+  --elev-2: 0 2px 6px rgb(0 0 0 / 0.35), 0 16px 40px rgb(0 0 0 / 0.4);
+}
+@theme inline {
+  --color-canvas: var(--canvas);
+  --color-surface: var(--surface);
+  --color-surface-muted: var(--surface-muted);
+  --color-line: var(--line);
+  --color-fg: var(--fg);
+  --color-fg-subtle: var(--fg-subtle);
+  --color-accent: var(--accent);
+  --color-accent-soft: color-mix(in oklab, var(--accent) 16%, var(--surface));
+  --shadow-elev-1: var(--elev-1);
+  --shadow-elev-2: var(--elev-2);
+}
+
 html,
 body {
   height: 100%;
   overflow: hidden;
-  background: #f4ead9;
-  color: #2b2722;
-}
-.dark body {
-  background: #0b1022;
-  color: #e6e9f2;
+  background: var(--canvas);
+  color: var(--fg);
 }
 /* One typeface everywhere: key caps would otherwise fall back to monospace. */
 kbd {

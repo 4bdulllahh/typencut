@@ -4,7 +4,7 @@ Type to weave a Porsche 911 GT3 RS through highway traffic.
 
 A browser speed-typing game inspired by *Assetto Corsa: No Hesi* highway weaving, drawn in the flat-shaded, low-poly style of *Art of Rally*. Every word you type moves you: finish it with a comma to go one lane left, a full stop to go right, or Enter to hold your lane with a burst of speed. Shout it in ALL CAPS for nitro, and tap Enter twice to brake. Slip past black cruisers and lane-hopping red mergers, chain close passes into a 5× multiplier, and cut out from right behind a car for a 500-point CLEAN CUT. No account, no server and no downloads: every car, tree, sign and sound is generated in code.
 
-**Live:** https://typencut-two.vercel.app · **Version:** 1.6.0
+**Live:** https://typencut-two.vercel.app · **Version:** 1.7.0
 
 [![Deploy with Vercel](https://vercel.com/button)](https://vercel.com/new/clone?repository-url=https%3A%2F%2Fgithub.com%2F4bdulllahh%2Ftypencut&project-name=typencut&repository-name=typencut)
 [![CI](https://github.com/4bdulllahh/typencut/actions/workflows/ci.yml/badge.svg)](https://github.com/4bdulllahh/typencut/actions/workflows/ci.yml)
@@ -34,10 +34,10 @@ A browser speed-typing game inspired by *Assetto Corsa: No Hesi* highway weaving
 - **Day and night.** A warm pastel day with soft shadows, or a night drive with lit streetlights, headlight beams, a real spotlight from your car, and a soft red glow on the road behind each taillight, placed where that car's lamps really are (corner lamps on most cars, tall slim lamps on the F-150, one full-width strip on the GT3 RS) and stretching with speed. The toggle is top right and your choice is remembered.
 - **Weather.** Rain brings falling streaks, spray kicked up behind every car, a darker glossy road where taillights and streetlights stretch into long reflections at night, a grey overcast sky and the hiss of rain. Fog hangs a thick haze over the road that swallows traffic about 100 m ahead, so cars appear later. Pick Clear, Rain or Fog in Settings, or leave it on Random for a new roll each run (half clear, 30% rain, 20% fog). The weather changes only what you see and hear; the car drives the same.
 - **Synthesised sound.** An engine note that climbs through a seven-speed gearbox as you speed up, drops on every upshift and howls on nitro. A soft linear-switch key click (duller on a wrong letter), a turbo blow-off on nitro, a rising whoosh on an Enter boost, tyre screech on lane changes and braking, a horn when you pass close, and a thud when you crash. All generated live with the Web Audio API.
-- **Accuracy over speed.** You type when a gap opens, not as fast as you can, so the game tracks accuracy rather than words per minute. The digital dashboard shows speed, lives, multiplier, score and live accuracy. At game over you get score, accuracy, top speed, clean cuts and distance. Your top 10 runs and best-ever stats for the current mode sit in a sidebar on wide screens and on the game-over card on smaller ones.
-- **Menu and settings.** A slide-in panel on the left pauses the game. It picks the mode and word pack, ends the current run, and holds the settings: volume, mute, engine sound on or off, graphics quality (Low drops shadows and renders at 1× for slower devices), weather (Random, Clear, Rain or Fog), reduce motion (no camera shake, nitro zoom or edge blur; on by default if your system asks for less motion), and on-screen controls. Your choices are remembered. Multiplayer has its place ready.
+- **Accuracy over speed.** You type when a gap opens, not as fast as you can, so the game tracks accuracy rather than words per minute. The digital dashboard shows speed, lives, multiplier, score and live accuracy. At game over you get score, accuracy, top speed, clean cuts and distance. Your top 7 runs and best-ever stats for the current mode sit in a card on wide screens, in the rail's Leaderboard panel, and on the game-over card on smaller screens.
+- **Rail and settings.** Soft rounded panels throughout. An icon rail on the right (a row above the game on phones) widens to show its labels when you hover or tab into it. Each item opens one panel beside it and pauses the game: Mode & words (pick the mode and word pack, end the current run), Garage, Achievements, Leaderboard, Settings and How to play. The Day/Night switch sits at the foot of the rail. Settings holds volume, mute, engine sound on or off, graphics quality (Low drops shadows and renders at 1× for slower devices), weather (Random, Clear, Rain or Fog), reduce motion (no camera shake, nitro zoom or edge blur; on by default if your system asks for less motion), and on-screen controls. Your choices are remembered. Multiplayer has its place ready.
 - **Phone controls.** Left, straight and right buttons above the dock, on by default on touch screens. They submit the word you've typed without closing the phone's keyboard, the middle one doubles as the brake (tap twice on an empty box), and crashes vibrate on phones that support it.
-- **One typeface, phone to desktop.** Everything uses the same system sans (Segoe UI on Windows, San Francisco on Apple devices), and the road stays in a 9:16 portrait column at any window size.
+- **One typeface, phone to desktop.** Everything uses the same system sans (Segoe UI on Windows, San Francisco on Apple devices), and the road stays in a 3:4 column at any window size.
 
 | Day: a nitro lane change, with exhaust flames and skid marks | Game over, with the leaderboard sidebar |
 | --- | --- |
@@ -151,7 +151,7 @@ Points are multiplied by your multiplier when scored. The multiplier is 1 + 0.2 
 
 ## Leaderboard
 
-[`src/game/leaderboard.ts`](src/game/leaderboard.ts) keeps one board per mode (Classic keeps the original key, so v1 boards carry over) and one per day for the daily challenge. Each keeps your top 10 runs by score and, separately, your best value for every stat (score, accuracy, top speed, clean cuts), so a record set in a low-scoring run still counts. Anyone can edit localStorage, so the stored board is validated on every load: any entry that isn't a complete set of finite numbers is dropped instead of breaking the page. Runs saved by v1.0 still load; their old WPM field is ignored. Both rules are tested.
+[`src/game/leaderboard.ts`](src/game/leaderboard.ts) keeps one board per mode (Classic keeps the original key, so v1 boards carry over) and one per day for the daily challenge. Each keeps your top 7 runs by score and, separately, your best value for every stat (score, accuracy, top speed, clean cuts), so a record set in a low-scoring run still counts. Anyone can edit localStorage, so the stored board is validated on every load: any entry that isn't a complete set of finite numbers is dropped instead of breaking the page. Runs saved by v1.0 still load; their old WPM field is ignored. Both rules are tested.
 
 ## Progression
 
@@ -200,7 +200,7 @@ flowchart LR
 | Folder | What's in it |
 | --- | --- |
 | `src/game` | Framework-free game: config and car footprints, simulation, input matching, words, engine loop, audio, leaderboard, achievements and unlocks, and their Node tests |
-| `src/components` | `Game` (layout, theme, wiring), `TypingDock` (keys → commands), `Hud` (dashboard, popups, start card, game over, leaderboard, menu with garage and achievements), `shareCard` (the result image) |
+| `src/components` | `Game` (layout, theme, wiring), `TypingDock` (keys → commands), `Rail` (the right-hand icon rail and Day/Night switch), `Hud` (dashboard, popups, start card, game over, leaderboard, the menu panels: mode, garage, achievements, settings, help), `shareCard` (the result image) |
 | `src/components/scene` | `Scene` (canvas, lights, camera rig, traffic, floating word), `World` (road and roadside), `Vehicles` (cars and night lights), `Fx` (skid marks, smoke), shared canvas textures |
 | `src/app` | Next.js layout and page; the game loads client-side only |
 | `scripts` | `shot.mjs`: a headless-Chrome playthrough that saves screenshots and reports console errors |
@@ -208,7 +208,7 @@ flowchart LR
 ## Accessibility
 
 - The whole game is played from the keyboard. The game-over card is a labelled dialog whose Play again button takes focus, so Enter starts the next run.
-- The menu opens with focus on Close, Escape or a click outside closes it, and the game pauses while it is open.
+- The rail is a labelled navigation landmark whose buttons say which panel they open; it widens on keyboard focus as well as hover. A panel opens with focus on Close, Escape or a click outside closes it, and the game pauses while it is open.
 - The typing input is labelled with the current word and the controls. Score popups are announced politely to screen readers, and the hearts have a text label.
 - **Reduce motion** (in Settings, and on by default when your system asks for less motion) removes camera shake, the nitro zoom and the edge blur, and score popups fade instead of flying.
 - Settings use native controls (a slider, checkboxes and radio buttons, including the weather choice), so they work with the keyboard and screen readers. Paint swatches are buttons named after the paint, and a locked one says how many points unlock it. New achievements are announced as a status message.
@@ -265,6 +265,8 @@ CI runs the type check, tests and production build on every push and pull reques
 - [x] **M9** Modes and content: Zen, Rush hour and Time attack modes, word packs, a daily challenge (v1.4.0)
 - [x] **M10** Progression: achievements, unlockable paints and cars, a shareable result card (v1.5.0)
 - [x] **M11** Weather: rain and fog (v1.6.0)
+- [x] **M12** Layout: soft rounded panels, a right-hand rail that widens on hover with Day/Night in it, a wider 3:4 road, top 7 leaderboard (v1.7.0)
+- [ ] **M13** Drive mode (WASD or arrow keys, no typing), heart pickups on the road, your own lane-switch keys
 
 ## License
 
