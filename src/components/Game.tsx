@@ -3,7 +3,9 @@
 import { useEffect, useState } from "react";
 import { attachAudio } from "@/game/audio";
 import { GameEngine } from "@/game/engine";
+import { loadBoard, saveRun } from "@/game/leaderboard";
 import { snapshot } from "@/game/sim";
+import { Dashboard, GameOver, Leaderboard, Popups, ReadyOverlay } from "./Hud";
 import { Scene } from "./scene/Scene";
 import { TypingDock } from "./TypingDock";
 
@@ -35,6 +37,8 @@ export function Game() {
   const [engine] = useState(() => new GameEngine());
   const [snap, setSnap] = useState(() => snapshot(engine.state));
   const [night, setNight] = useState(() => readTheme() === "night");
+  const [board, setBoard] = useState(loadBoard);
+  const [runDate, setRunDate] = useState<number>();
 
   useEffect(() => {
     document.documentElement.classList.toggle("dark", night);
@@ -44,6 +48,18 @@ export function Game() {
   }, [night]);
 
   useEffect(() => attachAudio(engine), [engine]);
+
+  useEffect(
+    () =>
+      engine.on((e) => {
+        if (e.type !== "gameOver") return;
+        const s = snapshot(engine.state);
+        const date = Date.now();
+        setBoard(saveRun({ score: s.score, wpm: s.wpm, accuracy: s.accuracy, maxSpeedMph: s.maxSpeedMph, cleanCuts: s.cleanCuts, date }));
+        setRunDate(date);
+      }),
+    [engine],
+  );
 
   useEffect(() => {
     engine.start();
@@ -58,37 +74,29 @@ export function Game() {
   }, [engine]);
 
   return (
-    <main className="flex h-dvh justify-center">
-      <div className="relative aspect-[9/16] h-full max-w-full">
+    <main className="flex h-dvh justify-center xl:gap-6">
+      <div className="hidden w-72 shrink-0 xl:block" aria-hidden />
+      <div className="relative aspect-[9/16] h-full max-w-full overflow-hidden">
         <Scene engine={engine} night={night} />
         <EdgeFx speedMph={snap.speedMph} nitro={snap.nitro} />
+        <Dashboard snap={snap} />
         <button
-          className="absolute right-3 top-10 rounded-full bg-black/30 px-3 py-1 text-xs text-white backdrop-blur"
+          className="absolute right-3 top-[5.25rem] rounded-full bg-black/30 px-3 py-1 text-xs text-white backdrop-blur"
           onClick={() => setNight((n) => !n)}
           aria-pressed={night}
         >
           {night ? "☾ Night" : "☀ Day"}
         </button>
-        <div className="pointer-events-none absolute inset-x-0 top-3 flex justify-between px-4 font-mono text-sm text-white drop-shadow">
-          <span>{Math.round(snap.speedMph)} mph</span>
-          <span>{"♥".repeat(snap.lives)}</span>
-          <span>{snap.score} pts ×{snap.multiplier.toFixed(1)}</span>
-          <span>{Math.round(snap.wpm)} wpm</span>
-        </div>
+        <Popups engine={engine} />
+        {snap.status === "ready" && <ReadyOverlay best={board.best.score} />}
         <div className="absolute inset-x-0 bottom-6 flex justify-center px-3">
           <TypingDock engine={engine} word={snap.word} nextWord={snap.nextWord} disabled={snap.status === "over"} />
         </div>
-        {snap.status === "ready" && (
-          <p className="pointer-events-none absolute inset-x-0 top-1/3 text-center text-lg font-semibold text-white drop-shadow">Type the word to start</p>
-        )}
-        {snap.status === "over" && (
-          <div className="absolute inset-0 grid place-items-center bg-black/40">
-            <button className="rounded-full bg-white px-6 py-3 font-semibold text-black" onClick={() => engine.restart()}>
-              Play again · {snap.score} pts
-            </button>
-          </div>
-        )}
+        {snap.status === "over" && <GameOver snap={snap} board={board} runDate={runDate} onRestart={() => engine.restart()} />}
       </div>
+      <aside className="hidden w-72 shrink-0 overflow-y-auto py-6 xl:block">
+        <Leaderboard board={board} highlight={runDate} />
+      </aside>
     </main>
   );
 }

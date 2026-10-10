@@ -10,6 +10,7 @@ A browser speed-typing game: weave a Porsche 911 GT3 RS through highway traffic 
 - Press **Enter twice** with an empty input to brake for a second.
 - Overtake for points: +50 standard, +100 in the next lane over, **+500 clean cut** when you dodge out from right behind a car. Passes without contact build a multiplier up to 5×. Three crashes and the run is over.
 - Words start at three letters and grow longer (with mixed casing) as you go.
+- The word to type also floats over the next car in your lane. Your top 10 runs and best-ever stats are saved in this browser.
 
 ## Tech
 Next.js 16 · React 19 · React Three Fiber + drei · three.js · Tailwind CSS 4 · Web Audio API. No backend.

@@ -1,17 +1,17 @@
 # Typencut: handover (compact)
 
-_Updated 2026-10-10 · M1–M3 pushed (`ea1eb7f`), M4 done + uncommitted · repo `C:\Users\Computer\Documents\GitHub\typencut`, remote https://github.com/4bdulllahh/typencut · full brief in `docs/spec.md`._
+_Updated 2026-10-10 · M1–M4 pushed (`a5bcccb`), M5 done + uncommitted · repo `C:\Users\Computer\Documents\GitHub\typencut`, remote https://github.com/4bdulllahh/typencut · full brief in `docs/spec.md`._
 
 ## Resume here
-- **M1–M3** are on `origin/main` (M3 = `ea1eb7f`).
-- **M4** finished and verified (tsc + lint + build clean, 11 tests pass, day/night headless shots with no console errors; flames, skid marks, light and dense smoke all seen in shots) but **uncommitted**: new `src/game/audio.ts`, `src/components/scene/Fx.tsx`; flames in `Vehicles.tsx`; `key` event in `sim.ts`/`types.ts`/test; `Game.tsx` attaches audio; `Scene.tsx` mounts `SkidMarks`/`Smoke`; `scripts/shot.mjs` adds `02-nitro`; this file.
-- Audio was never heard (headless), only checked for errors. Ask the owner to try it in a browser.
+- **M1–M4** are on `origin/main` (M4 = `a5bcccb`).
+- **M5** finished and verified (tsc + lint + build clean, 13 tests pass; headless runs at 1264, 1500 and 500 px wide, day + night, no console errors; dashboard, word tag, popups, ready overlay, game-over modal, sidebar all seen) but **uncommitted**: new `src/components/Hud.tsx`, `src/game/leaderboard.ts` + test; `Game.tsx` layout/HUD; `Scene.tsx` `WordTag`; popup CSS in `globals.css`; `scripts/shot.mjs` adds `05-over`; this file.
+- Still never heard the audio (headless). Ask the owner to try it.
 
 **First thing next session:**
-1. `git status` to confirm M4 is still uncommitted, then ask the owner: "Commit M4 and start M5?"
-2. On yes: commit M4 (`feat: M4 fx + audio — …`), `git push origin main`, start **M5**.
+1. `git status` to confirm M5 is still uncommitted, then ask the owner: "Commit M5 and start M6?"
+2. On yes: commit M5 (`feat: M5 hud + meta — …`), `git push origin main`, start **M6**.
 
-M5 notes: HUD + meta per the milestone table. Replace the temporary top text row and "Play again" button in `Game.tsx`. `snapshot()` in `sim.ts` already feeds the HUD at 10 Hz plus on every event. Floating words over obstacles need world→screen projection (do it inside the Canvas with drei `Html` or a `useFrame` that writes DOM transforms). Leaderboard goes in `src/game/leaderboard.ts` (localStorage, already allowed by the rules). Consider a mute toggle next to the theme toggle (`attachAudio` would need a `setMuted`). Tuning for M6: player yaw `-p.vx * 0.04` reaches ~27° on a nitro lane change, which may look too much.
+M6 notes: tuning pass (player yaw `-p.vx * 0.04` reaches ~27° on a nitro lane change; crash rate vs. difficulty; audio levels once heard), maybe a mute toggle (`attachAudio` would need a `setMuted`), headless screenshots into `docs/` for the README, `vercel.json` only if Next defaults aren't enough, GitHub Actions CI (`npm ci`, `npx tsc --noEmit`, `npm run lint`, `npm test`, `npm run build`), final README.
 
 ## Working with the owner
 - Build in milestones; stop after each and ask to continue. On approval, commit the finished milestone and push to `origin/main` (commit messages end with a `Co-Authored-By` line). Keep README and this file current, and keep this file short.
@@ -24,7 +24,7 @@ M5 notes: HUD + meta per the milestone table. Replace the temporary top text row
 | M2 | World: low-poly road (dashes, shoulders, barriers, gantries, speed cameras, streetlights, trees), camera rig (15–20° tilt, follow, FOV, shake), day/night lighting, vignette + edge blur | done |
 | M3 | Vehicles: procedural GT3 RS + 5 black cruisers + 3 red mergers, indicators, brake lights, night headlights/beams/taillight trails, player damage states | done |
 | M4 | FX + audio: nitro exhaust flames, skid marks, engine smoke, Web Audio synth (key click, blow-off, screech, horn, thud) | done |
-| M5 | HUD + meta: dashboard (speedo, combo bar, hearts, WPM), floating words over obstacles, CLEAN CUT text + rumble, leaderboard sidebar, ready overlay, game-over modal, theme toggle, responsive | todo |
+| M5 | HUD + meta: dashboard (speedo, combo bar, hearts, WPM), floating words over obstacles, CLEAN CUT text + rumble, leaderboard sidebar, ready overlay, game-over modal, theme toggle, responsive | done |
 | M6 | Polish + ship: tuning pass, headless screenshots, vercel.json, CI, README final | todo |
 
 ## Rules the code must keep
@@ -39,7 +39,7 @@ M5 notes: HUD + meta per the milestone table. Replace the temporary top text row
 Next.js 16 + React 19 + TypeScript 5.9 (strict) · R3F 9 + drei 10 + three 0.186 · Tailwind 4 (CSS config) · no other runtime deps · units: metres, m/s (`MPH` const in `config.ts`) · lanes 0–4 left→right, `laneX()` · seeded RNG in state (mulberry32) · traffic: lane 0 85–95 mph, others 60–80; 12% surprise cuts · scoring: pass in a lane 2+ away = standard 50, adjacent = dangerous 100, passing the car you just cut out from behind (≤12 m gap at the switch) = clean cut 500; multiplier 1 + 0.2 per pass, max 5 · nitro = word typed in ALL CAPS · brake = Enter twice within 350 ms on an empty input.
 
 ## Commands
-`npm run dev` · `npm run build` · `npm test` (node --test on `src/game/*.test.ts`) · `npx tsc --noEmit` · `node scripts/shot.mjs <url> <outDir> [--night]` (headless Chrome via CDP, no deps: plays 8 words incl. nitro, double-Enter brake, saves 5 PNGs incl. `02-nitro` mid-swerve, prints console errors; reads the word from the input's aria-label). Node 24. Windows 11 dev.
+`npm run dev` · `npm run build` · `npm test` (node --test on `src/game/*.test.ts`) · `npx tsc --noEmit` · `node scripts/shot.mjs <url> <outDir> [--night]` (headless Chrome via CDP, no deps: plays 8 words incl. nitro, double-Enter brake, saves `01-ready`, `02-nitro` mid-swerve, `02-driving`, `03-braking`, `04-later`, then idles until the run ends for `05-over`, prints console errors; reads the word from the input's aria-label). Node 24. Windows 11 dev.
 
 ## Code map
 - `src/game/config.ts` constants, lane geometry, car dimensions · `types.ts` state/command/event types · `words.ts` word buckets + `pickWord` · `sim.ts` ★ `createState`, `applyCommand`, `step`, `snapshot` · `input.ts` `matchWord`, `isPrefix` · `engine.ts` loop + pub/sub.
@@ -51,7 +51,10 @@ Next.js 16 + React 19 + TypeScript 5.9 (strict) · R3F 9 + drei 10 + three 0.186
 - `components/scene/Vehicles.tsx` ★ `STYLE` per model (body/cabin/roof heights, cabin span as a length fraction, wheel radius, `bed` for the F-150) → shared `Body` built from one unit `BOX` scaled per part; footprints from `MODELS`. `PlayerCar`: GT3 RS extras (carbon hood/roof, louvers, swan-neck wing, dual exhausts, LED strip = brake light while `brakeT > 0`), `scuffs` group at `lives <= 2`, `dents` at `lives <= 1`, invuln blink, yaw from `vx`, night spotLight. `NpcCar`: black cruiser / red merger, amber corner blinkers per side, yaw while sliding. `NightLights`: additive ground beam ahead + red trail behind, stretched by speed (`setTrail`).
 - `components/scene/Fx.tsx` `SkidMarks` (instanced ring buffer of 240 road-space segments under the rear tyres while `|vx| > 3` or braking; cleared on restart) · `Smoke` (48 pooled puffs from the rear deck, 8/s at 2 lives, 24/s dark at 1). Nitro flames live in `PlayerCar` (`flames` group).
 - `src/game/audio.ts` `attachAudio(engine)` synth on events: `key` click, `nitro` blow-off + whoomp, `laneChange`/`brake` screech, horn on dangerous/clean-cut overtakes, `collision` thud. AudioContext made lazily on the first keystroke.
-- `Game.tsx` also: theme (`typencut.theme` = day|night in localStorage, toggles `.dark` on `<html>`), `EdgeFx` (masked `backdrop-filter` blur scaled by speed + vignette).
+- `components/Hud.tsx` `Dashboard` (speed + bar, hearts, multiplier bar + combo, score, WPM) · `Popups` (overtake/crash callouts from `engine.on`, big CLEAN CUT; `.pop` CSS, reduced-motion = fade) · `ReadyOverlay` · `GameOver` (dialog, autofocus Play again, compact leaderboard below `xl`) · `Leaderboard` (top runs + best-run records).
+- `src/game/leaderboard.ts` `typencut.board` in localStorage: pure `addRun` (top 10 by score + per-stat bests) and `parseBoard` (drops malformed data), tested; `saveRun` called from `Game.tsx` on `gameOver`.
+- `Scene.tsx` `WordTag`: projects a point over the nearest car ahead in the player's lane (else 35 m ahead) and writes the transform/text of a plain DOM tag beside the canvas each frame.
+- `Game.tsx` also: layout = left spacer + 9:16 column + right `Leaderboard` sidebar at `xl` (≥1280 px); theme (`typencut.theme` = day|night in localStorage, toggles `.dark` on `<html>`), `EdgeFx` (masked `backdrop-filter` blur scaled by speed + vignette).
 
 ## Traps already found
 - Next 16 has breaking changes: read `node_modules/next/dist/docs/` before using a Next API. `ssr:false` dynamic must live in a client component.
@@ -60,4 +63,6 @@ Next.js 16 + React 19 + TypeScript 5.9 (strict) · R3F 9 + drei 10 + three 0.186
 - three 0.186 light units are physical: diffuse ≈ albedo × intensity / π. Day lights sum to ~π (hemi 1.7 + sun 2.1) or the scene goes muddy.
 - `Repeat` must base its window on `floor((s − NEAR) / period)`; basing it on `floor(s / period)` drops copies when the period is longer than the view.
 - `scripts/shot.mjs` reuses a Chrome profile, so it always writes the theme itself (otherwise a `--night` run leaks into the next). Stop the test server with `taskkill //PID <pid> //T //F` (find it with `netstat -ano | grep :3123`); `npx kill-port` hangs when npm is offline.
+- drei `Html` renders an empty wrapper here (React 19.3 + drei 10.7.9): its content never mounts. Project to screen in `useFrame` and write a DOM node instead (see `WordTag`).
+- Headless Chrome is killed, so localStorage from one shot run often doesn't survive into the next; the leaderboard starting empty in shots is expected.
 - Narrowing: after a helper sets `state.status = "over"`, TS still thinks it's `"running"`; check `lives` instead.

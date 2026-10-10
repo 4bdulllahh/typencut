@@ -1,8 +1,9 @@
 "use client";
 
 import { Canvas, useFrame } from "@react-three/fiber";
-import { useEffect, useRef, useState } from "react";
-import type { PerspectiveCamera } from "three";
+import { useEffect, useMemo, useRef, useState } from "react";
+import { Vector3, type PerspectiveCamera } from "three";
+import { LANE_W } from "@/game/config";
 import type { GameEngine } from "@/game/engine";
 import { EngineCtx, NightCtx, useEngine } from "./context";
 import { SkidMarks, Smoke } from "./Fx";
@@ -11,20 +12,29 @@ import { World } from "./World";
 
 /** Renders `engine.state` every frame. Never writes to it. */
 export function Scene({ engine, night }: { engine: GameEngine; night: boolean }) {
+  const tag = useRef<HTMLDivElement>(null);
   return (
-    <Canvas shadows flat dpr={[1, 2]} camera={{ fov: FOV, near: 1, far: 400, position: [0, CAM_H, CAM_BACK] }}>
-      <EngineCtx.Provider value={engine}>
-        <NightCtx.Provider value={night}>
-          <Atmosphere night={night} />
-          <CameraRig />
-          <World />
-          <SkidMarks />
-          <PlayerCar />
-          <Smoke />
-          <Traffic />
-        </NightCtx.Provider>
-      </EngineCtx.Provider>
-    </Canvas>
+    <div className="absolute inset-0">
+      <Canvas shadows flat dpr={[1, 2]} camera={{ fov: FOV, near: 1, far: 400, position: [0, CAM_H, CAM_BACK] }}>
+        <EngineCtx.Provider value={engine}>
+          <NightCtx.Provider value={night}>
+            <Atmosphere night={night} />
+            <CameraRig />
+            <World />
+            <SkidMarks />
+            <PlayerCar />
+            <Smoke />
+            <Traffic />
+            <WordTag el={tag} />
+          </NightCtx.Provider>
+        </EngineCtx.Provider>
+      </Canvas>
+      <div
+        ref={tag}
+        aria-hidden
+        className="pointer-events-none absolute left-0 top-0 whitespace-nowrap rounded-full bg-white/85 px-2.5 py-0.5 font-mono text-sm font-semibold text-stone-800 shadow-md dark:bg-slate-900/85 dark:text-slate-100"
+      />
+    </div>
   );
 }
 
@@ -103,4 +113,31 @@ function Traffic() {
   });
   useEffect(() => engine.on((e) => e.type === "restart" && setIds([])), [engine]);
   return ids.map((id) => <NpcCar key={id} id={id} />);
+}
+
+/** The target word floats over the next car in the player's lane (or the open road ahead); `el` is a DOM tag beside the canvas. */
+function WordTag({ el }: { el: React.RefObject<HTMLDivElement | null> }) {
+  const engine = useEngine();
+  const pos = useMemo(() => new Vector3(0, 3, -35), []);
+  const v = useMemo(() => new Vector3(), []);
+  useFrame(({ camera, size }, dt) => {
+    const tag = el.current;
+    if (!tag) return;
+    const { player: p, npcs, word, status } = engine.state;
+    let gap = 90;
+    let x = p.x;
+    for (const n of npcs) {
+      const d = n.s - p.s;
+      if (d > 4 && d < gap && Math.abs(n.x - p.x) < LANE_W / 2) [gap, x] = [d, n.x];
+    }
+    if (gap === 90) gap = 35;
+    const k = Math.min(1, dt * 10);
+    pos.x += (x - pos.x) * k;
+    pos.z += (-gap - pos.z) * k;
+    v.copy(pos).project(camera);
+    tag.style.transform = `translate(${((v.x + 1) / 2) * size.width}px, ${((1 - v.y) / 2) * size.height}px) translate(-50%, -50%)`;
+    tag.style.visibility = status === "over" ? "hidden" : "visible";
+    if (tag.textContent !== word) tag.textContent = word;
+  });
+  return null;
 }

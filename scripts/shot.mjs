@@ -71,6 +71,9 @@ await sleep(300);
 await shot("03-braking");
 await sleep(6000);
 await shot("04-later");
+// Idle until traffic ends the run (up to 60 s), then capture the game-over modal + leaderboard.
+for (let i = 0; i < 120 && !(await evaluate(`!!document.querySelector('[role=dialog]')`)); i++) await sleep(500);
+await shot("05-over");
 console.log(errors.length ? "CONSOLE ERRORS:\n" + errors.join("\n") : "no console errors");
 ws.close();
 proc.kill();
