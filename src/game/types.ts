@@ -73,6 +73,7 @@ export type Command =
 
 export type GameEvent =
   | { type: "start" }
+  | { type: "key"; correct: boolean }
   | { type: "word"; word: string }
   | { type: "miss" }
   | { type: "laneChange"; dir: Dir }

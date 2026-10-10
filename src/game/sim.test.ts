@@ -57,7 +57,7 @@ test("first key starts the run; the start keeps the player's lane clear", () => 
   const s = createState(7);
   assert.equal(s.status, "ready");
   assert.ok(!s.npcs.some((n) => n.lane === 2 && n.s < 120));
-  assert.deepEqual(applyCommand(s, { type: "key", correct: true }), [{ type: "start" }]);
+  assert.deepEqual(applyCommand(s, { type: "key", correct: true }), [{ type: "start" }, { type: "key", correct: true }]);
   assert.equal(s.status, "running");
 });
 

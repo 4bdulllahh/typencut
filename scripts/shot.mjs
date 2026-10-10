@@ -60,6 +60,7 @@ for (let i = 0; i < 8; i++) {
   if (!w) break;
   await send("Input.insertText", { text: i % 3 === 2 ? w.toUpperCase() : w });
   await key(i % 2 ? "." : ",");
+  if (i === 2) await sleep(150).then(() => shot("02-nitro")); // flames + skid marks mid-swerve
   await sleep(450);
 }
 await shot("02-driving");

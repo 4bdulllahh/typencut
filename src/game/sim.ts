@@ -61,6 +61,7 @@ export function applyCommand(state: GameState, cmd: Command): GameEvent[] {
     }
     st.keys++;
     if (cmd.correct) st.correctKeys++;
+    events.push({ type: "key", correct: cmd.correct });
     return events;
   }
   if (state.status !== "running") return events;

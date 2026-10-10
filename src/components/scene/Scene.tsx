@@ -5,6 +5,7 @@ import { useEffect, useRef, useState } from "react";
 import type { PerspectiveCamera } from "three";
 import type { GameEngine } from "@/game/engine";
 import { EngineCtx, NightCtx, useEngine } from "./context";
+import { SkidMarks, Smoke } from "./Fx";
 import { NpcCar, PlayerCar } from "./Vehicles";
 import { World } from "./World";
 
@@ -17,7 +18,9 @@ export function Scene({ engine, night }: { engine: GameEngine; night: boolean })
           <Atmosphere night={night} />
           <CameraRig />
           <World />
+          <SkidMarks />
           <PlayerCar />
+          <Smoke />
           <Traffic />
         </NightCtx.Provider>
       </EngineCtx.Provider>

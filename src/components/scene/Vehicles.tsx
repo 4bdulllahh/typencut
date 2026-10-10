@@ -3,7 +3,7 @@
 import { useFrame } from "@react-three/fiber";
 import { useMemo, useRef } from "react";
 import {
-  AdditiveBlending, BoxGeometry, CylinderGeometry, MeshBasicMaterial, MeshStandardMaterial, Object3D, PlaneGeometry,
+  AdditiveBlending, BoxGeometry, ConeGeometry, CylinderGeometry, MeshBasicMaterial, MeshStandardMaterial, Object3D, PlaneGeometry,
   type Group, type Material, type Mesh,
 } from "three";
 import { MODELS, laneX } from "@/game/config";
@@ -31,10 +31,14 @@ const M = {
   tailNight: new MeshBasicMaterial({ color: "#ff3344" }),
   beam: glow("#fff0c8", 0.38),
   trail: glow("#ff2236", 0.8),
+  flame: new MeshBasicMaterial({ color: "#ff6a1a", transparent: true, opacity: 0.85, depthWrite: false }),
+  flameCore: new MeshBasicMaterial({ color: "#fff1b0" }),
+  flameGlow: glow("#ff8a2a", 0.7),
 };
 const BOX = new BoxGeometry(1, 1, 1);
 const WHEEL = new CylinderGeometry(1, 1, 1, 10).rotateZ(Math.PI / 2); // axis along x
 const FLAT = new PlaneGeometry(1, 1).rotateX(-Math.PI / 2); // lies on the ground, spans x/z
+const CONE = new ConeGeometry(1, 1, 6).translate(0, 0.5, 0).rotateX(Math.PI / 2); // base at origin, tip towards +z
 
 type V3 = [number, number, number];
 const Box = ({ m, s, p, r, shadow = true }: { m: Material; s: V3; p: V3; r?: V3; shadow?: boolean }) => (
@@ -116,17 +120,20 @@ export function PlayerCar() {
   const root = useRef<Group>(null);
   const scuffs = useRef<Group>(null);
   const dents = useRef<Group>(null);
+  const flames = useRef<Group>(null);
   const trail = useRef<Mesh>(null);
   const led = useMemo(() => new MeshBasicMaterial(), []);
   const target = useMemo(() => new Object3D(), []);
   useFrame(() => {
     const p = engine.state.player;
-    if (!root.current || !scuffs.current || !dents.current) return;
+    if (!root.current || !scuffs.current || !dents.current || !flames.current) return;
     root.current.position.x = p.x;
     root.current.rotation.y = -p.vx * 0.04;
     root.current.visible = p.invulnT === 0 || Math.floor(p.invulnT * 10) % 2 === 0;
     scuffs.current.visible = p.lives <= 2;
     dents.current.visible = p.lives <= 1;
+    flames.current.visible = p.nitroT > 0;
+    flames.current.scale.z = 0.7 + Math.random() * 0.6;
     led.color.set(p.brakeT > 0 ? "#ff1428" : night ? "#e0283a" : "#7a1018");
     setTrail(trail.current, "gt3rs", p.speed);
   });
@@ -156,6 +163,15 @@ export function PlayerCar() {
       {[-1, 1].map((sx) => (
         <mesh key={sx} geometry={WHEEL} material={M.steel} scale={[0.22, 0.065, 0.065]} rotation-y={Math.PI / 2} position={[sx * 0.1, 0.4, L / 2 + 0.02]} />
       ))}
+      <group ref={flames} position={[0, 0.4, L / 2 + 0.05]} visible={false}>
+        {[-1, 1].map((sx) => (
+          <group key={sx} position-x={sx * 0.1}>
+            <mesh geometry={CONE} material={M.flame} scale={[0.16, 0.16, 1.3]} />
+            <mesh geometry={CONE} material={M.flameCore} scale={[0.07, 0.07, 0.6]} />
+          </group>
+        ))}
+        <mesh geometry={FLAT} material={M.flameGlow} scale={[2.4, 1, 3.2]} position={[0, -0.35, 1.1]} />
+      </group>
       <group ref={scuffs}>
         <Box m={M.scuff} s={[0.5, 0.02, 0.36]} p={[-(W / 2 - 0.3), h + 0.012, L / 2 - 0.55]} shadow={false} />
         <Box m={M.scuff} s={[0.42, 0.02, 0.3]} p={[W / 2 - 0.28, h + 0.012, -L / 2 + 0.45]} shadow={false} />

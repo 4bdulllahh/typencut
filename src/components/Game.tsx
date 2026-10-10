@@ -1,6 +1,7 @@
 "use client";
 
 import { useEffect, useState } from "react";
+import { attachAudio } from "@/game/audio";
 import { GameEngine } from "@/game/engine";
 import { snapshot } from "@/game/sim";
 import { Scene } from "./scene/Scene";
@@ -41,6 +42,8 @@ export function Game() {
       localStorage.setItem(THEME_KEY, night ? "night" : "day");
     } catch {}
   }, [night]);
+
+  useEffect(() => attachAudio(engine), [engine]);
 
   useEffect(() => {
     engine.start();
