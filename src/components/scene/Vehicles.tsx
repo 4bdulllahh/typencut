@@ -128,7 +128,7 @@ export function PlayerCar() {
     const p = engine.state.player;
     if (!root.current || !scuffs.current || !dents.current || !flames.current) return;
     root.current.position.x = p.x;
-    root.current.rotation.y = -p.vx * 0.04;
+    root.current.rotation.y = -p.vx * 0.018; // ~13° at peak lane-change speed
     root.current.visible = p.invulnT === 0 || Math.floor(p.invulnT * 10) % 2 === 0;
     scuffs.current.visible = p.lives <= 2;
     dents.current.visible = p.lives <= 1;

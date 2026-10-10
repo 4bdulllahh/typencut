@@ -1,17 +1,15 @@
 # Typencut: handover (compact)
 
-_Updated 2026-10-10 · M1–M4 pushed (`a5bcccb`), M5 done + uncommitted · repo `C:\Users\Computer\Documents\GitHub\typencut`, remote https://github.com/4bdulllahh/typencut · full brief in `docs/spec.md`._
+_Updated 2026-10-10 · M1–M6 pushed, all milestones done · repo `C:\Users\Computer\Documents\GitHub\typencut`, remote https://github.com/4bdulllahh/typencut · full brief in `docs/spec.md`._
 
 ## Resume here
-- **M1–M4** are on `origin/main` (M4 = `a5bcccb`).
-- **M5** finished and verified (tsc + lint + build clean, 13 tests pass; headless runs at 1264, 1500 and 500 px wide, day + night, no console errors; dashboard, word tag, popups, ready overlay, game-over modal, sidebar all seen) but **uncommitted**: new `src/components/Hud.tsx`, `src/game/leaderboard.ts` + test; `Game.tsx` layout/HUD; `Scene.tsx` `WordTag`; popup CSS in `globals.css`; `scripts/shot.mjs` adds `05-over`; this file.
-- Still never heard the audio (headless). Ask the owner to try it.
+- **M1–M5** are on `origin/main` (M5 = `a6f7a0e`). Owner confirmed the audio sounds right.
+- **M6** pushed (typecheck + build clean, 13 tests pass, day/night headless runs with no console errors): `.github/workflows/ci.yml` (Node 24: `npm ci`, typecheck, test, build), README final + `docs/{day,night,over}.png`, player yaw `-p.vx * 0.018` (was 0.04, ~29° → ~13°), this file.
+- All milestones done. Check the first CI run on GitHub (it has never run).
 
-**First thing next session:**
-1. `git status` to confirm M5 is still uncommitted, then ask the owner: "Commit M5 and start M6?"
-2. On yes: commit M5 (`feat: M5 hud + meta — …`), `git push origin main`, start **M6**.
+**First thing next session:** ask the owner what to build next (see open ideas below).
 
-M6 notes: tuning pass (player yaw `-p.vx * 0.04` reaches ~27° on a nitro lane change; crash rate vs. difficulty; audio levels once heard), maybe a mute toggle (`attachAudio` would need a `setMuted`), headless screenshots into `docs/` for the README, `vercel.json` only if Next defaults aren't enough, GitHub Actions CI (`npm ci`, `npx tsc --noEmit`, `npm run lint`, `npm test`, `npm run build`), final README.
+Open ideas, none promised: mute toggle (`attachAudio` would need `setMuted`); hide the floating word while a popup is on screen (they can overlap); difficulty/crash-rate tuning from real play; ESLint (no lint script exists); `@react-three/drei` is unused now (spec names it, so it was kept); a LICENSE file (README and package.json say MIT).
 
 ## Working with the owner
 - Build in milestones; stop after each and ask to continue. On approval, commit the finished milestone and push to `origin/main` (commit messages end with a `Co-Authored-By` line). Keep README and this file current, and keep this file short.
@@ -25,7 +23,7 @@ M6 notes: tuning pass (player yaw `-p.vx * 0.04` reaches ~27° on a nitro lane c
 | M3 | Vehicles: procedural GT3 RS + 5 black cruisers + 3 red mergers, indicators, brake lights, night headlights/beams/taillight trails, player damage states | done |
 | M4 | FX + audio: nitro exhaust flames, skid marks, engine smoke, Web Audio synth (key click, blow-off, screech, horn, thud) | done |
 | M5 | HUD + meta: dashboard (speedo, combo bar, hearts, WPM), floating words over obstacles, CLEAN CUT text + rumble, leaderboard sidebar, ready overlay, game-over modal, theme toggle, responsive | done |
-| M6 | Polish + ship: tuning pass, headless screenshots, vercel.json, CI, README final | todo |
+| M6 | Polish + ship: tuning pass, headless screenshots, vercel.json (not needed: Vercel zero-config), CI, README final | done |
 
 ## Rules the code must keep
 | Rule | How |
@@ -39,7 +37,7 @@ M6 notes: tuning pass (player yaw `-p.vx * 0.04` reaches ~27° on a nitro lane c
 Next.js 16 + React 19 + TypeScript 5.9 (strict) · R3F 9 + drei 10 + three 0.186 · Tailwind 4 (CSS config) · no other runtime deps · units: metres, m/s (`MPH` const in `config.ts`) · lanes 0–4 left→right, `laneX()` · seeded RNG in state (mulberry32) · traffic: lane 0 85–95 mph, others 60–80; 12% surprise cuts · scoring: pass in a lane 2+ away = standard 50, adjacent = dangerous 100, passing the car you just cut out from behind (≤12 m gap at the switch) = clean cut 500; multiplier 1 + 0.2 per pass, max 5 · nitro = word typed in ALL CAPS · brake = Enter twice within 350 ms on an empty input.
 
 ## Commands
-`npm run dev` · `npm run build` · `npm test` (node --test on `src/game/*.test.ts`) · `npx tsc --noEmit` · `node scripts/shot.mjs <url> <outDir> [--night]` (headless Chrome via CDP, no deps: plays 8 words incl. nitro, double-Enter brake, saves `01-ready`, `02-nitro` mid-swerve, `02-driving`, `03-braking`, `04-later`, then idles until the run ends for `05-over`, prints console errors; reads the word from the input's aria-label). Node 24. Windows 11 dev.
+`npm run dev` · `npm run build` · `npm run typecheck` · `npm test` (node --test on `src/game/*.test.ts`) · `npx tsc --noEmit` · `node scripts/shot.mjs <url> <outDir> [--night]` (headless Chrome via CDP, no deps: plays 8 words incl. nitro, double-Enter brake, saves `01-ready`, `02-nitro` mid-swerve, `02-driving`, `03-braking`, `04-later`, then idles until the run ends for `05-over`, prints console errors; reads the word from the input's aria-label). Node 24. Windows 11 dev.
 
 ## Code map
 - `src/game/config.ts` constants, lane geometry, car dimensions · `types.ts` state/command/event types · `words.ts` word buckets + `pickWord` · `sim.ts` ★ `createState`, `applyCommand`, `step`, `snapshot` · `input.ts` `matchWord`, `isPrefix` · `engine.ts` loop + pub/sub.
@@ -65,4 +63,5 @@ Next.js 16 + React 19 + TypeScript 5.9 (strict) · R3F 9 + drei 10 + three 0.186
 - `scripts/shot.mjs` reuses a Chrome profile, so it always writes the theme itself (otherwise a `--night` run leaks into the next). Stop the test server with `taskkill //PID <pid> //T //F` (find it with `netstat -ano | grep :3123`); `npx kill-port` hangs when npm is offline.
 - drei `Html` renders an empty wrapper here (React 19.3 + drei 10.7.9): its content never mounts. Project to screen in `useFrame` and write a DOM node instead (see `WordTag`).
 - Headless Chrome is killed, so localStorage from one shot run often doesn't survive into the next; the leaderboard starting empty in shots is expected.
+- There is no `lint` script: `npm run lint --silent` prints nothing and looks like a pass. Don't report lint results.
 - Narrowing: after a helper sets `state.status = "over"`, TS still thinks it's `"running"`; check `lives` instead.
