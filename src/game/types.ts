@@ -34,6 +34,7 @@ export interface Player {
   speed: number;
   nitroT: number;
   brakeT: number;
+  boostT: number;
   invulnT: number;
   lives: number;
   cutId: number; // npc we just cut out from behind (clean-cut candidate), 0 = none
@@ -49,7 +50,6 @@ export interface Stats {
   keys: number;
   correctKeys: number;
   words: number;
-  chars: number; // chars of completed words, incl. the steering key
   misses: number;
   elapsed: number; // seconds of running time
 }
@@ -63,11 +63,12 @@ export interface GameState {
   stats: Stats;
   word: string;
   nextWord: string;
+  laneGap: number[]; // per lane: gap before its next car spawns
 }
 
 export type Command =
   | { type: "key"; correct: boolean }
-  | { type: "word"; dir: Dir; nitro: boolean; chars: number }
+  | { type: "word"; dir: Dir | 0; nitro: boolean } // dir 0 = submitted with Enter: no steer, small boost
   | { type: "miss" }
   | { type: "brake" };
 
@@ -78,6 +79,7 @@ export type GameEvent =
   | { type: "miss" }
   | { type: "laneChange"; dir: Dir }
   | { type: "nitro" }
+  | { type: "boost" }
   | { type: "brake" }
   | { type: "overtake"; grade: PassGrade; points: number; npcId: number }
   | { type: "collision"; npcId: number; lives: number }

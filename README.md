@@ -2,9 +2,9 @@
 
 Type to weave a Porsche 911 GT3 RS through highway traffic.
 
-A browser speed-typing game inspired by *Assetto Corsa: No Hesi* highway weaving, drawn in the flat-shaded, low-poly style of *Art of Rally*. Every word you type steers one lane: finish it with a comma to go left or a full stop to go right, shout it in ALL CAPS for nitro, and tap Enter twice to brake. Slip past black cruisers and lane-hopping red mergers, chain close passes into a 5× multiplier, and cut out from right behind a car for a 500-point CLEAN CUT. No account, no server and no downloads: every car, tree, sign and sound is generated in code.
+A browser speed-typing game inspired by *Assetto Corsa: No Hesi* highway weaving, drawn in the flat-shaded, low-poly style of *Art of Rally*. Every word you type moves you: finish it with a comma to go one lane left, a full stop to go right, or Enter to hold your lane with a burst of speed. Shout it in ALL CAPS for nitro, and tap Enter twice to brake. Slip past black cruisers and lane-hopping red mergers, chain close passes into a 5× multiplier, and cut out from right behind a car for a 500-point CLEAN CUT. No account, no server and no downloads: every car, tree, sign and sound is generated in code.
 
-**Live:** https://typencut-two.vercel.app · **Version:** 1.0.0
+**Live:** https://typencut-two.vercel.app · **Version:** 1.1.0
 
 [![Deploy with Vercel](https://vercel.com/button)](https://vercel.com/new/clone?repository-url=https%3A%2F%2Fgithub.com%2F4bdulllahh%2Ftypencut&project-name=typencut&repository-name=typencut)
 [![CI](https://github.com/4bdulllahh/typencut/actions/workflows/ci.yml/badge.svg)](https://github.com/4bdulllahh/typencut/actions/workflows/ci.yml)
@@ -14,22 +14,25 @@ A browser speed-typing game inspired by *Assetto Corsa: No Hesi* highway weaving
 
 ## Features
 
-- **Typing is steering.** Type the word in the dock, then press **`,`** to move one lane left or **`.`** to move one lane right. The same word floats over the next car in your lane, so your eyes can stay on the road. Letters turn green or red as you type; a wrong word shakes the dock and the car stays put.
-- **Nitro and brakes.** Type the word in **ALL CAPS** and the car surges toward 180 mph for one second with exhaust flames, camera shake and a wider field of view. Press **Enter twice** within 350 ms with an empty dock to brake hard for a second, with the full-width LED strip lit.
+- **Typing is steering.** Type the word in the dock, then press **`,`** to move one lane left, **`.`** to move one lane right, or **Enter** to stay in your lane with a short speed boost (+12 mph for under a second). The same word floats over the next car in your lane, so your eyes can stay on the road. Letters turn green or red as you type; a wrong word shakes the dock and the car stays put.
+- **Nitro and brakes.** Type the word in **ALL CAPS** and the car surges toward 180 mph for one second with exhaust flames, camera shake and a wider field of view. Press **Enter twice** within 350 ms with the dock empty to brake hard for a second, with the full-width LED strip lit.
 - **Traffic with two personalities.** Five black cruisers (Toyota Yaris, Honda Civic, Chevrolet Malibu, Nissan Rogue, Ford F-150) hold their lane at a steady speed: 85 to 95 mph in the far-left lane, 60 to 80 mph elsewhere. Three red mergers (BMW M3, Mercedes-Benz C63 AMG, Audi A5) change lanes: usually they flash an amber indicator for 1.5 to 2 seconds first, but 12% of the time they cut straight across without warning.
 - **Scoring that rewards risk.** +50 for a pass, +100 for a close pass in the next lane, **+500 for a clean cut**: dodging out from right behind a car and passing it. Every pass without contact raises the multiplier by 0.2×, up to 5×. A crash costs one of three lives and resets it.
-- **Gets harder as you go.** Your cruising speed climbs from 100 to 140 mph, traffic doubles from 10 to 20 cars, and words grow from three letters to seven or more, with mixed casing (`DrIft`) that must be typed exactly.
+- **Traffic without dead stretches.** Every lane is refilled on its own, so cars stay evenly spread across all five lanes: about eight in view on average and never an empty road.
+- **Gets harder as you go.** Your cruising speed climbs from 100 to 140 mph, traffic gets about 70% denser, and words grow from three letters to seven or more, with mixed casing (`DrIft`) that must be typed exactly.
+- **Cars you can recognise.** Every model has its own shaped body, built from its real side profile and plan taper: the 911's fastback and raised front wings, the Yaris's short hatch, the Civic's sloping fastback, the Malibu's long three-box sedan, the Rogue's tall SUV body with roof rails, the F-150's cab and open bed, and the sporty M3, C63 and A5. Each has glass where its windows are, mirrors, its own wheelbase and its own head- and taillight layout.
 - **A car that shows the damage.** The GT3 RS has a white body, carbon hood and roof, fender louvers, a swan-neck wing, dual centre exhausts and a red LED tail strip. After one crash it carries scuffs and trails light smoke; after two it is dented, with a popped hood, a hanging bumper and thick black smoke. Hard lane changes and braking leave skid marks on the asphalt.
-- **Day and night.** A warm pastel day with soft shadows, or a night drive with lit streetlights, headlight beams, a real spotlight from your car and long red taillight trails. The toggle is top right and your choice is remembered.
-- **Synthesised sound.** A soft linear-switch key click (duller on a wrong letter), a turbo blow-off on nitro, tyre screech on lane changes and braking, a horn when you pass close, and a thud when you crash. All generated live with the Web Audio API.
-- **Telemetry and a leaderboard.** A digital dashboard shows speed, lives, multiplier, score and live WPM. At game over you get score, WPM, accuracy, top speed and clean cuts. Your top 10 runs and best-ever stats sit in a sidebar on wide screens and on the game-over card on smaller ones.
-- **Phone to desktop.** The road stays in a 9:16 portrait column at any window size.
+- **Day and night.** A warm pastel day with soft shadows, or a night drive with lit streetlights, headlight beams, a real spotlight from your car, and a soft red glow on the road behind each taillight, placed where that car's lamps really are (corner lamps on most cars, tall slim lamps on the F-150, one full-width strip on the GT3 RS) and stretching with speed. The toggle is top right and your choice is remembered.
+- **Synthesised sound.** A soft linear-switch key click (duller on a wrong letter), a turbo blow-off on nitro, a rising whoosh on an Enter boost, tyre screech on lane changes and braking, a horn when you pass close, and a thud when you crash. All generated live with the Web Audio API.
+- **Accuracy over speed.** You type when a gap opens, not as fast as you can, so the game tracks accuracy rather than words per minute. The digital dashboard shows speed, lives, multiplier, score and live accuracy. At game over you get score, accuracy, top speed, clean cuts and distance. Your top 10 runs and best-ever stats sit in a sidebar on wide screens and on the game-over card on smaller ones.
+- **Menu.** A slide-in panel on the left pauses the game and holds the controls, with places ready for multiplayer and settings.
+- **One typeface, phone to desktop.** Everything uses the same system sans (Segoe UI on Windows, San Francisco on Apple devices), and the road stays in a 9:16 portrait column at any window size.
 
 | Day: a nitro lane change, with exhaust flames and skid marks | Game over, with the leaderboard sidebar |
 | --- | --- |
-| <img src="docs/screenshots/day.webp" alt="Day: the GT3 RS changes lanes on nitro, flames from its exhausts and skid marks behind" width="320" /> | <img src="docs/screenshots/over.webp" alt="Game-over card with score, WPM, accuracy, top speed and clean cuts, beside the leaderboard and best-run records" width="420" /> |
+| <img src="docs/screenshots/day.webp" alt="Day: the GT3 RS changes lanes on nitro, flames from its exhausts and skid marks behind" width="320" /> | <img src="docs/screenshots/over.webp" alt="Game-over card with score, accuracy, top speed, clean cuts and distance, beside the leaderboard and best-run records" width="420" /> |
 
-<p align="center"><img src="docs/screenshots/phone.webp" alt="Typencut at phone size: the start card, a nitro lane change, a close pass with score popups, and the game-over card" width="700" /></p>
+<p align="center"><img src="docs/screenshots/phone.webp" alt="Typencut at phone size: the start card, a nitro lane change, the open menu, and the game-over card" width="700" /></p>
 
 ## Privacy
 
@@ -59,9 +62,9 @@ Typencut has no backend. The game runs entirely in your browser and makes no net
 [`TypingDock`](src/components/TypingDock.tsx) is the only place keystrokes turn into game commands. It keeps an invisible text input over the capsule (and refocuses it if focus wanders), and reads the target word straight from the engine at key time, so fast typists never race a stale word.
 
 - **Each letter** is checked as a prefix of the target, ignoring case, and counted for accuracy. Case is only judged when you submit.
-- **`,` or `.`** (or `<` and `>`) submits. An exact match steers one lane; the same letters in ALL CAPS steer and fire nitro; anything else is a miss. Steering into a wall is ignored, but the word still counts.
-- **Enter twice** within 350 ms on an empty dock brakes.
-- **WPM** counts the characters of completed words, including the steering key, at five characters a word, measured from the first keystroke (with a five-second floor so the first word doesn't read as 300 WPM). **Accuracy** is correct keystrokes over all keystrokes.
+- **`,` or `.`** (or `<` and `>`) submits and steers one lane. **Enter** submits without steering and gives a short boost. An exact match counts; the same letters in ALL CAPS also fire nitro (with Enter, nitro without changing lane); anything else is a miss. Steering into a wall is ignored, but the word still counts.
+- **Enter twice** within 350 ms with the dock empty brakes. An Enter that submits a word never counts toward a brake.
+- **Accuracy** is correct keystrokes over all keystrokes, including the submitting key. There is no WPM: you wait for gaps in traffic, so typing speed says little about how well you drive.
 
 Words come from 221 driving words in five length buckets (3, 4, 5, 6 and 7+ letters). Until difficulty reaches 5% you only get three-letter words; after that a weighting window slides toward longer ones. Past 35% difficulty some words get mixed casing. A prompt is never all caps, because all caps means nitro.
 
@@ -71,8 +74,8 @@ Words come from 221 driving words in five length buckets (3, 4, 5, 6 and 7+ lett
 
 - **Difficulty** runs from 0 to 1 as distance and score add up (8 km on its own, or 60,000 points on its own, would max it out), and drives cruise speed, traffic density and word length.
 - **Lane changes** use a critically damped spring, which settles in about half a second without overshoot.
-- **Nitro** pulls speed toward 180 mph for one second. **Braking** pulls it toward 40% of cruise speed for one second.
-- **Traffic** spawns 230 to 320 m ahead and is removed 80 m behind or 460 m ahead. Every car follows the one in front: it matches its speed inside 25 m and brakes below it inside 6 m, so cars never drive through each other. Mergers reconsider every 2 to 6 seconds, only move into a clear lane, and never swerve into a player already alongside, since that crash would be unavoidable.
+- **Nitro** pulls speed toward 180 mph for one second. An **Enter boost** pulls it 12 mph above cruise for 0.8 seconds. **Braking** pulls it toward 40% of cruise speed for one second.
+- **Traffic** is spawned per lane, 200 m ahead (just past the fog). Each lane gets its next car once its last one has drifted a random 54 to 126 m behind that line, shrinking to 31 to 73 m at full difficulty. Spawning from one road-wide car count left empty stretches: far-left-lane cars drive almost as fast as you, so they stayed in view for a long time and used up the count, starving the other lanes. A test now fails if the view is ever left with fewer than three cars. Cars are removed 40 m behind or 460 m ahead. Every car follows the one in front: it matches its speed inside 25 m and brakes below it inside 6 m, so cars never drive through each other. Mergers reconsider every 2 to 6 seconds, only move into a clear lane, and never swerve into a player already alongside, since that crash would be unavoidable.
 - **Crashes** use the cars' real footprints. A hit costs a life, halves your speed, cancels nitro, resets the combo, nudges you sideways and makes you untouchable for two seconds (the car blinks).
 - **Randomness** comes from a seeded generator (mulberry32) stored in the state, so the same seed and the same inputs replay the same run. That is tested, and it is what a ghost car would need.
 
@@ -91,7 +94,7 @@ Points are multiplied by your multiplier when scored. The multiplier is 1 + 0.2 
 - **Player-relative.** The player car always sits at the origin and everything else is placed at `z = −(s − player.s)`, so the numbers stay small at any distance. Forward is −z.
 - **Infinite road from a few copies.** A `Repeat` component keeps only the copies inside a window from 25 m behind to 140 m ahead and moves them as you drive: lane dashes every 12 m, trees every 6 m (each keeps its look by hashing its index), streetlights every 42 m, speed cameras every 360 m and gantry signs every 520 m. Fog hides the far end of the window.
 - **Camera.** 90 m up and 10 m behind, tilted 20° from straight down, following 35% of your sideways movement. It shakes on crashes, nitro and clean cuts, and widens its field of view by 8° during nitro. A speed-scaled blur on the screen edges and a vignette sit on top.
-- **Cars from boxes.** Every model is built from one shared unit box, scaled per part from a style table (body and roof heights, where the cabin starts and ends, wheel size, an open bed for the F-150). Footprints use real-world dimensions, so what you see is what you hit:
+- **Cars from profiles.** Each model's body is lofted through about ten cross-sections traced from the real car: for each one, its position along the car, its width, the waist height, the roof height where there is a cabin, and how far the front wings stand above the hood. Every cross-section is a 12-point ring (sill, side, shoulder, wing, glasshouse base, roof edge, mirrored), and neighbouring rings are joined into faces. Steep roof segments become the windscreen and rear window, and cabin sides become side windows. Each geometry is built once per model and shared. Wheels, mirrors, lamps, roof rails and the F-150's bed are added on top, and footprints use real-world dimensions, so what you see is what you hit:
 
 | Model | Role | Length × width (m) |
 | --- | --- | --- |
@@ -105,7 +108,7 @@ Points are multiplied by your multiplier when scored. The multiplier is 1 + 0.2 
 | Mercedes-Benz C63 AMG (2012) | Merger | 4.73 × 1.80 |
 | Audi A5 (2014) | Merger | 4.63 × 1.85 |
 
-- **Effects.** Skid marks are one instanced mesh of 240 road-space segments laid under the rear tyres while you swerve or brake. Smoke is a pool of 48 puffs. Glows, beams and trails share one radial texture drawn on a canvas.
+- **Effects.** Skid marks are one instanced mesh of 240 road-space segments laid under the rear tyres while you swerve or brake. Smoke is a pool of 48 puffs. Glows and beams share a radial texture drawn on a canvas; taillight pools use a softer, near-gaussian one.
 - **Light.** three.js uses physical light units, so the day lights are balanced to sum to about π, which keeps the flat colours bright without washing out. The sun's shadow box follows the player.
 - **Performance.** Positions are written to three.js objects every frame without going through React. React re-renders the traffic only when a car appears or leaves, and the HUD at 10 Hz plus on every event. Geometries and materials are shared between all copies.
 
@@ -117,6 +120,7 @@ Points are multiplied by your multiplier when scored. The multiplier is 1 + 0.2 
 | --- | --- |
 | Keystroke | A low sine "thock" plus a short band-passed click; a wrong letter sounds duller, and every key varies slightly in pitch |
 | Nitro | A falling band-passed hiss (turbo blow-off) over a low-passed whoomp (flame) |
+| Enter boost | A short rising whoosh |
 | Lane change | A short, narrow tyre screech |
 | Brake | A longer screech |
 | Close pass or clean cut | A two-tone horn that drops in pitch as you pull away |
@@ -124,7 +128,7 @@ Points are multiplied by your multiplier when scored. The multiplier is 1 + 0.2 
 
 ## Leaderboard
 
-[`src/game/leaderboard.ts`](src/game/leaderboard.ts) keeps your top 10 runs by score and, separately, your best value for every stat (score, WPM, accuracy, top speed, clean cuts), so a record set in a low-scoring run still counts. Anyone can edit localStorage, so the stored board is validated on every load: any entry that isn't a complete set of finite numbers is dropped instead of breaking the page. Both rules are tested.
+[`src/game/leaderboard.ts`](src/game/leaderboard.ts) keeps your top 10 runs by score and, separately, your best value for every stat (score, accuracy, top speed, clean cuts), so a record set in a low-scoring run still counts. Anyone can edit localStorage, so the stored board is validated on every load: any entry that isn't a complete set of finite numbers is dropped instead of breaking the page. Runs saved by v1.0 still load; their old WPM field is ignored. Both rules are tested.
 
 ## Architecture
 
@@ -141,7 +145,7 @@ flowchart LR
 | Folder | What's in it |
 | --- | --- |
 | `src/game` | Framework-free game: config and car footprints, simulation, input matching, words, engine loop, audio, leaderboard, and their Node tests |
-| `src/components` | `Game` (layout, theme, wiring), `TypingDock` (keys → commands), `Hud` (dashboard, popups, start card, game over, leaderboard) |
+| `src/components` | `Game` (layout, theme, wiring), `TypingDock` (keys → commands), `Hud` (dashboard, popups, start card, game over, leaderboard, menu) |
 | `src/components/scene` | `Scene` (canvas, lights, camera rig, traffic, floating word), `World` (road and roadside), `Vehicles` (cars and night lights), `Fx` (skid marks, smoke), shared canvas textures |
 | `src/app` | Next.js layout and page; the game loads client-side only |
 | `scripts` | `shot.mjs`: a headless-Chrome playthrough that saves screenshots and reports console errors |
@@ -149,6 +153,7 @@ flowchart LR
 ## Accessibility
 
 - The whole game is played from the keyboard. The game-over card is a labelled dialog whose Play again button takes focus, so Enter starts the next run.
+- The menu opens with focus on Close, Escape or a click outside closes it, and the game pauses while it is open.
 - The typing input is labelled with the current word and the controls. Score popups are announced politely to screen readers, and the hearts have a text label.
 - With reduced motion turned on, score popups fade instead of flying. Camera shake and the edge blur are not reduced yet.
 - It is a fast visual game at heart: the traffic itself can't be followed with a screen reader.
@@ -169,9 +174,9 @@ npm run dev        # http://localhost:3000
 | `npm run dev` | Development server with hot reload |
 | `npm run build` | Production build |
 | `npm start` | Serve the production build |
-| `npm test` | Simulation, input, word and leaderboard tests (13, with `node --test`) |
+| `npm test` | Simulation, input, word and leaderboard tests (15, with `node --test`) |
 | `npm run typecheck` | Type check with `tsc --noEmit` |
-| `node scripts/shot.mjs <url> <outDir> [--night]` | Plays a run in headless Chrome (eight words including two nitros, a brake, then idles until game over), saves six screenshots and prints any console errors. Set `CHROME` if Chrome isn't in its default Windows location |
+| `node scripts/shot.mjs <url> <outDir> [--night]` | Plays a run in headless Chrome (eight words including two nitros and one Enter submit, a brake, then idles until game over), saves six screenshots and prints any console errors. Set `CHROME` if Chrome isn't in its default Windows location |
 
 CI runs the type check, tests and production build on every push and pull request.
 
@@ -184,7 +189,8 @@ CI runs the type check, tests and production build on every push and pull reques
 
 - **Keyboard first.** It is designed for a physical keyboard. On phones the on-screen keyboard works but covers part of the road, and touch play hasn't been tested on real devices.
 - **No graphics settings.** Shadows and up to 2× pixel density are always on, so older or low-end devices may drop frames.
-- **No mute button.** Mute the browser tab to play silently.
+- **No mute button yet.** Mute the browser tab to play silently. Multiplayer and Settings in the menu are placeholders for now.
+- **System font.** The typeface is your device's own sans, so it differs a little between Windows, macOS and Linux.
 - **Local leaderboard.** Runs are saved only in the browser you played in, without names. There is no online leaderboard.
 - **English words only**, from a fixed list of 221.
 - **Overlapping text.** The floating word can overlap score popups when several land at once.
@@ -197,6 +203,12 @@ CI runs the type check, tests and production build on every push and pull reques
 - [x] **M4** Effects and audio: nitro exhaust flames, skid marks, engine smoke, the Web Audio synth (key click, blow-off, screech, horn, thud)
 - [x] **M5** HUD and meta: digital dashboard, floating words over traffic, CLEAN CUT callouts, leaderboard sidebar, start card, game-over telemetry, responsive layout
 - [x] **M6** Polish and release: handling tuning, CI, screenshots, documentation (v1.0.0)
+- [x] **v1.1** Enter to hold your lane with a boost, recognisable lofted car bodies, per-car taillight glows, even traffic in every lane, accuracy instead of WPM, one typeface, left menu with pause
+- [ ] **M7** Settings and feel: volume and mute, graphics quality, reduce motion, an engine note that rises with speed, on-screen phone controls
+- [ ] **M8** Gameplay: slipstream meter, speed-trap bonuses at the roadside cameras, a combo timer
+- [ ] **M9** Modes and content: Zen, Rush hour and Time attack modes, word packs, a daily challenge
+- [ ] **M10** Progression: achievements, unlockable paints and cars, a shareable result card
+- [ ] **M11** Weather: rain and fog
 
 ## License
 

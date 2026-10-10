@@ -1,6 +1,5 @@
 export interface Run {
   score: number;
-  wpm: number;
   accuracy: number; // %
   maxSpeedMph: number;
   cleanCuts: number;
@@ -14,9 +13,9 @@ export interface Board {
 
 const KEY = "typencut.board";
 export const TOP_N = 10;
-const STATS = ["score", "wpm", "accuracy", "maxSpeedMph", "cleanCuts"] as const;
+const STATS = ["score", "accuracy", "maxSpeedMph", "cleanCuts"] as const;
 
-export const emptyBoard = (): Board => ({ runs: [], best: { score: 0, wpm: 0, accuracy: 0, maxSpeedMph: 0, cleanCuts: 0 } });
+export const emptyBoard = (): Board => ({ runs: [], best: { score: 0, accuracy: 0, maxSpeedMph: 0, cleanCuts: 0 } });
 
 export function addRun(board: Board, run: Run): Board {
   const runs = [...board.runs, run].sort((a, b) => b.score - a.score || a.date - b.date).slice(0, TOP_N);
@@ -28,7 +27,7 @@ export function addRun(board: Board, run: Run): Board {
 const isNum = (v: unknown): v is number => typeof v === "number" && Number.isFinite(v);
 const isRun = (r: unknown): r is Run => !!r && typeof r === "object" && [...STATS, "date"].every((k) => isNum((r as Record<string, unknown>)[k]));
 
-/** localStorage is user-editable: anything malformed is dropped rather than trusted. */
+/** localStorage is user-editable: anything malformed is dropped rather than trusted. Extra fields (e.g. `wpm` from v1.0) are ignored. */
 export function parseBoard(raw: string | null): Board {
   const board = emptyBoard();
   try {

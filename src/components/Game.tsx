@@ -1,11 +1,11 @@
 "use client";
 
-import { useEffect, useState } from "react";
+import { useCallback, useEffect, useState } from "react";
 import { attachAudio } from "@/game/audio";
 import { GameEngine } from "@/game/engine";
 import { loadBoard, saveRun } from "@/game/leaderboard";
 import { snapshot } from "@/game/sim";
-import { Dashboard, GameOver, Leaderboard, Popups, ReadyOverlay } from "./Hud";
+import { Dashboard, GameOver, Leaderboard, Menu, Popups, ReadyOverlay } from "./Hud";
 import { Scene } from "./scene/Scene";
 import { TypingDock } from "./TypingDock";
 
@@ -39,6 +39,8 @@ export function Game() {
   const [night, setNight] = useState(() => readTheme() === "night");
   const [board, setBoard] = useState(loadBoard);
   const [runDate, setRunDate] = useState<number>();
+  const [menu, setMenu] = useState(false);
+  const closeMenu = useCallback(() => setMenu(false), []);
 
   useEffect(() => {
     document.documentElement.classList.toggle("dark", night);
@@ -55,23 +57,28 @@ export function Game() {
         if (e.type !== "gameOver") return;
         const s = snapshot(engine.state);
         const date = Date.now();
-        setBoard(saveRun({ score: s.score, wpm: s.wpm, accuracy: s.accuracy, maxSpeedMph: s.maxSpeedMph, cleanCuts: s.cleanCuts, date }));
+        setBoard(saveRun({ score: s.score, accuracy: s.accuracy, maxSpeedMph: s.maxSpeedMph, cleanCuts: s.cleanCuts, date }));
         setRunDate(date);
       }),
     [engine],
   );
 
   useEffect(() => {
-    engine.start();
     const refresh = () => setSnap(snapshot(engine.state));
     const id = setInterval(refresh, 100);
     const off = engine.on(refresh); // events (new word, crash…) show at once
     return () => {
-      engine.stop();
       clearInterval(id);
       off();
     };
   }, [engine]);
+
+  // The open menu pauses the game.
+  useEffect(() => {
+    if (menu) return;
+    engine.start();
+    return () => engine.stop();
+  }, [engine, menu]);
 
   return (
     <main className="flex h-dvh justify-center xl:gap-6">
@@ -79,24 +86,28 @@ export function Game() {
       <div className="relative aspect-[9/16] h-full max-w-full overflow-hidden">
         <Scene engine={engine} night={night} />
         <EdgeFx speedMph={snap.speedMph} nitro={snap.nitro} />
-        <Dashboard snap={snap} />
-        <button
-          className="absolute right-3 top-[5.25rem] rounded-full bg-black/30 px-3 py-1 text-xs text-white backdrop-blur"
-          onClick={() => setNight((n) => !n)}
-          aria-pressed={night}
-        >
-          {night ? "☾ Night" : "☀ Day"}
-        </button>
+        <div className="pointer-events-none absolute inset-x-3 top-3 flex flex-col gap-2">
+          <Dashboard snap={snap} />
+          <div className="flex justify-between [&>button]:pointer-events-auto [&>button]:rounded-full [&>button]:bg-black/30 [&>button]:px-3 [&>button]:py-1 [&>button]:text-xs [&>button]:font-semibold [&>button]:text-white [&>button]:backdrop-blur">
+            <button onClick={() => setMenu(true)} aria-expanded={menu} aria-controls="game-menu">
+              ☰ Menu
+            </button>
+            <button onClick={() => setNight((n) => !n)} aria-pressed={night}>
+              {night ? "☾ Night" : "☀ Day"}
+            </button>
+          </div>
+        </div>
         <Popups engine={engine} />
         {snap.status === "ready" && <ReadyOverlay best={board.best.score} />}
         <div className="absolute inset-x-0 bottom-6 flex justify-center px-3">
-          <TypingDock engine={engine} word={snap.word} nextWord={snap.nextWord} disabled={snap.status === "over"} />
+          <TypingDock engine={engine} word={snap.word} nextWord={snap.nextWord} disabled={snap.status === "over" || menu} />
         </div>
         {snap.status === "over" && <GameOver snap={snap} board={board} runDate={runDate} onRestart={() => engine.restart()} />}
       </div>
       <aside className="hidden w-72 shrink-0 overflow-y-auto py-6 xl:block">
         <Leaderboard board={board} highlight={runDate} />
       </aside>
+      <Menu open={menu} onClose={closeMenu} />
     </main>
   );
 }

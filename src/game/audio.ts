@@ -73,6 +73,9 @@ export function attachAudio(engine: GameEngine) {
         hiss("bandpass", 3200, 500, 1.4, 0.45, 0.01, 0.5); // turbo blow-off
         hiss("lowpass", 500, 120, 0.7, 0.7, 0.02, 0.35); // flame whoomp
         break;
+      case "boost":
+        hiss("bandpass", 700, 2200, 1.2, 0.22, 0.04, 0.3); // short rising whoosh
+        break;
       case "laneChange":
         hiss("bandpass", 2300, 1700, 9, 0.35, 0.02, 0.3);
         break;

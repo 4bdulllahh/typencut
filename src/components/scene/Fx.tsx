@@ -5,10 +5,11 @@ import { useEffect, useMemo, useRef } from "react";
 import { IcosahedronGeometry, MeshBasicMaterial, MeshStandardMaterial, Object3D, PlaneGeometry, type InstancedMesh, type Mesh } from "three";
 import { MODELS } from "@/game/config";
 import { useEngine } from "./context";
+import { GT3_REAR_AXLE } from "./Vehicles";
 
 const { length: L, width: W } = MODELS.gt3rs;
-const REAR_AXLE = L / 2 - Math.max(0.75, L * 0.17); // matches the wheel placement in Vehicles.tsx
-const TRACK = W / 2 - 0.12;
+const REAR_AXLE = GT3_REAR_AXLE; // m behind the car's centre
+const TRACK = W / 2 - 0.14; // matches the wheel placement in Vehicles.tsx
 
 const FLAT = new PlaneGeometry(1, 1).rotateX(-Math.PI / 2);
 const MARK = new MeshBasicMaterial({ color: "#1d1d20", transparent: true, opacity: 0.5, depthWrite: false });

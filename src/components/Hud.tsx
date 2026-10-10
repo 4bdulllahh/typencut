@@ -1,6 +1,6 @@
 "use client";
 
-import { useEffect, useState } from "react";
+import { useEffect, useRef, useState } from "react";
 import { MAX_MULTIPLIER, NITRO_MPH, START_LIVES } from "@/game/config";
 import type { GameEngine } from "@/game/engine";
 import type { Board } from "@/game/leaderboard";
@@ -12,14 +12,14 @@ const Bar = ({ pct, className }: { pct: number; className: string }) => (
   </div>
 );
 
-/** Digital dash: speedometer, hearts + combo multiplier, score + live WPM. */
+/** Digital dash: speedometer, hearts + combo multiplier, score + live accuracy. */
 export function Dashboard({ snap }: { snap: Snapshot }) {
   const mode = snap.nitro ? "nitro" : snap.brake ? "brake" : "";
   return (
-    <div className="pointer-events-none absolute inset-x-3 top-3 grid grid-cols-[auto_1fr_auto] gap-4 rounded-2xl bg-black/40 px-4 py-2.5 font-mono text-white shadow-lg backdrop-blur-md">
+    <div className="grid grid-cols-[auto_1fr_auto] gap-4 rounded-2xl bg-black/40 px-4 py-2.5 text-white tabular-nums shadow-lg backdrop-blur-md">
       <div className="w-20">
-        <div className={`text-3xl font-bold leading-none tabular-nums ${snap.nitro ? "text-orange-300" : snap.brake ? "text-rose-300" : ""}`}>{Math.round(snap.speedMph)}</div>
-        <div className="text-[10px] uppercase tracking-widest opacity-70">mph {mode && `· ${mode}`}</div>
+        <div className={`text-3xl font-extrabold leading-none ${snap.nitro ? "text-orange-300" : snap.brake ? "text-rose-300" : ""}`}>{Math.round(snap.speedMph)}</div>
+        <div className="text-[10px] font-semibold uppercase tracking-widest opacity-70">mph {mode && `· ${mode}`}</div>
         <Bar pct={snap.speedMph / NITRO_MPH} className={snap.nitro ? "bg-orange-400" : snap.brake ? "bg-rose-400" : "bg-white"} />
       </div>
       <div>
@@ -29,14 +29,14 @@ export function Dashboard({ snap }: { snap: Snapshot }) {
               <span key={i} className={i < snap.lives ? "text-rose-400" : "opacity-25"}>♥</span>
             ))}
           </span>
-          <span className="text-lg font-bold tabular-nums">×{snap.multiplier.toFixed(1)}</span>
+          <span className="text-lg font-extrabold">×{snap.multiplier.toFixed(1)}</span>
         </div>
         <Bar pct={(snap.multiplier - 1) / (MAX_MULTIPLIER - 1)} className="bg-amber-300" />
-        <div className="mt-0.5 text-[10px] uppercase tracking-widest opacity-70">combo {snap.combo}</div>
+        <div className="mt-0.5 text-[10px] font-semibold uppercase tracking-widest opacity-70">combo {snap.combo}</div>
       </div>
       <div className="text-right">
-        <div className="text-xl font-bold leading-tight tabular-nums">{snap.score.toLocaleString()}</div>
-        <div className="text-xs opacity-80 tabular-nums">{Math.round(snap.wpm)} wpm</div>
+        <div className="text-xl font-extrabold leading-tight">{snap.score.toLocaleString()}</div>
+        <div className="text-xs font-semibold opacity-80">{Math.round(snap.accuracy)}% accuracy</div>
       </div>
     </div>
   );
@@ -73,15 +73,25 @@ export function Popups({ engine }: { engine: GameEngine }) {
   );
 }
 
+const Key = ({ children }: { children: React.ReactNode }) => <kbd className="rounded bg-white/15 px-1.5 font-semibold">{children}</kbd>;
+
+/** The controls, shared by the start card (on dark glass) and the menu (on the page colour). */
+function Controls({ cut = "text-amber-300" }: { cut?: string }) {
+  return (
+    <ul className="space-y-1 text-sm">
+      <li>Type the word, then <Key>,</Key> to go left or <Key>.</Key> to go right</li>
+      <li><Key>Enter</Key> keeps your lane with a small speed boost</li>
+      <li><b>ALL CAPS</b> fires nitro · <Key>Enter</Key> twice on an empty box brakes</li>
+      <li>Cut out from right behind a car for a <b className={cut}>CLEAN CUT</b></li>
+    </ul>
+  );
+}
+
 export function ReadyOverlay({ best }: { best: number }) {
   return (
-    <div className="pointer-events-none absolute inset-x-4 top-[24%] rounded-2xl bg-black/45 p-5 text-center text-white shadow-xl backdrop-blur-md">
-      <h1 className="text-3xl font-black italic tracking-tight">TYPENCUT</h1>
-      <ul className="mt-3 space-y-1 text-sm">
-        <li>Type the word, then <kbd className="rounded bg-white/15 px-1.5 font-mono">,</kbd> to go left or <kbd className="rounded bg-white/15 px-1.5 font-mono">.</kbd> to go right</li>
-        <li><b>ALL CAPS</b> fires nitro · <kbd className="rounded bg-white/15 px-1.5 font-mono">Enter</kbd> twice brakes</li>
-        <li>Cut out from right behind a car for a <b className="text-amber-300">CLEAN CUT</b></li>
-      </ul>
+    <div className="pointer-events-none absolute inset-x-4 top-[26%] rounded-2xl bg-black/45 p-5 text-center text-white shadow-xl backdrop-blur-md">
+      <h1 className="mb-3 text-3xl font-black italic tracking-tight">TYPENCUT</h1>
+      <Controls />
       <p className="mt-4 text-sm font-semibold opacity-90">Start typing to go{best > 0 && ` · best ${best.toLocaleString()}`}</p>
     </div>
   );
@@ -90,22 +100,22 @@ export function ReadyOverlay({ best }: { best: number }) {
 export function GameOver({ snap, board, runDate, onRestart }: { snap: Snapshot; board: Board; runDate?: number; onRestart: () => void }) {
   const newBest = snap.score > 0 && snap.score >= board.best.score;
   const stats: [string, string][] = [
-    ["WPM", Math.round(snap.wpm).toString()],
     ["Accuracy", `${Math.round(snap.accuracy)}%`],
-    ["Max speed", `${Math.round(snap.maxSpeedMph)} mph`],
+    ["Top speed", `${Math.round(snap.maxSpeedMph)} mph`],
     ["Clean cuts", snap.cleanCuts.toString()],
+    ["Distance", `${(snap.distance / 1000).toFixed(1)} km`],
   ];
   return (
     <div className="absolute inset-0 grid place-items-center overflow-y-auto bg-black/50 p-4 backdrop-blur-sm">
-      <div role="dialog" aria-modal="true" aria-labelledby="go-title" className="w-full max-w-sm rounded-2xl bg-white p-5 text-center text-stone-800 shadow-2xl dark:bg-slate-900 dark:text-slate-100">
+      <div role="dialog" aria-modal="true" aria-labelledby="go-title" className="w-full max-w-sm rounded-2xl bg-white p-5 text-center text-stone-800 tabular-nums shadow-2xl dark:bg-slate-900 dark:text-slate-100">
         <h2 id="go-title" className="text-sm font-semibold uppercase tracking-widest opacity-60">Run over</h2>
-        <div className="mt-1 text-5xl font-black tabular-nums">{snap.score.toLocaleString()}</div>
+        <div className="mt-1 text-5xl font-black">{snap.score.toLocaleString()}</div>
         {newBest && <div className="mt-1 text-sm font-bold text-amber-500">New best!</div>}
         <dl className="mt-4 grid grid-cols-2 gap-2">
           {stats.map(([k, v]) => (
             <div key={k} className="rounded-xl bg-black/5 py-2 dark:bg-white/5">
-              <dt className="text-[10px] uppercase tracking-widest opacity-60">{k}</dt>
-              <dd className="font-mono text-lg font-bold tabular-nums">{v}</dd>
+              <dt className="text-[10px] font-semibold uppercase tracking-widest opacity-60">{k}</dt>
+              <dd className="text-lg font-extrabold">{v}</dd>
             </div>
           ))}
         </dl>
@@ -127,23 +137,22 @@ export function Leaderboard({ board, highlight, compact = false }: { board: Boar
   const runs = compact ? board.runs.slice(0, 5) : board.runs;
   const records: [string, string][] = [
     ["Score", board.best.score.toLocaleString()],
-    ["WPM", Math.round(board.best.wpm).toString()],
     ["Accuracy", `${Math.round(board.best.accuracy)}%`],
     ["Top speed", `${Math.round(board.best.maxSpeedMph)} mph`],
     ["Clean cuts", board.best.cleanCuts.toString()],
   ];
   return (
-    <section className="text-sm">
+    <section className="text-sm tabular-nums">
       <h2 className="mb-2 text-xs font-semibold uppercase tracking-widest opacity-60">Leaderboard</h2>
       {runs.length === 0 ? (
         <p className="opacity-60">No runs yet.</p>
       ) : (
-        <ol className="space-y-0.5 font-mono">
+        <ol className="space-y-0.5">
           {runs.map((r, i) => (
-            <li key={`${r.date}-${i}`} className={`flex gap-3 rounded-md px-2 py-0.5 tabular-nums ${r.date === highlight ? "bg-amber-300/30 font-bold" : ""}`}>
+            <li key={`${r.date}-${i}`} className={`flex gap-3 rounded-md px-2 py-0.5 ${r.date === highlight ? "bg-amber-300/30 font-bold" : ""}`}>
               <span className="w-5 opacity-50">{i + 1}</span>
-              <span className="flex-1">{r.score.toLocaleString()}</span>
-              <span className="opacity-70">{Math.round(r.wpm)} wpm</span>
+              <span className="flex-1 font-semibold">{r.score.toLocaleString()}</span>
+              <span className="opacity-70">{Math.round(r.accuracy)}%</span>
               {!compact && <span className="w-14 text-right opacity-50">{dateFmt.format(r.date)}</span>}
             </li>
           ))}
@@ -156,12 +165,64 @@ export function Leaderboard({ board, highlight, compact = false }: { board: Boar
             {records.map(([k, v]) => (
               <div key={k} className="contents">
                 <dt className="opacity-60">{k}</dt>
-                <dd className="text-right font-mono font-semibold tabular-nums">{v}</dd>
+                <dd className="text-right font-semibold">{v}</dd>
               </div>
             ))}
           </dl>
         </>
       )}
     </section>
+  );
+}
+
+/** Slide-in panel on the left. The game pauses while it is open (Game.tsx); Escape or the backdrop closes it. */
+export function Menu({ open, onClose }: { open: boolean; onClose: () => void }) {
+  const first = useRef<HTMLButtonElement>(null);
+  useEffect(() => {
+    if (!open) return;
+    first.current?.focus();
+    const onKey = (e: KeyboardEvent) => e.key === "Escape" && onClose();
+    window.addEventListener("keydown", onKey);
+    return () => window.removeEventListener("keydown", onKey);
+  }, [open, onClose]);
+  const soon = (label: string, hint: string) => (
+    <li>
+      <button disabled className="flex w-full items-center justify-between rounded-xl px-3 py-2.5 text-left opacity-60">
+        <span>
+          <span className="block font-semibold">{label}</span>
+          <span className="block text-xs opacity-80">{hint}</span>
+        </span>
+        <span className="rounded-full bg-black/10 px-2 py-0.5 text-[10px] font-semibold uppercase tracking-widest dark:bg-white/10">Soon</span>
+      </button>
+    </li>
+  );
+  return (
+    <div className={`fixed inset-0 z-30 ${open ? "" : "pointer-events-none"}`} aria-hidden={!open}>
+      <div className={`absolute inset-0 bg-black/40 transition-opacity duration-200 ${open ? "opacity-100" : "opacity-0"}`} onClick={onClose} />
+      <nav
+        id="game-menu"
+        aria-label="Menu"
+        inert={!open}
+        className={`absolute inset-y-0 left-0 flex w-72 max-w-[85vw] flex-col gap-5 bg-[#f4ead9] p-5 shadow-2xl transition-transform duration-200 dark:bg-[#0b1022] ${open ? "translate-x-0" : "-translate-x-full"}`}
+      >
+        <div className="flex items-center justify-between">
+          <span className="text-xl font-black italic tracking-tight">TYPENCUT</span>
+          <button ref={first} onClick={onClose} className="rounded-full px-3 py-1 text-sm font-semibold hover:bg-black/5 dark:hover:bg-white/10">
+            Close
+          </button>
+        </div>
+        <p className="text-xs font-semibold uppercase tracking-widest opacity-60">Paused</p>
+        <ul className="-mx-3 space-y-1">
+          {soon("Multiplayer", "Race friends live")}
+          {soon("Settings", "Sound, graphics and controls")}
+        </ul>
+        <section>
+          <h2 className="mb-2 text-xs font-semibold uppercase tracking-widest opacity-60">How to play</h2>
+          <div className="[&_kbd]:bg-black/10 dark:[&_kbd]:bg-white/15">
+            <Controls cut="text-amber-700 dark:text-amber-300" />
+          </div>
+        </section>
+      </nav>
+    </div>
   );
 }

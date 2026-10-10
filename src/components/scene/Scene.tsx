@@ -32,7 +32,7 @@ export function Scene({ engine, night }: { engine: GameEngine; night: boolean })
       <div
         ref={tag}
         aria-hidden
-        className="pointer-events-none absolute left-0 top-0 whitespace-nowrap rounded-full bg-white/85 px-2.5 py-0.5 font-mono text-sm font-semibold text-stone-800 shadow-md dark:bg-slate-900/85 dark:text-slate-100"
+        className="pointer-events-none absolute left-0 top-0 whitespace-nowrap rounded-full bg-white/85 px-2.5 py-0.5 text-sm font-semibold text-stone-800 shadow-md dark:bg-slate-900/85 dark:text-slate-100"
       />
     </div>
   );

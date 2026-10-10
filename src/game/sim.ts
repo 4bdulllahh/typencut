@@ -1,5 +1,5 @@
 import {
-  BRAKE_TIME, CLEAN_CUT_GAP, CRUISE_MPH, CRUISERS, INVULN_TIME, LANES, MAX_MULTIPLIER, MERGERS, MODELS, MPH,
+  BOOST_MPH, BOOST_TIME, BRAKE_TIME, CLEAN_CUT_GAP, CRUISE_MPH, CRUISERS, INVULN_TIME, LANES, MAX_MULTIPLIER, MERGERS, MODELS, MPH,
   MULTIPLIER_STEP, NITRO_MPH, NITRO_TIME, PLAYER_DIMS, POINTS, START_LIVES, SURPRISE_CUT_CHANCE, laneX, toMph,
 } from "./config.ts";
 import type { Command, GameEvent, GameState, Npc, PassGrade } from "./types.ts";
@@ -7,8 +7,8 @@ import { pickWord } from "./words.ts";
 
 const LAT_K = 90; // lane-change spring stiffness (critically damped, ~0.5 s settle)
 const LAT_C = 2 * Math.sqrt(LAT_K);
-const SPAWN_AHEAD = [230, 320] as const;
-const DESPAWN = [-80, 460] as const;
+const SPAWN_AT = 200; // m ahead, just past the fog
+const DESPAWN = [-40, 460] as const;
 
 /** mulberry32 on the state's seed, so a run (or a ghost) replays from its seed. */
 export function rand(state: GameState): number {
@@ -33,20 +33,24 @@ export function createState(seed = Date.now()): GameState {
     nextId: 1,
     player: {
       s: 0, x: laneX(2), vx: 0, lane: 2, prevLane: 2, laneAge: 99, speed: cruiseSpeed(0),
-      nitroT: 0, brakeT: 0, invulnT: 0, lives: START_LIVES, cutId: 0,
+      nitroT: 0, brakeT: 0, boostT: 0, invulnT: 0, lives: START_LIVES, cutId: 0,
     },
     npcs: [],
     stats: {
       score: 0, combo: 0, multiplier: 1, passes: 0, cleanCuts: 0, maxSpeed: 0,
-      keys: 0, correctKeys: 0, words: 0, chars: 0, misses: 0, elapsed: 0,
+      keys: 0, correctKeys: 0, words: 0, misses: 0, elapsed: 0,
     },
     word: "",
     nextWord: "",
+    laneGap: [],
   };
   state.word = pickWord(() => rand(state), 0);
   state.nextWord = pickWord(() => rand(state), 0, state.word);
-  // Pre-fill the road, keeping the player's lane clear for the first stretch.
-  for (let i = 0; i < 40; i++) spawn(state, 50 + rand(state) * 270, 2);
+  // Pre-fill every lane, keeping the player's lane clear for the first stretch.
+  for (let lane = 0; lane < LANES; lane++) {
+    for (let s = 40 + rand(state) * laneGap(state); s < SPAWN_AT; s += laneGap(state)) spawn(state, s, lane, 2);
+    state.laneGap[lane] = laneGap(state);
+  }
   return state;
 }
 
@@ -74,9 +78,14 @@ export function applyCommand(state: GameState, cmd: Command): GameEvent[] {
     events.push({ type: "brake" });
   } else {
     st.words++;
-    st.chars += cmd.chars;
     const to = pl.lane + cmd.dir;
-    if (to >= 0 && to < LANES) {
+    if (cmd.dir === 0) {
+      if (!cmd.nitro) {
+        pl.boostT = BOOST_TIME;
+        pl.brakeT = 0;
+        events.push({ type: "boost" });
+      }
+    } else if (to >= 0 && to < LANES) {
       // Clean-cut candidate: the car right ahead in the lane we are leaving.
       const ahead = state.npcs
         .filter((n) => !n.hit && Math.abs(n.x - laneX(pl.lane)) < 1.5)
@@ -111,6 +120,7 @@ export function step(state: GameState, dt: number): GameEvent[] {
   // Player: speed
   pl.nitroT = Math.max(0, pl.nitroT - dt);
   pl.brakeT = Math.max(0, pl.brakeT - dt);
+  pl.boostT = Math.max(0, pl.boostT - dt);
   pl.invulnT = Math.max(0, pl.invulnT - dt);
   pl.laneAge += dt;
   const cruise = cruiseSpeed(p);
@@ -118,6 +128,7 @@ export function step(state: GameState, dt: number): GameEvent[] {
   let accel = pl.speed > cruise ? 12 : 5;
   if (pl.brakeT > 0) [target, accel] = [cruise * 0.4, 22];
   else if (pl.nitroT > 0) [target, accel] = [NITRO_MPH * MPH, 45];
+  else if (pl.boostT > 0) [target, accel] = [cruise + BOOST_MPH * MPH, 14];
   pl.speed = approach(pl.speed, target, accel * dt);
   pl.s += pl.speed * dt;
   st.maxSpeed = Math.max(st.maxSpeed, pl.speed);
@@ -159,8 +170,12 @@ export function step(state: GameState, dt: number): GameEvent[] {
   }
 
   state.npcs = state.npcs.filter((n) => n.s - pl.s > DESPAWN[0] && n.s - pl.s < DESPAWN[1]);
-  if (state.npcs.length < Math.round(10 + p * 10)) {
-    spawn(state, pl.s + SPAWN_AHEAD[0] + rand(state) * (SPAWN_AHEAD[1] - SPAWN_AHEAD[0]));
+  // Each lane gets its next car once its last one has drifted a random gap behind the spawn line,
+  // so traffic stays evenly spread instead of bunching where a slow-drifting car hogs a global count.
+  for (let lane = 0; lane < LANES; lane++) {
+    let last = -Infinity;
+    for (const n of state.npcs) if (n.targetLane === lane && n.s - pl.s <= SPAWN_AT) last = Math.max(last, n.s);
+    if (last < pl.s + SPAWN_AT - state.laneGap[lane] && spawn(state, pl.s + SPAWN_AT, lane)) state.laneGap[lane] = laneGap(state);
   }
   return events;
 }
@@ -244,10 +259,12 @@ function scorePass(state: GameState, n: Npc, events: GameEvent[]) {
   events.push({ type: "overtake", grade, points, npcId: n.id });
 }
 
+/** Road distance before the next car in a lane: wide early, tighter as difficulty rises. */
+const laneGap = (state: GameState) => (90 - 38 * progress(state)) * (0.6 + rand(state) * 0.8);
+
 /** Adds one car at road distance `s` if there is room. `avoidLane` keeps a lane clear (start of a run). */
-export function spawn(state: GameState, s: number, avoidLane = -1): Npc | null {
+export function spawn(state: GameState, s: number, lane = Math.floor(rand(state) * LANES), avoidLane = -1): Npc | null {
   const p = progress(state);
-  const lane = Math.floor(rand(state) * LANES);
   const kind = rand(state) < 0.3 + p * 0.15 ? "merger" : "cruiser";
   const pool = kind === "merger" ? MERGERS : CRUISERS;
   const model = pool[Math.floor(rand(state) * pool.length)];
@@ -265,7 +282,6 @@ export function spawn(state: GameState, s: number, avoidLane = -1): Npc | null {
   return n;
 }
 
-export const wpm = (st: GameState["stats"]) => (st.chars / 5) / (Math.max(st.elapsed, 5) / 60);
 export const accuracy = (st: GameState["stats"]) => (st.keys ? (st.correctKeys / st.keys) * 100 : 100);
 
 /** Plain numbers for the HUD (rendering reads `state` directly). */
@@ -282,7 +298,6 @@ export function snapshot(s: GameState) {
     multiplier: st.multiplier,
     combo: st.combo,
     cleanCuts: st.cleanCuts,
-    wpm: wpm(st),
     accuracy: accuracy(st),
     distance: pl.s,
     nitro: pl.nitroT > 0,

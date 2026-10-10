@@ -43,3 +43,12 @@ export const signTexture = (lines: string[]) =>
       g.fillText(line, 256, lines.length === 1 ? 112 : 88 + i * 74);
     });
   });
+
+/** Gentler, near-gaussian falloff for light spilled on the road (taillight pools). */
+export const softGlowTexture = () =>
+  canvasTexture("softGlow", 128, 128, (g) => {
+    const grad = g.createRadialGradient(64, 64, 0, 64, 64, 64);
+    [[0, 1], [0.2, 0.7], [0.45, 0.3], [0.7, 0.08], [1, 0]].forEach(([at, a]) => grad.addColorStop(at, `rgba(255,255,255,${a})`));
+    g.fillStyle = grad;
+    g.fillRect(0, 0, 128, 128);
+  });

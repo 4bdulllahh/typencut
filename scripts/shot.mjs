@@ -54,12 +54,12 @@ await send("Page.navigate", { url });
 await sleep(4000);
 await shot("01-ready");
 
-// Weave: alternate left/right, every third word in caps (nitro).
+// Weave: alternate left/right (one word submitted with Enter), every third word in caps (nitro).
 for (let i = 0; i < 8; i++) {
   const w = await word();
   if (!w) break;
   await send("Input.insertText", { text: i % 3 === 2 ? w.toUpperCase() : w });
-  await key(i % 2 ? "." : ",");
+  await key(i === 3 ? "Enter" : i % 2 ? "." : ","); // word 4 goes straight on with Enter
   if (i === 2) await sleep(150).then(() => shot("02-nitro")); // flames + skid marks mid-swerve
   await sleep(450);
 }

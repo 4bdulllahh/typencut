@@ -64,24 +64,38 @@ test("first key starts the run; the start keeps the player's lane clear", () => 
 test("word command steers one lane, clamps at the edges, advances the word", () => {
   const s = running();
   const next = s.nextWord;
-  applyCommand(s, { type: "word", dir: -1, nitro: false, chars: 4 });
+  applyCommand(s, { type: "word", dir: -1, nitro: false });
   assert.equal(s.player.lane, 1);
   assert.equal(s.word, next);
   run(s, 1);
   assert.ok(Math.abs(s.player.x - laneX(1)) < 0.05, "spring settles within 1 s");
   s.player.lane = 0;
-  const ev = applyCommand(s, { type: "word", dir: -1, nitro: false, chars: 4 });
+  const ev = applyCommand(s, { type: "word", dir: -1, nitro: false });
   assert.equal(s.player.lane, 0);
   assert.ok(!ev.some((e) => e.type === "laneChange"));
   s.player.lane = LANES - 1;
-  applyCommand(s, { type: "word", dir: 1, nitro: false, chars: 4 });
+  applyCommand(s, { type: "word", dir: 1, nitro: false });
   assert.equal(s.player.lane, LANES - 1);
+});
+
+test("Enter-submitted word keeps the lane, advances the word and gives a short surge", () => {
+  const s = running();
+  const cruise = s.player.speed;
+  const next = s.nextWord;
+  const ev = applyCommand(s, { type: "word", dir: 0, nitro: false });
+  assert.equal(s.player.lane, 2);
+  assert.equal(s.word, next);
+  assert.ok(ev.some((e) => e.type === "boost") && !ev.some((e) => e.type === "laneChange"));
+  run(s, 0.6);
+  assert.ok(s.player.speed > cruise + 3);
+  run(s, 3);
+  assert.ok(s.player.speed < cruise + 1, "settles back to cruise");
 });
 
 test("nitro surges toward top speed for 1 s; brake slows hard for 1 s", () => {
   const s = running();
   const cruise = s.player.speed;
-  applyCommand(s, { type: "word", dir: 1, nitro: true, chars: 4 });
+  applyCommand(s, { type: "word", dir: 1, nitro: true });
   run(s, 0.9);
   assert.ok(s.player.speed > cruise + 15);
   run(s, 3);
@@ -123,7 +137,7 @@ test("passes: 2 lanes away is standard, adjacent is dangerous; multiplier grows"
 test("cutting out from right behind a car is a clean cut", () => {
   const s = running();
   put(s, 2, 10);
-  applyCommand(s, { type: "word", dir: 1, nitro: false, chars: 4 });
+  applyCommand(s, { type: "word", dir: 1, nitro: false });
   const ev = run(s, 4).filter((e) => e.type === "overtake");
   assert.equal(ev[0].grade, "cleanCut");
   assert.equal(s.stats.cleanCuts, 1);
@@ -161,4 +175,18 @@ test("a minute of traffic: cars never drive through each other and keep spawning
   }
   assert.ok(s.npcs.length >= 8);
   assert.ok(s.stats.passes > 10);
+});
+
+test("traffic stays spread out: the view ahead is never empty", () => {
+  for (const seed of [3, 11, 42]) {
+    const s = createState(seed);
+    applyCommand(s, { type: "key", correct: true });
+    let fewest = Infinity;
+    for (let i = 0; i < 90 * 60; i++) {
+      step(s, 1 / 60);
+      s.player.lives = 3;
+      if (i > 5 * 60 && i % 30 === 0) fewest = Math.min(fewest, s.npcs.filter((n) => n.s - s.player.s > -25 && n.s - s.player.s < 140).length);
+    }
+    assert.ok(fewest >= 3, `seed ${seed}: only ${fewest} cars in view`);
+  }
 });

@@ -13,6 +13,10 @@ body {
   background: #0b1022;
   color: #e6e9f2;
 }
+/* One typeface everywhere: key caps would otherwise fall back to monospace. */
+kbd {
+  font-family: inherit;
+}
 
 @keyframes input-shake {
   0%, 100% { transform: translateX(0); }
