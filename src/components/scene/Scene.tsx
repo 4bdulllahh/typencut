@@ -1,68 +1,94 @@
 "use client";
 
 import { Canvas, useFrame } from "@react-three/fiber";
-import { createContext, useContext, useEffect, useRef, useState } from "react";
-import type { Group, Mesh } from "three";
-import { LANES, LANE_W, PLAYER_DIMS, laneX } from "@/game/config";
+import { useEffect, useRef, useState } from "react";
+import type { Mesh, PerspectiveCamera } from "three";
+import { PLAYER_DIMS } from "@/game/config";
 import type { GameEngine } from "@/game/engine";
 import type { Npc } from "@/game/types";
-
-const EngineCtx = createContext<GameEngine>(null!);
-const useEngine = () => useContext(EngineCtx);
+import { EngineCtx, NightCtx, useEngine } from "./context";
+import { World } from "./World";
 
 /** Renders `engine.state` every frame. Never writes to it. */
-export function Scene({ engine }: { engine: GameEngine }) {
+export function Scene({ engine, night }: { engine: GameEngine; night: boolean }) {
   return (
-    <Canvas flat dpr={[1, 2]} camera={{ fov: 42, near: 1, far: 400, position: [0, 90, 10] }}>
+    <Canvas shadows flat dpr={[1, 2]} camera={{ fov: FOV, near: 1, far: 400, position: [0, CAM_H, CAM_BACK] }}>
       <EngineCtx.Provider value={engine}>
-        <color attach="background" args={["#f2dcc8"]} />
-        <hemisphereLight args={["#fff3e3", "#a8b59a", 0.8]} />
-        <directionalLight position={[-40, 70, 20]} intensity={1} />
-        <CameraRig />
-        <Road />
-        <Player />
-        <Traffic />
+        <NightCtx.Provider value={night}>
+          <Atmosphere night={night} />
+          <CameraRig />
+          <World />
+          <Player />
+          <Traffic />
+        </NightCtx.Provider>
       </EngineCtx.Provider>
     </Canvas>
   );
 }
 
-function CameraRig() {
-  const engine = useEngine();
-  useFrame(({ camera }) => {
-    const x = engine.state.player.x * 0.35;
-    camera.position.set(x, 90, 10);
-    camera.lookAt(x, 0, -22.8); // ~20° off straight down
-  });
-  return null;
-}
+const SKY = { day: "#f2d5bd", night: "#0a0f22" };
 
-const DASH_PERIOD = 12;
-
-function Road() {
-  const engine = useEngine();
-  const dashes = useRef<Group>(null);
-  useFrame(() => {
-    if (dashes.current) dashes.current.position.z = engine.state.player.s % DASH_PERIOD;
-  });
+// Physical light units: diffuse ≈ albedo × intensity / π, so day lights sum to ~π.
+function Atmosphere({ night }: { night: boolean }) {
+  const sky = night ? SKY.night : SKY.day;
   return (
     <>
-      <mesh rotation-x={-Math.PI / 2} position={[0, 0, -60]}>
-        <planeGeometry args={[LANES * LANE_W + 5.6, 260]} />
-        <meshStandardMaterial color="#5b5f66" />
-      </mesh>
-      <group ref={dashes}>
-        {Array.from({ length: 14 }, (_, i) =>
-          Array.from({ length: LANES - 1 }, (_, l) => (
-            <mesh key={`${i}-${l}`} rotation-x={-Math.PI / 2} position={[laneX(l) + LANE_W / 2, 0.02, 20 - i * DASH_PERIOD]}>
-              <planeGeometry args={[0.15, 3]} />
-              <meshBasicMaterial color="#f4f1ea" />
-            </mesh>
-          )),
-        )}
-      </group>
+      <color attach="background" args={[sky]} />
+      <fog attach="fog" args={[sky, 105, 175]} />
+      <hemisphereLight key={`h${night}`} args={night ? ["#3a4d86", "#07080f", 0.8] : ["#fff2e0", "#b4bc98", 1.7]} />
+      <directionalLight
+        position={night ? [25, 60, -10] : [-30, 60, 25]}
+        color={night ? "#9db0ff" : "#ffe6c4"}
+        intensity={night ? 0.7 : 2.1}
+        castShadow
+        shadow-mapSize={[2048, 2048]}
+        shadow-bias={-0.0004}
+        shadow-camera-left={-70}
+        shadow-camera-right={70}
+        shadow-camera-top={70}
+        shadow-camera-bottom={-70}
+        shadow-camera-far={200}
+      />
     </>
   );
+}
+
+// Camera: high above and a little behind the player, ~20° off straight down.
+const CAM_H = 90;
+const CAM_BACK = 10;
+const LOOK_AHEAD = CAM_H * Math.tan((20 * Math.PI) / 180) - CAM_BACK;
+const FOV = 42;
+const NITRO_FOV = 8;
+
+function CameraRig() {
+  const engine = useEngine();
+  const shake = useRef(0);
+  const boost = useRef(0);
+  useEffect(
+    () =>
+      engine.on((e) => {
+        const kick = e.type === "collision" ? 1.4 : e.type === "nitro" ? 0.6 : e.type === "overtake" && e.grade === "cleanCut" ? 0.7 : 0;
+        shake.current = Math.max(shake.current, kick);
+      }),
+    [engine],
+  );
+  useFrame(({ camera }, dt) => {
+    const p = engine.state.player;
+    const cam = camera as PerspectiveCamera;
+    boost.current += ((p.nitroT > 0 ? 1 : 0) - boost.current) * Math.min(1, dt * 5);
+    shake.current = Math.max(0, shake.current - dt * 2.2);
+    const a = shake.current + boost.current * 0.12;
+    const j = () => (Math.random() - 0.5) * a;
+    const x = p.x * 0.35;
+    cam.position.set(x + j(), CAM_H + j(), CAM_BACK + j());
+    cam.lookAt(x, 0, -LOOK_AHEAD);
+    const fov = FOV + boost.current * NITRO_FOV;
+    if (Math.abs(cam.fov - fov) > 0.01) {
+      cam.fov = fov;
+      cam.updateProjectionMatrix();
+    }
+  });
+  return null;
 }
 
 function Player() {
@@ -76,7 +102,7 @@ function Player() {
     ref.current.visible = p.invulnT === 0 || Math.floor(p.invulnT * 10) % 2 === 0;
   });
   return (
-    <mesh ref={ref} position={[0, 0.6, 0]}>
+    <mesh ref={ref} position={[0, 0.6, 0]} castShadow>
       <boxGeometry args={[PLAYER_DIMS.width, 1.2, PLAYER_DIMS.length]} />
       <meshStandardMaterial color="#f5f5f2" flatShading />
     </mesh>
@@ -111,7 +137,7 @@ function NpcBox({ id }: { id: number }) {
   if (!npc.current) return null;
   const { width, length, kind } = npc.current;
   return (
-    <mesh ref={body}>
+    <mesh ref={body} castShadow>
       <boxGeometry args={[width, 1.3, length]} />
       <meshStandardMaterial color={kind === "merger" ? "#c8323a" : "#1b1d22"} flatShading />
       <mesh ref={signal} position={[0, 0.3, -length / 2]}>

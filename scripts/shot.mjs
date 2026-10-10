@@ -49,7 +49,7 @@ const word = () => evaluate(`document.querySelector('input')?.getAttribute('aria
 
 await send("Runtime.enable");
 await send("Page.enable");
-if (night) await send("Page.addScriptToEvaluateOnNewDocument", { source: "localStorage.setItem('typencut.theme','night')" });
+await send("Page.addScriptToEvaluateOnNewDocument", { source: `localStorage.setItem('typencut.theme','${night ? "night" : "day"}')` });
 await send("Page.navigate", { url });
 await sleep(4000);
 await shot("01-ready");

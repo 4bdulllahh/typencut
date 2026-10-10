@@ -6,9 +6,41 @@ import { snapshot } from "@/game/sim";
 import { Scene } from "./scene/Scene";
 import { TypingDock } from "./TypingDock";
 
+const THEME_KEY = "typencut.theme";
+const readTheme = () => {
+  try {
+    return localStorage.getItem(THEME_KEY);
+  } catch {
+    return null;
+  }
+};
+
+/** Vignette plus a speed-scaled blur that only touches the screen edges. */
+function EdgeFx({ speedMph, nitro }: { speedMph: number; nitro: boolean }) {
+  const blur = Math.min(1, Math.max(0, (speedMph - 90) / 90)) * 4 + (nitro ? 2 : 0);
+  const mask = "radial-gradient(ellipse 70% 62% at 50% 55%, transparent 60%, black 100%)";
+  return (
+    <>
+      <div
+        className="pointer-events-none absolute inset-0"
+        style={{ backdropFilter: `blur(${blur.toFixed(1)}px)`, WebkitBackdropFilter: `blur(${blur.toFixed(1)}px)`, maskImage: mask, WebkitMaskImage: mask }}
+      />
+      <div className="pointer-events-none absolute inset-0 bg-[radial-gradient(ellipse_at_center,transparent_55%,rgba(30,20,10,0.35)_100%)] dark:bg-[radial-gradient(ellipse_at_center,transparent_50%,rgba(0,0,0,0.55)_100%)]" />
+    </>
+  );
+}
+
 export function Game() {
   const [engine] = useState(() => new GameEngine());
   const [snap, setSnap] = useState(() => snapshot(engine.state));
+  const [night, setNight] = useState(() => readTheme() === "night");
+
+  useEffect(() => {
+    document.documentElement.classList.toggle("dark", night);
+    try {
+      localStorage.setItem(THEME_KEY, night ? "night" : "day");
+    } catch {}
+  }, [night]);
 
   useEffect(() => {
     engine.start();
@@ -25,7 +57,15 @@ export function Game() {
   return (
     <main className="flex h-dvh justify-center">
       <div className="relative aspect-[9/16] h-full max-w-full">
-        <Scene engine={engine} />
+        <Scene engine={engine} night={night} />
+        <EdgeFx speedMph={snap.speedMph} nitro={snap.nitro} />
+        <button
+          className="absolute right-3 top-10 rounded-full bg-black/30 px-3 py-1 text-xs text-white backdrop-blur"
+          onClick={() => setNight((n) => !n)}
+          aria-pressed={night}
+        >
+          {night ? "☾ Night" : "☀ Day"}
+        </button>
         <div className="pointer-events-none absolute inset-x-0 top-3 flex justify-between px-4 font-mono text-sm text-white drop-shadow">
           <span>{Math.round(snap.speedMph)} mph</span>
           <span>{"♥".repeat(snap.lives)}</span>
