@@ -10,6 +10,7 @@ import { rollWeather, seedFromDate, snapshot } from "@/game/sim";
 import type { Weather } from "@/game/types";
 import { packWords } from "@/game/words";
 import { Dashboard, GameOver, Leaderboard, Menu, Popups, ReadyOverlay, type RunNews } from "./Hud";
+import { Music } from "./Music";
 import { Rail, type Section } from "./Rail";
 import { Scene } from "./scene/Scene";
 import { DriveDock, TypingDock } from "./TypingDock";
@@ -189,7 +190,7 @@ export function Game() {
         />
       </div>
       {/* The road, with the leaderboard island to its right on wide screens. */}
-      <div className="flex min-h-0 min-w-0 flex-1 justify-center gap-3">
+      <div className="flex min-h-0 min-w-0 flex-1 justify-center gap-3 max-sm:flex-col">
       <div className="relative min-h-0 min-w-0 flex-1 overflow-hidden rounded-panel border border-line shadow-elev-1 sm:aspect-[3/4] sm:flex-initial">
         <Scene engine={engine} drive={snap.mode === "drive"} steer={settings.steer} night={night} quality={settings.quality} reduceMotion={settings.reduceMotion} car={car} paint={paint} weather={weather} />
         <EdgeFx speedMph={snap.speedMph} nitro={snap.nitro} still={settings.reduceMotion} />
@@ -212,9 +213,13 @@ export function Game() {
         </div>
         {snap.status === "over" && <GameOver snap={snap} board={board} runDate={runDate} day={day} news={news} onRestart={() => (engine.restart(), reroll())} />}
       </div>
-      <aside className="hidden w-72 shrink-0 overflow-y-auto rounded-panel border border-line bg-surface p-5 shadow-elev-1 xl:block">
-        <Leaderboard board={board} highlight={runDate} mode={settings.mode} day={day} />
-      </aside>
+      {/* Right column: the leaderboard island (wide screens) over the now-playing pill. */}
+      <div className="flex shrink-0 flex-col justify-end gap-3 xl:w-72">
+        <aside className="hidden min-h-0 flex-1 overflow-y-auto rounded-panel border border-line bg-surface p-5 shadow-elev-1 xl:block">
+          <Leaderboard board={board} highlight={runDate} mode={settings.mode} day={day} />
+        </aside>
+        <Music engine={engine} settings={settings} />
+      </div>
       </div>
     </main>
   );

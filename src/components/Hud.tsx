@@ -6,7 +6,7 @@ import type { GameEngine } from "@/game/engine";
 import type { Board } from "@/game/leaderboard";
 import { ACHIEVEMENTS, CARS, PAINTS, type Progress } from "@/game/progress";
 import { DEFAULT_STEER, bindable, keyLabel, type SteerKeys } from "@/game/input";
-import { MIX, WEATHERS, type Settings } from "@/game/settings";
+import { MIX, MUSIC, WEATHERS, type Settings } from "@/game/settings";
 import type { Snapshot } from "@/game/sim";
 import type { GameEvent, Mode, Weather } from "@/game/types";
 import { MIN_CUSTOM_WORDS, PACK_IDS, parseWordList, type PackId } from "@/game/words";
@@ -294,6 +294,7 @@ export function Leaderboard({ board, highlight, mode, day, compact = false }: { 
 
 type Toggle = "muted" | "reduceMotion" | "touch";
 const MIX_LABELS: Record<(typeof MIX)[number], [string, string]> = {
+  music: ["Music", "The in-game track (Spotify plays at your device volume; 0 pauses it)"],
   engine: ["Engine", "Your car's engine note"],
   weather: ["Weather", "Rain"],
   typing: ["Typing", "Key clicks"],
@@ -529,6 +530,20 @@ export function Menu({ section, expanded, shifted, onHover, onClose, settings, o
             ))}
           </div>
           {toggle("muted", "Mute")}
+          <fieldset className="py-1.5">
+            <legend className="font-semibold">Music</legend>
+            <span className="block text-xs opacity-60">Spotify plays full songs if you are logged in to Spotify in this browser, 30-second previews otherwise</span>
+            <div className="mt-1.5 grid grid-cols-3 gap-1 rounded-xl bg-black/5 p-1 dark:bg-white/10">
+              {MUSIC.map((m) => (
+                <label key={m} className="cursor-pointer">
+                  <input type="radio" name="music" checked={settings.music === m} onChange={() => set("music", m)} className="peer sr-only" />
+                  <span className="block rounded-lg py-1 text-center text-xs font-semibold peer-checked:bg-white peer-checked:shadow peer-focus-visible:ring-2 peer-focus-visible:ring-amber-500 dark:peer-checked:bg-slate-700">
+                    {{ spotify: "Spotify", dnb: "In-game", off: "Off" }[m]}
+                  </span>
+                </label>
+              ))}
+            </div>
+          </fieldset>
           <fieldset className="py-1.5">
             <legend className="font-semibold">Graphics</legend>
             <span className="block text-xs opacity-60">Low drops shadows and sharpness for slower devices</span>

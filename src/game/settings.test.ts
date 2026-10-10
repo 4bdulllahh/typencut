@@ -26,6 +26,8 @@ test("parseSettings keeps valid fields and drops the rest", () => {
   assert.deepEqual(mix, { ...base.mix, engine: 0.2, effects: 0 });
   assert.equal(parseSettings(JSON.stringify({ engine: false }), base).mix.engine, 0); // old engine switch carries over
   assert.equal(base.mix.engine, defaultSettings().mix.engine); // parsing never mutates the defaults
+  assert.equal(parseSettings(JSON.stringify({ music: "dnb" }), base).music, "dnb");
+  assert.equal(parseSettings(JSON.stringify({ music: "radio" }), base).music, "spotify");
 });
 
 test("engine revs climb through each gear and drop on the upshift", () => {

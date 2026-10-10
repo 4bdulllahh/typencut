@@ -1,16 +1,18 @@
+<p align="center"><img src="src/app/icon.svg" alt="Typencut logo: a W keycap skidding sideways, tyre marks and smoke trailing behind it" width="96" /></p>
+
 # Typencut
 
 Type to weave a Porsche 911 GT3 RS through highway traffic.
 
-A browser speed-typing game inspired by *Assetto Corsa: No Hesi* highway weaving, drawn in the flat-shaded, low-poly style of *Art of Rally*. Every word you type moves you: finish it with a comma to go one lane left, a full stop to go right, or Enter to hold your lane with a burst of speed. Shout it in ALL CAPS for nitro, and tap Enter twice to brake. Slip past black cruisers and lane-hopping red mergers, chain close passes into a 5× multiplier, and cut out from right behind a car for a 500-point CLEAN CUT. Not in the mood to type? Drive mode hands you WASD or the arrow keys instead. No account, no server and no downloads: every car, tree, sign and sound is generated in code.
+A browser speed-typing game inspired by *Assetto Corsa: No Hesi* highway weaving, drawn in the flat-shaded, low-poly style of *Art of Rally*. Every word you type moves you: finish it with a comma to go one lane left, a full stop to go right, or Enter to hold your lane with a burst of speed. Shout it in ALL CAPS for nitro, and tap Enter twice to brake. Slip past black cruisers and lane-hopping red mergers, chain close passes into a 5× multiplier, and cut out from right behind a car for a 500-point CLEAN CUT. Not in the mood to type? Drive mode hands you WASD or the arrow keys instead. Play it to a drum & bass playlist on Spotify or a soundtrack made in code. No account, no server and no downloads: every car, tree, sign and sound effect is generated in code.
 
-**Live:** https://typencut-two.vercel.app · **Version:** 1.10.0
+**Live:** https://typencut-two.vercel.app · **Version:** 1.11.0
 
 [![Deploy with Vercel](https://vercel.com/button)](https://vercel.com/new/clone?repository-url=https%3A%2F%2Fgithub.com%2F4bdulllahh%2Ftypencut&project-name=typencut&repository-name=typencut)
 [![CI](https://github.com/4bdulllahh/typencut/actions/workflows/ci.yml/badge.svg)](https://github.com/4bdulllahh/typencut/actions/workflows/ci.yml)
 [![License: MIT](https://img.shields.io/badge/license-MIT-263a81.svg)](LICENSE)
 
-<p align="center"><img src="docs/screenshots/night.webp" alt="Typencut at night on a wide screen: the leaderboard card on the left, the GT3 RS on nitro at 134 mph between lit streetlights in the middle, and the icon rail on the right" width="760" /></p>
+<p align="center"><img src="docs/screenshots/night.webp" alt="Typencut at night on a wide screen: the menu pill on the far left, the GT3 RS on nitro at 140 mph between lit streetlights with a heart on the road, and the leaderboard island with the now-playing pill on the right" width="760" /></p>
 
 ## Features
 
@@ -35,6 +37,7 @@ A browser speed-typing game inspired by *Assetto Corsa: No Hesi* highway weaving
 - **A car that shows the damage.** The starting GT3 RS has a white body, carbon hood and roof, fender louvers, a swan-neck wing, dual centre exhausts and a red LED tail strip. After one crash it carries scuffs and trails light smoke; after two it is dented, with a popped hood, a hanging bumper and thick black smoke. Hard lane changes and braking leave skid marks on the asphalt.
 - **Day and night.** A warm pastel day with soft shadows, or a night drive with lit streetlights, headlight beams, a real spotlight from your car, and a soft red glow on the road behind each taillight, placed where that car's lamps really are (corner lamps on most cars, tall slim lamps on the F-150, one full-width strip on the GT3 RS) and stretching with speed. The Day/Night switch is at the foot of the menu pill, and your choice is remembered.
 - **Weather.** Rain brings falling streaks, spray kicked up behind every car, a darker glossy road where taillights and streetlights stretch into long reflections at night, a grey overcast sky and the hiss of rain. Fog hangs a thick haze over the road that swallows traffic about 100 m ahead, so cars appear later. Pick Clear, Rain or Fog in Settings, or leave it on Random for a new roll each run (half clear, 30% rain, 20% fog). The weather changes only what you see and hear; the car drives the same.
+- **Music.** A now-playing pill (under the leaderboard island on wide screens, beside the road on smaller ones, under it on phones) shows the track and has previous, play/pause and next. Music starts with your first run. Pick the source in Settings: **Spotify** plays the owner's drum & bass playlist, *Brum and Dase* (60 tracks), through Spotify's own player, full songs if you're logged in to Spotify in that browser and 30-second previews otherwise; **In-game** plays four drum & bass loops synthesised live (174 BPM two-step breaks, a sub bass line and a soft pad); or **Off**. The Music slider sets the in-game track; Spotify plays at your device's volume, because Spotify doesn't let a website set it (Mute, or the slider at 0, pauses it).
 - **Synthesised sound.** A low, rounded engine hum that climbs through a seven-speed gearbox as you speed up, drops on every upshift and opens up on nitro. A soft linear-switch key click (duller on a wrong letter), a turbo blow-off on nitro, a rising whoosh on an Enter boost, tyre screech on lane changes and braking, a horn when you pass close, and a thud when you crash. All generated live with the Web Audio API, and mixed in four channels (engine, weather, typing, effects) with a slider each under the master volume.
 - **Accuracy over speed.** You type when a gap opens, not as fast as you can, so the game tracks accuracy rather than words per minute. The digital dashboard shows speed, lives, multiplier, score and live accuracy (distance in Drive mode, which has no typing). At game over you get score, accuracy, top speed, clean cuts and distance. Your top 7 runs and best-ever stats for the current mode sit in an island to the right of the road on wide screens, in the menu's Leaderboard panel, and on the game-over card on smaller screens.
 - **Menu pill and sub pill.** Soft rounded panels throughout. The menu pill sits at the far left (a row of icons above the game on phones) and widens to the right to show its labels when you hover or tab into it. Picking Mode & words (pick the mode and word pack, end the current run), Garage, Achievements, Leaderboard, Settings or How to play opens that section in a sub pill beside it, pauses the game and folds the menu pill away. Move back to the menu pill and the sub pill folds into a slim bar (its Close button, icon and sideways title) that stays open beside it; hover the bar and it opens out again while the menu pill folds away, so two open pills never take more room than one. The sub pill's Close button sits at its top. The Day/Night switch is at the foot of the menu pill. Settings holds the master volume and a slider each for the engine, weather, typing and effects sounds, mute, graphics quality (Low drops shadows and renders at 1× for slower devices), weather (Random, Clear, Rain or Fog), reduce motion (no camera shake, nitro zoom or edge blur; on by default if your system asks for less motion), your own lane-switch keys, and on-screen controls. Your choices are remembered. Multiplayer has its place ready.
@@ -43,19 +46,19 @@ A browser speed-typing game inspired by *Assetto Corsa: No Hesi* highway weaving
 
 | Day: a nitro lane change, flames from the exhausts | Drive mode: a heart to win back a life |
 | --- | --- |
-| <img src="docs/screenshots/day.webp" alt="Day: the GT3 RS changes lanes on nitro at 142 mph, with the word floating over the road ahead" width="360" /> | <img src="docs/screenshots/drive.webp" alt="Drive mode: a damaged GT3 RS trailing smoke on its last life, with a floating red heart in the next lane and the A D lanes, W boost, W W nitro, S brake hint below" width="360" /> |
+| <img src="docs/screenshots/day.webp" alt="Day: the GT3 RS on nitro at 139 mph, flames from its exhausts, with the word floating over the road ahead" width="360" /> | <img src="docs/screenshots/drive.webp" alt="Drive mode: a damaged GT3 RS trailing smoke on its last life, with a floating red heart in its lane and keycap hints for A D lanes, W boost, W W nitro and S brake below" width="360" /> |
 
-| The rail widens on hover | Settings, with your own lane-switch keys |
+| The menu pill open, the sub pill folded beside it | The sub pill open on Settings |
 | --- | --- |
-| <img src="docs/screenshots/rail.webp" alt="Night: the right-hand rail expanded over the game, listing Mode and words, Garage, Achievements, Leaderboard, Settings, How to play and the Night switch" width="420" /> | <img src="docs/screenshots/settings.webp" alt="The Settings panel open beside the rail: volume, mute, engine sound, graphics, weather, lane-switch keys, reduce motion and on-screen controls" width="420" /> |
+| <img src="docs/screenshots/rail.webp" alt="Night: the menu pill expanded on the far left, with the Settings sub pill folded into a slim bar beside it showing Close, its icon and its name" width="420" /> | <img src="docs/screenshots/settings.webp" alt="The Settings sub pill open beside the folded menu pill: master volume with music, engine, weather, typing and effects sliders, mute, the music source, graphics and weather" width="420" /> |
 
-<p align="center"><img src="docs/screenshots/over.webp" alt="Game-over card with score, accuracy, top speed, clean cuts and distance, beside the top 7 leaderboard and best-run records" width="620" /></p>
+<p align="center"><img src="docs/screenshots/over.webp" alt="Game-over card with score, accuracy, top speed, clean cuts and distance, beside the top 7 leaderboard island and the now-playing pill" width="620" /></p>
 
-<p align="center"><img src="docs/screenshots/phone.webp" alt="Typencut at phone size: the icon row above the game, a nitro lane change with the on-screen buttons and a heart ahead, Drive mode at night with its four buttons, and the Settings panel" width="760" /></p>
+<p align="center"><img src="docs/screenshots/phone.webp" alt="Typencut at phone size: the icon row above the game and the now-playing pill below it; a nitro lane change with the on-screen buttons, Drive mode at night with its four buttons and keycap hints, and the Settings panel" width="760" /></p>
 
 ## Privacy
 
-Typencut has no backend. The game runs entirely in your browser and makes no network requests after the page loads: no analytics, cookies, accounts or third-party fonts. It remembers four kinds of thing, all in your browser's localStorage: your day/night choice (`typencut.theme`), your settings, including your mode, word pack, your own word list, car, paint, weather and lane-switch keys (`typencut.settings`), your lifetime points and achievements (`typencut.progress`), and your leaderboards (`typencut.board` for Classic, `typencut.board.<mode>` for the others, `typencut.board.daily.<date>` for each daily challenge). Clearing site data resets them. The share card is drawn in your browser and goes only where you send it.
+Typencut has no backend. The game runs entirely in your browser: no analytics, accounts or third-party fonts. With music set to In-game or Off it makes no network requests after the page loads. With Spotify (the default) it loads Spotify's embedded player from open.spotify.com when your first run starts, and that player talks to Spotify like any Spotify embed, under Spotify's own privacy policy and cookies. It remembers four kinds of thing, all in your browser's localStorage: your day/night choice (`typencut.theme`), your settings, including your mode, word pack, your own word list, car, paint, weather, lane-switch keys, sound levels and music source (`typencut.settings`), your lifetime points and achievements (`typencut.progress`), and your leaderboards (`typencut.board` for Classic, `typencut.board.<mode>` for the others, `typencut.board.daily.<date>` for each daily challenge). Clearing site data resets them. The share card is drawn in your browser and goes only where you send it.
 
 ## Principles
 
@@ -211,7 +214,7 @@ flowchart LR
 | `src/components` | `Game` (layout, theme, wiring), `TypingDock` (keys → commands), `Rail` (the menu pill and Day/Night switch), `Hud` (dashboard, popups, start card, game over, leaderboard, the sub pill's sections: mode, garage, achievements, settings, help), `shareCard` (the result image) |
 | `src/components/scene` | `Scene` (canvas, lights, camera rig, traffic, floating word), `World` (road and roadside), `Vehicles` (cars and night lights), `Fx` (skid marks, smoke), shared canvas textures |
 | `src/app` | Next.js layout and page; the game loads client-side only |
-| `scripts` | `shot.mjs`: a headless-Chrome playthrough that saves screenshots and reports console errors |
+| `scripts` | `shot.mjs`: a headless-Chrome playthrough that saves screenshots and reports console errors; `playlist.mjs`: re-reads the Spotify playlist into `src/game/playlist.ts` (run it after changing the playlist) |
 
 ## Accessibility
 
@@ -277,7 +280,7 @@ CI runs the type check, tests and production build on every push and pull reques
 - [x] **M13** Drive mode (WASD or arrow keys, no typing), heart pickups on the road, your own lane-switch keys (v1.8.0)
 - [x] **M14** Sound mixer with a slider per channel, a calmer engine, a 5-second nitro recharge with a ring by the speed, keycap key hints (v1.9.0)
 - [x] **M15** Menu pill on the far left with a sub pill that opens beside it, leaderboard to the right of the road (v1.10.0)
-- [ ] **M16** A skidding W-keycap logo in the browser tab; music: your Spotify playlist or a drum & bass track generated in code, with a now-playing pill
+- [x] **M16** A skidding W-keycap logo in the browser tab; music: a Spotify playlist or drum & bass made in code, with a now-playing pill and a Music slider (v1.11.0)
 
 ## License
 

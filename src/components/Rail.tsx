@@ -86,7 +86,7 @@ export function Rail({ open, onOpen, night, onTheme, expanded, onEnter, onLeave 
     >
       <div className={`flex gap-1 overflow-hidden rounded-panel border border-line bg-surface p-2.5 shadow-elev-1 max-sm:justify-around sm:absolute sm:inset-y-0 sm:left-0 sm:flex-col sm:transition-[width] sm:duration-200 ${expanded ? "sm:w-56 sm:shadow-elev-2" : "sm:w-[68px]"}`}>
         <div className="hidden h-12 shrink-0 items-center gap-3 px-2 sm:flex">
-          <span className="grid size-8 shrink-0 place-items-center rounded-xl bg-accent text-sm font-black italic text-stone-900">T</span>
+          <img src="/icon.svg" alt="" width={32} height={32} className="size-8 shrink-0" />
           <span className={`${LABEL} text-base font-black italic tracking-tight`}>TYPENCUT</span>
         </div>
         {SECTIONS.map(([id, label]) => {
