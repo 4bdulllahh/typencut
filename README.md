@@ -4,7 +4,7 @@ Type to weave a Porsche 911 GT3 RS through highway traffic.
 
 A browser speed-typing game inspired by *Assetto Corsa: No Hesi* highway weaving, drawn in the flat-shaded, low-poly style of *Art of Rally*. Every word you type moves you: finish it with a comma to go one lane left, a full stop to go right, or Enter to hold your lane with a burst of speed. Shout it in ALL CAPS for nitro, and tap Enter twice to brake. Slip past black cruisers and lane-hopping red mergers, chain close passes into a 5× multiplier, and cut out from right behind a car for a 500-point CLEAN CUT. No account, no server and no downloads: every car, tree, sign and sound is generated in code.
 
-**Live:** https://typencut-two.vercel.app · **Version:** 1.5.0
+**Live:** https://typencut-two.vercel.app · **Version:** 1.6.0
 
 [![Deploy with Vercel](https://vercel.com/button)](https://vercel.com/new/clone?repository-url=https%3A%2F%2Fgithub.com%2F4bdulllahh%2Ftypencut&project-name=typencut&repository-name=typencut)
 [![CI](https://github.com/4bdulllahh/typencut/actions/workflows/ci.yml/badge.svg)](https://github.com/4bdulllahh/typencut/actions/workflows/ci.yml)
@@ -32,9 +32,10 @@ A browser speed-typing game inspired by *Assetto Corsa: No Hesi* highway weaving
 - **Cars you can recognise.** Every model has its own shaped body, built from its real side profile and plan taper: the 911's fastback and raised front wings, the Yaris's short hatch, the Civic's sloping fastback, the Malibu's long three-box sedan, the Rogue's tall SUV body with roof rails, the F-150's cab and open bed, and the sporty M3, C63 and A5. Each has glass where its windows are, mirrors, its own wheelbase and its own head- and taillight layout.
 - **A car that shows the damage.** The starting GT3 RS has a white body, carbon hood and roof, fender louvers, a swan-neck wing, dual centre exhausts and a red LED tail strip. After one crash it carries scuffs and trails light smoke; after two it is dented, with a popped hood, a hanging bumper and thick black smoke. Hard lane changes and braking leave skid marks on the asphalt.
 - **Day and night.** A warm pastel day with soft shadows, or a night drive with lit streetlights, headlight beams, a real spotlight from your car, and a soft red glow on the road behind each taillight, placed where that car's lamps really are (corner lamps on most cars, tall slim lamps on the F-150, one full-width strip on the GT3 RS) and stretching with speed. The toggle is top right and your choice is remembered.
+- **Weather.** Rain brings falling streaks, spray kicked up behind every car, a darker glossy road where taillights and streetlights stretch into long reflections at night, a grey overcast sky and the hiss of rain. Fog hangs a thick haze over the road that swallows traffic about 100 m ahead, so cars appear later. Pick Clear, Rain or Fog in Settings, or leave it on Random for a new roll each run (half clear, 30% rain, 20% fog). The weather changes only what you see and hear; the car drives the same.
 - **Synthesised sound.** An engine note that climbs through a seven-speed gearbox as you speed up, drops on every upshift and howls on nitro. A soft linear-switch key click (duller on a wrong letter), a turbo blow-off on nitro, a rising whoosh on an Enter boost, tyre screech on lane changes and braking, a horn when you pass close, and a thud when you crash. All generated live with the Web Audio API.
 - **Accuracy over speed.** You type when a gap opens, not as fast as you can, so the game tracks accuracy rather than words per minute. The digital dashboard shows speed, lives, multiplier, score and live accuracy. At game over you get score, accuracy, top speed, clean cuts and distance. Your top 10 runs and best-ever stats for the current mode sit in a sidebar on wide screens and on the game-over card on smaller ones.
-- **Menu and settings.** A slide-in panel on the left pauses the game. It picks the mode and word pack, ends the current run, and holds the settings: volume, mute, engine sound on or off, graphics quality (Low drops shadows and renders at 1× for slower devices), reduce motion (no camera shake, nitro zoom or edge blur; on by default if your system asks for less motion), and on-screen controls. Your choices are remembered. Multiplayer has its place ready.
+- **Menu and settings.** A slide-in panel on the left pauses the game. It picks the mode and word pack, ends the current run, and holds the settings: volume, mute, engine sound on or off, graphics quality (Low drops shadows and renders at 1× for slower devices), weather (Random, Clear, Rain or Fog), reduce motion (no camera shake, nitro zoom or edge blur; on by default if your system asks for less motion), and on-screen controls. Your choices are remembered. Multiplayer has its place ready.
 - **Phone controls.** Left, straight and right buttons above the dock, on by default on touch screens. They submit the word you've typed without closing the phone's keyboard, the middle one doubles as the brake (tap twice on an empty box), and crashes vibrate on phones that support it.
 - **One typeface, phone to desktop.** Everything uses the same system sans (Segoe UI on Windows, San Francisco on Apple devices), and the road stays in a 9:16 portrait column at any window size.
 
@@ -46,7 +47,7 @@ A browser speed-typing game inspired by *Assetto Corsa: No Hesi* highway weaving
 
 ## Privacy
 
-Typencut has no backend. The game runs entirely in your browser and makes no network requests after the page loads: no analytics, cookies, accounts or third-party fonts. It remembers four kinds of thing, all in your browser's localStorage: your day/night choice (`typencut.theme`), your settings, including your mode, word pack, your own word list, car and paint (`typencut.settings`), your lifetime points and achievements (`typencut.progress`), and your leaderboards (`typencut.board` for Classic, `typencut.board.<mode>` for the others, `typencut.board.daily.<date>` for each daily challenge). Clearing site data resets them. The share card is drawn in your browser and goes only where you send it.
+Typencut has no backend. The game runs entirely in your browser and makes no network requests after the page loads: no analytics, cookies, accounts or third-party fonts. It remembers four kinds of thing, all in your browser's localStorage: your day/night choice (`typencut.theme`), your settings, including your mode, word pack, your own word list, car, paint and weather (`typencut.settings`), your lifetime points and achievements (`typencut.progress`), and your leaderboards (`typencut.board` for Classic, `typencut.board.<mode>` for the others, `typencut.board.daily.<date>` for each daily challenge). Clearing site data resets them. The share card is drawn in your browser and goes only where you send it.
 
 ## Principles
 
@@ -126,6 +127,7 @@ Points are multiplied by your multiplier when scored. The multiplier is 1 + 0.2 
 | Audi A5 (2014) | Merger | 4.63 × 1.85 |
 
 - **Effects.** Skid marks are one instanced mesh of 240 road-space segments laid under the rear tyres while you swerve or brake. Smoke is a pool of 48 puffs. Glows and beams share a radial texture drawn on a canvas; taillight pools use a softer, near-gaussian one.
+- **Weather.** Each weather has its own sky, fog distances and light balance (overcast skies trade direct sun for sky light). Rain is 700 instanced streaks in a box around the car, each stretched along its speed relative to you, falling at 26 m/s and rushing past at your speed. Spray is a pool of 360 soft mist patches left in road space behind each car's rear wheels, so it streams away behind cars you pass fast. The wet road swaps in darker, glossier asphalt, and the taillight and streetlight pools turn into long, narrow streaks. Random weather is rolled from the run's seed, so the daily challenge has the same weather for everyone and Play again rolls a new one.
 - **Light.** three.js uses physical light units, so the day lights are balanced to sum to about π, which keeps the flat colours bright without washing out. The sun's shadow box follows the player.
 - **Performance.** Positions are written to three.js objects every frame without going through React. React re-renders the traffic only when a car appears or leaves, and the HUD at 10 Hz plus on every event. Geometries and materials are shared between all copies.
 
@@ -136,6 +138,7 @@ Points are multiplied by your multiplier when scored. The multiplier is 1 + 0.2 
 | Event | Sound |
 | --- | --- |
 | Engine | A sawtooth plus a square an octave below, through a resonant low-pass that opens with the revs. Speed maps to a simulated seven-speed gearbox (upshifts at 40, 62, 85, 108, 132 and 158 mph); within a gear the pitch climbs from 35% to 100% revs, then drops on the shift. Nitro makes it louder and brighter. Updated 20 times a second with smooth glides. |
+| Rain | Looped white noise through a wide band-pass around 1.8 kHz, faded in while it rains |
 | Keystroke | A low sine "thock" plus a short band-passed click; a wrong letter sounds duller, and every key varies slightly in pitch |
 | Nitro | A falling band-passed hiss (turbo blow-off) over a low-passed whoomp (flame) |
 | Enter boost | A short rising whoosh |
@@ -208,7 +211,7 @@ flowchart LR
 - The menu opens with focus on Close, Escape or a click outside closes it, and the game pauses while it is open.
 - The typing input is labelled with the current word and the controls. Score popups are announced politely to screen readers, and the hearts have a text label.
 - **Reduce motion** (in Settings, and on by default when your system asks for less motion) removes camera shake, the nitro zoom and the edge blur, and score popups fade instead of flying.
-- Settings use native controls (a slider, checkboxes and radio buttons), so they work with the keyboard and screen readers. Paint swatches are buttons named after the paint, and a locked one says how many points unlock it. New achievements are announced as a status message.
+- Settings use native controls (a slider, checkboxes and radio buttons, including the weather choice), so they work with the keyboard and screen readers. Paint swatches are buttons named after the paint, and a locked one says how many points unlock it. New achievements are announced as a status message.
 - It is a fast visual game at heart: the traffic itself can't be followed with a screen reader.
 
 ## Getting started
@@ -227,7 +230,7 @@ npm run dev        # http://localhost:3000
 | `npm run dev` | Development server with hot reload |
 | `npm run build` | Production build |
 | `npm start` | Serve the production build |
-| `npm test` | Simulation, modes, word packs, input, leaderboard, achievements and unlocks, settings and engine-sound tests (28, with `node --test`) |
+| `npm test` | Simulation, modes, word packs, input, leaderboard, achievements and unlocks, settings, weather and engine-sound tests (29, with `node --test`) |
 | `npm run typecheck` | Type check with `tsc --noEmit` |
 | `node scripts/shot.mjs <url> <outDir> [--night]` | Plays a run in headless Chrome (eight words including two nitros and one Enter submit, a brake, then idles until game over), saves six screenshots and prints any console errors. Set `CHROME` if Chrome isn't in its default Windows location |
 
@@ -261,7 +264,7 @@ CI runs the type check, tests and production build on every push and pull reques
 - [x] **M8** Gameplay: slipstream meter, speed-trap bonuses at the roadside cameras, a combo timer (v1.3.0)
 - [x] **M9** Modes and content: Zen, Rush hour and Time attack modes, word packs, a daily challenge (v1.4.0)
 - [x] **M10** Progression: achievements, unlockable paints and cars, a shareable result card (v1.5.0)
-- [ ] **M11** Weather: rain and fog
+- [x] **M11** Weather: rain and fog (v1.6.0)
 
 ## License
 

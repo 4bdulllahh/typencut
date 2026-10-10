@@ -19,6 +19,8 @@ test("parseSettings keeps valid fields and drops the rest", () => {
   assert.deepEqual([car.car, car.paint], ["m4", "red"]);
   const badCar = parseSettings(JSON.stringify({ car: "yaris", paint: "gold" }), base); // npc models are not player cars
   assert.deepEqual([badCar.car, badCar.paint], ["gt3rs", "white"]);
+  assert.equal(parseSettings(JSON.stringify({ weather: "fog" }), base).weather, "fog");
+  assert.equal(parseSettings(JSON.stringify({ weather: "snow" }), base).weather, "random");
 });
 
 test("engine revs climb through each gear and drop on the upshift", () => {

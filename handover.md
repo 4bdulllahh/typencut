@@ -1,19 +1,18 @@
 # Typencut: handover (compact)
 
-_Updated 2026-10-10 · M10 pushed, **M11 in progress** · **live** https://typencut-two.vercel.app · repo `C:\Users\Computer\Documents\GitHub\typencut`, remote https://github.com/4bdulllahh/typencut · full brief in `docs/spec.md`._
+_Updated 2026-10-10 · M11 pushed, **all 13 picked features done** · **live** https://typencut-two.vercel.app · repo `C:\Users\Computer\Documents\GitHub\typencut`, remote https://github.com/4bdulllahh/typencut · full brief in `docs/spec.md`._
 
 ## Resume here
-- **v1.0, v1.1, M7, M8, M9, M10** are on `origin/main`.
-- **M10** (progression), pushed: typecheck + build clean, 28 tests pass; a headless run (progress seeded at 14,990) showed the garage locks, the "Achievement · Say cheese" toast mid-run, game over listing Say cheese + Daily driver + "Unlocked: Guards red", the Share image (download fallback, looked at), Guards red then selectable; close-up shots (temporary `CAM_H = 22`, reverted) of GT3 RS / Turbo S / M4 in several paints, day and night; no console errors. Version 1.5.0.
-  - Sim: Stats gain `maxCombo`, `traps`, `slipstreams`, `cleanFrom` (s of last crash), `bestClean` (longest crash-free m).
-  - `src/game/progress.ts`: `ACHIEVEMENTS` (16, `met(state)`), `PAINTS` (6, by lifetime cost), `CARS` (gt3rs 0, turbos 100k, m4 200k), `Progress {total, earned{id: date}}` in `typencut.progress` (`parseProgress` validates), `fresh`, `earn`, `unlockedBetween`.
-  - Settings gain `car`, `paint` (validated ids). `Game.tsx` checks `fresh()` on every engine event (toast + run news), adds the score to `total` at gameOver, falls back to gt3rs/white when a choice is locked.
-  - Scene: `PlayerModel` type; `PlayerCar({model, color})` with per-model extras (GT3 wing/louvers, Turbo S spoiler + grille, M4 kidneys + carbon lip), `EXHAUSTS` per model. Player cars share `PLAYER_DIMS` (hitbox); Fx skid marks/smoke still use the GT3's axle (about 2 cm off).
-  - UI: Menu Garage (car radios with lock + cost, paint swatches) + Achievements list (n/16); GameOver news list + Share (`components/shareCard.ts`: 1080 px square canvas, `navigator.share` with files, else download).
+- **v1.0, v1.1, M7–M11** are on `origin/main`.
+- **M11** (weather), pushed: typecheck + build clean, 29 tests pass; headless shots of clear/rain/fog by day and rain/fog by night looked at (spray and fog tuned once after the first look), start card shows "· RAIN" / "· FOG", daily + random gave the same roll on two reloads, no console errors. Version 1.6.0.
+  - `Weather` type (clear, rain, fog), visual + sound only. `rollWeather(seed)` in `sim.ts` (50/30/20). Settings `weather` = random | clear | rain | fog (`WEATHERS`, validated). `Game.tsx` keeps `rolled`, re-rolled from `engine.state.seed` after every restart (`reroll`), so the daily is the same for everyone.
+  - Scene: `WeatherCtx`/`useWeather`; `Atmosphere` reads `LOOKS[day|night][weather]` (sky, fog near/far, hemi, sun); `Fx.tsx` `Rain` (700 instanced streaks) + `Spray` (360 instanced mist planes in road space behind rear wheels); `World` wet asphalt/shoulder materials + streetlight pools stretched into streaks; `setTrails(..., wet)` lengthens taillight pools.
+  - Audio: `attachAudio` settings take `rain`; looped band-passed noise fades in.
+  - Menu: Weather segmented control under Graphics.
 
-**First thing next session:** `git status`; M11 (weather) was started after M10 was pushed; check what of it exists.
+**First thing next session:** `git status`; all 13 picked features are done (M7–M11); ask the owner what is next.
 
-**Next:** M11 in the milestone table, then the plan is finished. Not picked (don't build): police chase, ghost of best run, online leaderboard.
+Not picked (don't build): police chase, ghost of best run, online leaderboard.
 
 Open ideas, none promised: hide the floating word while a popup is on screen; ESLint (no lint script exists); `@react-three/drei` is unused (spec names it, so it was kept).
 
@@ -36,7 +35,7 @@ Open ideas, none promised: hide the floating word while a popup is on screen; ES
 | M8 | Gameplay: slipstream (close behind a car fills a draft meter → next word = free nitro), speed traps (pass a speed camera above ~150 mph = SPEED TRAP bonus + flash), combo timer (multiplier drains when you stop passing) | done |
 | M9 | Modes + content: Zen (no crashes), Rush hour (dense traffic), Time attack (90 s); word packs (driving, programming, common English, other languages, your own list); daily challenge (same seed for everyone per day, its own daily best) | done |
 | M10 | Progression: achievements (16, shown in the menu, toast when earned); unlocks by lifetime score (6 paints, 911 Turbo S, M4 Competition); share card (image of the run's stats) | done |
-| M11 | Weather: rain (wet-road reflections, spray behind cars) and fog, random or chosen in Settings | todo |
+| M11 | Weather: rain (wet-road reflections, spray behind cars) and fog, random or chosen in Settings | done |
 
 ## Rules the code must keep
 | Rule | How |
@@ -60,7 +59,7 @@ Next.js 16 + React 19 + TypeScript 5.9 (strict) · R3F 9 + drei 10 + three 0.186
 - `components/scene/Scene.tsx` Canvas (`shadows`, `flat` = no tone mapping), `Atmosphere` (sky/fog/hemi/sun per mode; sun shadow box ±70 m around the player at the origin), `CameraRig` (90 m up, 10 m behind, 20° tilt, follows 35% of player x; shake on collision/nitro/clean cut; +8° FOV in nitro), Traffic (re-renders only when the id list changes; mounts one `NpcCar` per id).
 - `components/scene/World.tsx` ★ `Repeat` (copies children every `period` m with optional `offset`, window NEAR 25 m behind to FAR 140 m ahead; `place(g, k)` varies copy k via `hash`) · static strips (grass, asphalt, shoulders, edge lines yellow-left/white-right, jersey barriers) · repeated dashes 12 m, trees 6 m, streetlights 42 m (night: lit heads + additive pools), gantry 520 m (first at 48 m; signs tilted back 1 rad to read from above, they teach `,` `.` CAPS), speed camera 360 m.
 - `components/scene/Vehicles.tsx` ★ `STYLE` per model: `stations` `[t, halfWidth, waist, roof?, wingRise?]` traced from the real car, plus ride, greenhouse taper (`gb`/`gt`), wheel, axles, head/tail lamp layout (`tail[0] = 0` = full-width strip), `hood`/`roofAccent` (GT3 carbon), `bed`, `rails`. `bodyGeometry()` lofts 12-point rings through the stations (groups 0 paint, 1 glass, 2 accent; winding fixed per triangle; cached per model). `at(model, t)` interpolates half-width/waist/z for placing details. `Body` adds wheels + hubs, mirrors, lamps, bed, rails. `PlayerCar({model, color})`: per-model extras (GT3 RS (carbon hood/roof, louvers, swan-neck wing, dual exhausts, LED strip = brake light while `brakeT > 0`), `scuffs` group at `lives <= 2`, `dents` at `lives <= 1`, invuln blink, yaw from `vx`, night spotLight. `NpcCar`: black cruiser / red merger, amber corner blinkers per side, yaw while sliding. `NightLights`: additive ground beam ahead + one soft red pool per taillight, stretched by speed (`setTrails`). `GT3_REAR_AXLE` is exported for the skid marks.
-- `components/scene/Fx.tsx` `SkidMarks` (instanced ring buffer of 240 road-space segments under the rear tyres while `|vx| > 3` or braking; cleared on restart) · `Smoke` (48 pooled puffs from the rear deck, 8/s at 2 lives, 24/s dark at 1). Nitro flames live in `PlayerCar` (`flames` group).
+- `components/scene/Fx.tsx` `Rain`, `Spray` (weather) · `SkidMarks` (instanced ring buffer of 240 road-space segments under the rear tyres while `|vx| > 3` or braking; cleared on restart) · `Smoke` (48 pooled puffs from the rear deck, 8/s at 2 lives, 24/s dark at 1). Nitro flames live in `PlayerCar` (`flames` group).
 - `src/game/settings.ts` `loadSettings`/`saveSettings`/`parseSettings` (`typencut.settings`). `Game.tsx` owns `settings` state → `audio.set`, `Scene` (`quality`, `reduceMotion`), `EdgeFx` (`still`), `TypingDock` (`touch`), `Menu` (`onSettings`).
 - `src/game/audio.ts` `attachAudio(engine, settings)` → `{ set, pause, detach }`; engine note from `revs(mph)`; synth on events: `key` click, `nitro` blow-off + whoomp, `boost` whoosh, `laneChange`/`brake` screech, horn on dangerous/clean-cut overtakes, `collision` thud. AudioContext made lazily on the first keystroke.
 - `components/Hud.tsx` `Dashboard` (speed + bar, hearts, multiplier bar + combo, score, accuracy) · `Popups` (overtake/crash callouts from `engine.on`, big CLEAN CUT; `.pop` CSS, reduced-motion = fade) · `ReadyOverlay` · `GameOver` (dialog, autofocus Play again, compact leaderboard below `xl`) · `Leaderboard` (top runs + best-run records) · `Controls` (shared how-to list) · `Menu` (left drawer, `inert` when closed, focus to Close, Escape/backdrop close; Settings section with native slider/checkboxes/radios).

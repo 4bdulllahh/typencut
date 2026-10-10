@@ -2,7 +2,7 @@ import assert from "node:assert/strict";
 import { test } from "node:test";
 import { COMBO_TIME, LANES, MPH, POINTS, SPEED_CAMERA, laneX } from "./config.ts";
 import { isPrefix, matchWord } from "./input.ts";
-import { applyCommand, createState, rand, seedFromDate, snapshot, spawn, step } from "./sim.ts";
+import { applyCommand, createState, rand, rollWeather, seedFromDate, snapshot, spawn, step } from "./sim.ts";
 import type { GameState, Npc } from "./types.ts";
 import { PACKS, WORDS, bucketize, parseWordList, pickWord } from "./words.ts";
 
@@ -311,4 +311,11 @@ test("run counters: best combo and the longest crash-free stretch", () => {
   run(s, 1);
   assert.equal(s.stats.bestClean, before); // a short stretch after the crash does not beat the one before it
   assert.equal(s.stats.maxCombo, 1); // the crash reset the combo, not the best
+});
+
+test("weather rolls are stable per seed and come out roughly 50/30/20", () => {
+  assert.equal(rollWeather(seedFromDate("2026-10-10")), rollWeather(seedFromDate("2026-10-10")));
+  const n = { clear: 0, rain: 0, fog: 0 };
+  for (let seed = 0; seed < 10000; seed++) n[rollWeather(seed * 7919 + Date.UTC(2026, 0, 1))]++;
+  assert.ok(Math.abs(n.clear - 5000) < 300 && Math.abs(n.rain - 3000) < 300 && Math.abs(n.fog - 2000) < 300, JSON.stringify(n));
 });

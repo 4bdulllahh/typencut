@@ -2,7 +2,7 @@ import {
   BOOST_MPH, BOOST_TIME, BRAKE_TIME, CLEAN_CUT_GAP, COMBO_TIME, DRAFT_RANGE, RUSH_GAP, SPEED_CAMERA, TIME_ATTACK_S, CRUISE_MPH, CRUISERS, INVULN_TIME, LANES, MAX_MULTIPLIER, MERGERS, MODELS, MPH,
   MULTIPLIER_STEP, NITRO_MPH, NITRO_TIME, PLAYER_DIMS, POINTS, START_LIVES, SURPRISE_CUT_CHANCE, laneX, toMph,
 } from "./config.ts";
-import type { Command, GameEvent, GameState, Mode, Npc, PassGrade } from "./types.ts";
+import type { Command, GameEvent, GameState, Mode, Npc, PassGrade, Weather } from "./types.ts";
 import { WORDS, pickWord } from "./words.ts";
 
 const LAT_K = 90; // lane-change spring stiffness (critically damped, ~0.5 s settle)
@@ -34,6 +34,12 @@ export interface RunOptions {
 
 /** FNV-1a of a date string such as "2026-10-10": the daily challenge's seed. */
 export const seedFromDate = (date: string) => [...date].reduce((h, c) => Math.imul(h ^ c.charCodeAt(0), 16777619), 2166136261) | 0;
+
+/** A run's weather when the setting is "random": half clear, 30% rain, 20% fog, picked from the run's seed. */
+export function rollWeather(seed: number): Weather {
+  const r = (Math.imul(seed ^ 0x9e3779b9, 2654435761) >>> 0) / 4294967296;
+  return r < 0.5 ? "clear" : r < 0.8 ? "rain" : "fog";
+}
 
 export function createState(seed = Date.now(), { mode = "classic", words = WORDS }: Omit<RunOptions, "seed"> = {}): GameState {
   const state: GameState = {

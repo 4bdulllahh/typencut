@@ -5,9 +5,9 @@ import { COMBO_TIME, MAX_MULTIPLIER, NITRO_MPH, START_LIVES } from "@/game/confi
 import type { GameEngine } from "@/game/engine";
 import type { Board } from "@/game/leaderboard";
 import { ACHIEVEMENTS, CARS, PAINTS, type Progress } from "@/game/progress";
-import type { Settings } from "@/game/settings";
+import { WEATHERS, type Settings } from "@/game/settings";
 import type { Snapshot } from "@/game/sim";
-import type { GameEvent, Mode } from "@/game/types";
+import type { GameEvent, Mode, Weather } from "@/game/types";
 import { MIN_CUSTOM_WORDS, PACK_IDS, parseWordList, type PackId } from "@/game/words";
 import { shareRun } from "./shareCard";
 
@@ -133,13 +133,13 @@ function Controls({ cut = "text-amber-300" }: { cut?: string }) {
   );
 }
 
-export function ReadyOverlay({ best, mode, pack, day }: { best: number; mode: Mode; pack: PackId; day: string }) {
+export function ReadyOverlay({ best, mode, pack, day, weather }: { best: number; mode: Mode; pack: PackId; day: string; weather: Weather }) {
   return (
     <div className="pointer-events-none absolute inset-x-4 top-[26%] rounded-2xl bg-black/45 p-5 text-center text-white shadow-xl backdrop-blur-md">
       <h1 className="text-3xl font-black italic tracking-tight">TYPENCUT</h1>
       <p className="mb-3 mt-1 text-xs font-semibold uppercase tracking-widest text-amber-200">
         {MODE_INFO[mode][0]}
-        {mode === "daily" && ` · ${dayLabel(day)}`} · {PACK_LABELS[pack]} words
+        {mode === "daily" && ` · ${dayLabel(day)}`} · {PACK_LABELS[pack]} words{weather !== "clear" && ` · ${weather}`}
       </p>
       <Controls />
       <p className="mt-4 text-sm font-semibold opacity-90">Start typing to go{best > 0 && ` · best ${best.toLocaleString()}`}</p>
@@ -449,6 +449,20 @@ export function Menu({ open, onClose, settings, onSettings, progress, onEnd }: {
                   <input type="radio" name="quality" checked={settings.quality === q} onChange={() => set("quality", q)} className="peer sr-only" />
                   <span className="block rounded-lg py-1 text-center font-semibold capitalize peer-checked:bg-white peer-checked:shadow peer-focus-visible:ring-2 peer-focus-visible:ring-amber-500 dark:peer-checked:bg-slate-700">
                     {q}
+                  </span>
+                </label>
+              ))}
+            </div>
+          </fieldset>
+          <fieldset className="py-1.5">
+            <legend className="font-semibold">Weather</legend>
+            <span className="block text-xs opacity-60">Random picks clear, rain or fog for each run</span>
+            <div className="mt-1.5 grid grid-cols-4 gap-1 rounded-xl bg-black/5 p-1 dark:bg-white/10">
+              {WEATHERS.map((w) => (
+                <label key={w} className="cursor-pointer">
+                  <input type="radio" name="weather" checked={settings.weather === w} onChange={() => set("weather", w)} className="peer sr-only" />
+                  <span className="block rounded-lg py-1 text-center text-xs font-semibold capitalize peer-checked:bg-white peer-checked:shadow peer-focus-visible:ring-2 peer-focus-visible:ring-amber-500 dark:peer-checked:bg-slate-700">
+                    {w}
                   </span>
                 </label>
               ))}

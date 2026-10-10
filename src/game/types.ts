@@ -6,6 +6,8 @@ export type PassGrade = "standard" | "dangerous" | "cleanCut";
 export type Status = "ready" | "running" | "over";
 /** daily = classic rules on a seed taken from the date. zen = crashes cost no lives. */
 export type Mode = "classic" | "zen" | "rush" | "timeAttack" | "daily";
+/** Looks and sound only: the simulation drives the same in every weather. */
+export type Weather = "clear" | "rain" | "fog";
 
 export interface Npc {
   id: number;

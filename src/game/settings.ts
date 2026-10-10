@@ -1,6 +1,6 @@
 import { MODES } from "./config.ts";
 import { CARS, PAINTS, type PaintId } from "./progress.ts";
-import type { Mode, PlayerModel } from "./types.ts";
+import type { Mode, PlayerModel, Weather } from "./types.ts";
 import { PACK_IDS, type PackId } from "./words.ts";
 
 export interface Settings {
@@ -15,12 +15,14 @@ export interface Settings {
   customWords: string; // the player's own list, as typed (see parseWordList)
   car: PlayerModel; // chosen in the garage; Game.tsx falls back to the GT3 RS if it is still locked
   paint: PaintId;
+  weather: Weather | "random"; // random = rolled per run from its seed (see rollWeather)
 }
 
 const KEY = "typencut.settings";
+export const WEATHERS = ["random", "clear", "rain", "fog"] as const;
 
 export const defaultSettings = (reduceMotion = false, touch = false): Settings => ({
-  volume: 0.8, muted: false, engine: true, quality: "high", reduceMotion, touch, mode: "classic", pack: "driving", customWords: "", car: "gt3rs", paint: "white",
+  volume: 0.8, muted: false, engine: true, quality: "high", reduceMotion, touch, mode: "classic", pack: "driving", customWords: "", car: "gt3rs", paint: "white", weather: "random",
 });
 
 /** localStorage is user-editable: each field is kept only if it has the right type and range. */
@@ -35,6 +37,7 @@ export function parseSettings(raw: string | null, base: Settings): Settings {
     if (PACK_IDS.includes(d?.pack)) s.pack = d.pack;
     if (CARS.some((c) => c.id === d?.car)) s.car = d.car;
     if (PAINTS.some((c) => c.id === d?.paint)) s.paint = d.paint;
+    if (WEATHERS.includes(d?.weather)) s.weather = d.weather;
     if (typeof d?.customWords === "string" && d.customWords.length <= 5000) s.customWords = d.customWords;
   } catch {}
   return s;

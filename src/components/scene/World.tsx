@@ -7,7 +7,7 @@ import {
   MeshStandardMaterial, PlaneGeometry, type Group,
 } from "three";
 import { LANES, LANE_W, SPEED_CAMERA, laneX } from "@/game/config";
-import { useEngine, useNight } from "./context";
+import { useEngine, useNight, useWeather } from "./context";
 import { glowTexture, limitSignTexture, signTexture } from "./textures";
 
 // Road cross-section (m from centre)
@@ -22,6 +22,9 @@ const flat = (color: string) => new MeshStandardMaterial({ color, flatShading: t
 const M = {
   asphalt: flat("#676b73"),
   shoulder: flat("#7b7d80"),
+  // Rain: darker and glossy, so the sun leaves a sheen and lights smear into reflections
+  asphaltWet: new MeshStandardMaterial({ color: "#474b53", roughness: 0.28 }),
+  shoulderWet: new MeshStandardMaterial({ color: "#595c61", roughness: 0.35 }),
   paint: new MeshBasicMaterial({ color: "#f3efe4" }),
   yellow: new MeshBasicMaterial({ color: "#e9c25a" }),
   concrete: flat("#d6d0c4"),
@@ -113,12 +116,14 @@ const strip = (x: number, w: number, y: number, mat: MeshStandardMaterial | Mesh
 );
 
 function Ground() {
+  const wet = useWeather() === "rain";
+  const [road, shoulder] = wet ? [M.asphaltWet, M.shoulderWet] : [M.asphalt, M.shoulder];
   return (
     <>
       {strip(0, 400, -0.02, M.grass, "grass")}
-      {strip(0, ROAD * 2, 0, M.asphalt, "road")}
-      {strip(-(ROAD + SHOULDER) / 2, SHOULDER - ROAD, 0, M.shoulder, "sl")}
-      {strip((ROAD + SHOULDER) / 2, SHOULDER - ROAD, 0, M.shoulder, "sr")}
+      {strip(0, ROAD * 2, 0, road, "road")}
+      {strip(-(ROAD + SHOULDER) / 2, SHOULDER - ROAD, 0, shoulder, "sl")}
+      {strip((ROAD + SHOULDER) / 2, SHOULDER - ROAD, 0, shoulder, "sr")}
       {strip(-ROAD + 0.15, 0.18, 0.015, M.yellow, "el")}
       {strip(ROAD - 0.15, 0.18, 0.015, M.paint, "er")}
       {[-1, 1].map((side) => (
@@ -171,6 +176,7 @@ function placeTrees(slot: Group, k: number) {
 
 function StreetLight({ side }: { side: -1 | 1 }) {
   const night = useNight();
+  const wet = useWeather() === "rain";
   const armX = side * (ROAD + 0.6);
   return (
     <group>
@@ -183,7 +189,8 @@ function StreetLight({ side }: { side: -1 | 1 }) {
       <mesh material={night ? M.lampOn : M.lampOff} position={[armX, 8.85, 0]}>
         <boxGeometry args={[1.1, 0.25, 0.45]} />
       </mesh>
-      {night && <mesh geometry={G.pool} material={M.pool} rotation-x={-Math.PI / 2} position={[armX, 0.04, 0]} />}
+      {/* on a wet road the pool becomes a long reflection streaking toward the viewer */}
+      {night && <mesh geometry={G.pool} material={M.pool} rotation-x={-Math.PI / 2} position={[armX, 0.04, wet ? 6 : 0]} scale={wet ? [0.45, 2.4, 1] : 1} />}
     </group>
   );
 }

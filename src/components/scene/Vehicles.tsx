@@ -8,7 +8,7 @@ import {
 } from "three";
 import { MODELS, laneX } from "@/game/config";
 import type { CarModel, Npc, PlayerModel } from "@/game/types";
-import { useEngine, useNight } from "./context";
+import { useEngine, useNight, useWeather } from "./context";
 import { glowTexture, softGlowTexture } from "./textures";
 
 const flat = (color: string, roughness = 0.5) => new MeshStandardMaterial({ color, flatShading: true, roughness });
@@ -259,13 +259,14 @@ function NightLights({ model, trails }: { model: CarModel; trails: React.RefObje
   );
 }
 
-function setTrails(meshes: (Mesh | null)[], model: CarModel, speed: number) {
+/** `wet`: on a rainy road the pools become long, narrow reflections. */
+function setTrails(meshes: (Mesh | null)[], model: CarModel, speed: number, wet: boolean) {
   const L = MODELS[model].length;
   const tw = STYLE[model].tail[1];
-  const len = 1.6 + speed * 0.05;
+  const len = (1.6 + speed * 0.05) * (wet ? 2.2 : 1);
   for (const m of meshes) {
     if (!m) continue;
-    m.scale.set(tw * 1.5 + 0.5, 1, len);
+    m.scale.set((tw * 1.5 + 0.5) * (wet ? 0.7 : 1), 1, len);
     m.position.z = L / 2 + len * 0.38;
   }
 }
@@ -285,6 +286,7 @@ export function PlayerCar({ model, color }: { model: PlayerModel; color: string 
   const led = useMemo(() => new MeshBasicMaterial(), []);
   const target = useMemo(() => new Object3D(), []);
   const paint = useMemo(() => flat(color, 0.35), [color]);
+  const wet = useWeather() === "rain";
   useFrame(() => {
     const p = engine.state.player;
     if (!root.current || !scuffs.current || !dents.current || !flames.current) return;
@@ -296,7 +298,7 @@ export function PlayerCar({ model, color }: { model: PlayerModel; color: string 
     flames.current.visible = p.nitroT > 0;
     flames.current.scale.z = 0.7 + Math.random() * 0.6;
     led.color.set(p.brakeT > 0 ? "#ff1428" : night ? "#e0283a" : "#7a1018");
-    setTrails(trails.current, model, p.speed);
+    setTrails(trails.current, model, p.speed, wet);
   });
   const { length: L, width: W } = MODELS[model];
   const deck = at(model, 0.93).y;
@@ -382,6 +384,7 @@ export function NpcCar({ id }: { id: number }) {
   const right = useRef<Group>(null);
   const trails = useRef<(Mesh | null)[]>([]);
   const npc = useRef<Npc | undefined>(undefined);
+  const wet = useWeather() === "rain";
   npc.current ??= engine.state.npcs.find((n) => n.id === id);
   useFrame(({ clock }) => {
     const n = engine.state.npcs.find((o) => o.id === id);
@@ -392,7 +395,7 @@ export function NpcCar({ id }: { id: number }) {
     const on = clock.elapsedTime % 0.5 < 0.25;
     left.current.visible = n.signal === -1 && on;
     right.current.visible = n.signal === 1 && on;
-    setTrails(trails.current, n.model, n.speed);
+    setTrails(trails.current, n.model, n.speed, wet);
   });
   if (!npc.current) return null;
   const { model, kind } = npc.current;

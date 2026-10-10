@@ -14,7 +14,7 @@ export function revs(mph: number) {
   return { gear: g + 1, rpm: 0.35 + 0.65 * frac };
 }
 
-type AudioSettings = Pick<Settings, "volume" | "muted" | "engine">;
+type AudioSettings = Pick<Settings, "volume" | "muted" | "engine"> & { rain?: boolean };
 
 /**
  * Synthesised sound driven by engine events, plus a continuous engine note that follows the player's speed.
@@ -27,6 +27,7 @@ export function attachAudio(engine: GameEngine, initial: AudioSettings) {
   let settings = initial;
   let paused = false;
   let motor: { saw: OscillatorNode; sub: OscillatorNode; filter: BiquadFilterNode; gain: GainNode } | null = null;
+  let rain: GainNode | null = null;
   const level = () => (settings.muted ? 0 : settings.volume * 0.62);
 
   // Created on the first event, which is a keystroke, so the browser allows it.
@@ -55,6 +56,19 @@ export function attachAudio(engine: GameEngine, initial: AudioSettings) {
       saw.start();
       sub.start();
       motor = { saw, sub, filter, gain };
+      // Rain: looped noise, band-limited to a soft hiss, faded in while it rains.
+      rain = ctx.createGain();
+      rain.gain.value = 0;
+      rain.connect(out);
+      const patter = ctx.createBufferSource();
+      patter.buffer = noise;
+      patter.loop = true;
+      const band = ctx.createBiquadFilter();
+      band.type = "bandpass";
+      band.frequency.value = 1800;
+      band.Q.value = 0.5;
+      patter.connect(band).connect(rain);
+      patter.start();
     }
     if (ctx.state === "suspended") void ctx.resume();
     return ctx;
@@ -153,6 +167,7 @@ export function attachAudio(engine: GameEngine, initial: AudioSettings) {
     motor.sub.frequency.setTargetAtTime((70 + 230 * rpm) / 2, t, 0.05);
     motor.filter.frequency.setTargetAtTime(500 + 2200 * rpm + (nitro ? 1600 : 0), t, 0.08);
     motor.gain.gain.setTargetAtTime(on ? (nitro ? 0.15 : 0.08) * (0.6 + 0.4 * rpm) : 0, t, 0.08);
+    rain?.gain.setTargetAtTime(settings.rain && !paused ? 0.07 : 0, t, 0.5);
   }, 50);
 
   const off = engine.on(play);

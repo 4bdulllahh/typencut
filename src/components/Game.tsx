@@ -6,7 +6,8 @@ import { GameEngine } from "@/game/engine";
 import { boardKey, loadBoard, saveRun } from "@/game/leaderboard";
 import { CARS, PAINTS, earn, fresh, loadProgress, saveProgress, unlockedBetween } from "@/game/progress";
 import { loadSettings, saveSettings } from "@/game/settings";
-import { seedFromDate, snapshot } from "@/game/sim";
+import { rollWeather, seedFromDate, snapshot } from "@/game/sim";
+import type { Weather } from "@/game/types";
 import { packWords } from "@/game/words";
 import { Dashboard, GameOver, Leaderboard, Menu, Popups, ReadyOverlay, type RunNews } from "./Hud";
 import { Scene } from "./scene/Scene";
@@ -59,6 +60,10 @@ export function Game() {
   // A locked choice (only possible by editing storage) falls back to the starting car and paint.
   const car = CARS.find((c) => c.id === settings.car && c.cost <= progress.total)?.id ?? "gt3rs";
   const paint = (PAINTS.find((p) => p.id === settings.paint && p.cost <= progress.total) ?? PAINTS[0]).color;
+  // "random" weather is rolled from each new run's seed, so the daily challenge has the same weather for everyone.
+  const [rolled, setRolled] = useState<Weather>("clear");
+  const weather = settings.weather === "random" ? rolled : settings.weather;
+  const reroll = useCallback(() => setRolled(rollWeather(engine.state.seed)), [engine]);
   const audio = useRef<ReturnType<typeof attachAudio>>(null);
   const vibrate = useRef(settings.touch);
 
@@ -77,11 +82,11 @@ export function Game() {
 
   useEffect(() => {
     saveSettings(settings);
-    audio.current?.set(settings);
     vibrate.current = settings.touch;
     document.documentElement.classList.toggle("reduce-motion", settings.reduceMotion);
   }, [settings]);
 
+  useEffect(() => audio.current?.set({ ...settings, rain: weather === "rain" }), [settings, weather]);
   useEffect(() => audio.current?.pause(menu), [menu]);
 
   useEffect(() => {
@@ -95,7 +100,8 @@ export function Game() {
     setDay(d);
     setRunDate(undefined);
     engine.restart({ mode: settings.mode, words, seed: settings.mode === "daily" ? seedFromDate(d) : undefined });
-  }, [engine, settings.mode, words]);
+    reroll();
+  }, [engine, settings.mode, words, reroll]);
 
   useEffect(
     () =>
@@ -154,7 +160,7 @@ export function Game() {
     <main className="flex h-dvh justify-center xl:gap-6">
       <div className="hidden w-72 shrink-0 xl:block" aria-hidden />
       <div className="relative aspect-[9/16] h-full max-w-full overflow-hidden">
-        <Scene engine={engine} night={night} quality={settings.quality} reduceMotion={settings.reduceMotion} car={car} paint={paint} />
+        <Scene engine={engine} night={night} quality={settings.quality} reduceMotion={settings.reduceMotion} car={car} paint={paint} weather={weather} />
         <EdgeFx speedMph={snap.speedMph} nitro={snap.nitro} still={settings.reduceMotion} />
         <div className="pointer-events-none absolute inset-x-3 top-3 flex flex-col gap-2">
           <Dashboard snap={snap} />
@@ -173,11 +179,11 @@ export function Game() {
           )}
         </div>
         <Popups engine={engine} />
-        {snap.status === "ready" && <ReadyOverlay best={board.best.score} mode={settings.mode} pack={settings.pack} day={day} />}
+        {snap.status === "ready" && <ReadyOverlay best={board.best.score} mode={settings.mode} pack={settings.pack} day={day} weather={weather} />}
         <div className={`absolute inset-x-0 flex justify-center px-3 ${settings.touch ? "bottom-2" : "bottom-6"}`}>
           <TypingDock engine={engine} word={snap.word} nextWord={snap.nextWord} disabled={snap.status === "over" || menu} touch={settings.touch} />
         </div>
-        {snap.status === "over" && <GameOver snap={snap} board={board} runDate={runDate} day={day} news={news} onRestart={() => engine.restart()} />}
+        {snap.status === "over" && <GameOver snap={snap} board={board} runDate={runDate} day={day} news={news} onRestart={() => (engine.restart(), reroll())} />}
       </div>
       <aside className="hidden w-72 shrink-0 overflow-y-auto py-6 xl:block">
         <Leaderboard board={board} highlight={runDate} mode={settings.mode} day={day} />

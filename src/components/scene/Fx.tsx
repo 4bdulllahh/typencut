@@ -2,9 +2,10 @@
 
 import { useFrame } from "@react-three/fiber";
 import { useEffect, useMemo, useRef } from "react";
-import { IcosahedronGeometry, MeshBasicMaterial, MeshStandardMaterial, Object3D, PlaneGeometry, type InstancedMesh, type Mesh } from "three";
+import { BoxGeometry, IcosahedronGeometry, MeshBasicMaterial, MeshStandardMaterial, Object3D, PlaneGeometry, type InstancedMesh, type Mesh } from "three";
 import { MODELS } from "@/game/config";
 import { useEngine } from "./context";
+import { softGlowTexture } from "./textures";
 import { GT3_REAR_AXLE } from "./Vehicles";
 
 const { length: L, width: W } = MODELS.gt3rs;
@@ -94,4 +95,87 @@ export function Smoke() {
   return parts.map((_, i) => (
     <mesh key={i} ref={(m) => void (meshes.current[i] = m)} geometry={PUFF} material={mats[i]} visible={false} />
   ));
+}
+
+const DROP = new BoxGeometry(0.035, 0.035, 1);
+const RAIN_N = 700;
+const RAIN_TOP = 45;
+const FALL = 26; // m/s
+const RAIN_MAT = new MeshBasicMaterial({ color: "#c9d6e6", transparent: true, opacity: 0.45, depthWrite: false });
+
+/** Rain streaks in a box around the player, stretched along their motion relative to the car (falling, and rushing past). */
+export function Rain() {
+  const engine = useEngine();
+  const ref = useRef<InstancedMesh>(null);
+  const r = Math.random;
+  const drops = useMemo(() => Array.from({ length: RAIN_N }, () => ({ x: (r() - 0.5) * 34, y: r() * RAIN_TOP, z: -150 + r() * 170 })), [r]);
+  const tmp = useMemo(() => new Object3D(), []);
+  useFrame((_, dt) => {
+    const mesh = ref.current;
+    if (!mesh) return;
+    const v = engine.state.status === "running" ? engine.state.player.speed : 0;
+    const len = Math.hypot(FALL, v) * 0.03; // ~30 ms of motion blur
+    drops.forEach((d, i) => {
+      d.y -= FALL * dt;
+      d.z += v * dt;
+      if (d.y < 0 || d.z > 20) [d.x, d.y, d.z] = [(r() - 0.5) * 34, RAIN_TOP * (0.6 + r() * 0.4), -150 + r() * 150];
+      tmp.position.set(d.x, d.y, d.z);
+      tmp.rotation.set(Math.atan2(FALL, v), 0, 0); // long axis along the drop's velocity (0, -FALL, v)
+      tmp.scale.set(1, 1, len);
+      tmp.updateMatrix();
+      mesh.setMatrixAt(i, tmp.matrix);
+    });
+    mesh.instanceMatrix.needsUpdate = true;
+  });
+  return <instancedMesh ref={ref} args={[DROP, RAIN_MAT, RAIN_N]} frustumCulled={false} />;
+}
+
+const SPRAY_N = 360;
+const SPRAY_PLANE = new PlaneGeometry(1, 1);
+const SPRAY_LIFE = 0.7;
+
+/** Road spray: mist kicked up behind every car's rear wheels, left in road space so it streams away behind fast cars. */
+export function Spray() {
+  const engine = useEngine();
+  const ref = useRef<InstancedMesh>(null);
+  const mat = useMemo(
+    () => new MeshStandardMaterial({ color: "#f2f5f8", alphaMap: softGlowTexture(), transparent: true, opacity: 0.22, depthWrite: false, roughness: 1 }),
+    [],
+  );
+  const puffs = useMemo(() => Array.from({ length: SPRAY_N }, () => ({ s: 0, x: 0, side: 1, age: SPRAY_LIFE, drift: 0 })), []);
+  const next = useRef(0);
+  const acc = useRef(new Map<number, number>()); // car id (0 = player) → emission carry-over
+  const tmp = useMemo(() => new Object3D(), []);
+  useFrame((_, dt) => {
+    const mesh = ref.current;
+    if (!mesh) return;
+    const { player: p, npcs, status } = engine.state;
+    if (status === "running") {
+      const cars = [{ id: 0, s: p.s, x: p.x, len: MODELS.gt3rs.length, w: W, speed: p.speed }, ...npcs.map((n) => ({ id: n.id, s: n.s, x: n.x, len: n.length, w: n.width, speed: n.speed }))];
+      for (const c of cars) {
+        if (c.s - p.s > 130 || c.s - p.s < -30) continue;
+        let a = (acc.current.get(c.id) ?? 0) + c.speed * 0.5 * dt; // ~30 puffs a second at highway speed
+        for (; a >= 1; a--) {
+          const q = puffs[next.current++ % SPRAY_N];
+          q.side = Math.random() < 0.5 ? -1 : 1;
+          [q.s, q.x, q.age, q.drift] = [c.s - c.len / 2 + 0.6, c.x + q.side * (c.w / 2 - 0.25), 0, c.speed * 0.3];
+        }
+        acc.current.set(c.id, a);
+      }
+      if (acc.current.size > 64) acc.current.clear(); // forget cars that left
+    }
+    puffs.forEach((q, i) => {
+      q.age += dt;
+      q.s += q.drift * dt; // dragged along a little behind the car
+      const k = q.age / SPRAY_LIFE;
+      const size = k < 1 ? (1.1 + k * 2.6) * (1 - k * 0.5) : 0;
+      tmp.position.set(q.x + q.side * k * 0.4, 0.3 + k * 0.6, -(q.s - p.s));
+      tmp.rotation.set(-Math.PI / 2, 0, 0);
+      tmp.scale.set(size, size * 3, 1); // long along the road, so the puffs merge into one plume
+      tmp.updateMatrix();
+      mesh.setMatrixAt(i, tmp.matrix);
+    });
+    mesh.instanceMatrix.needsUpdate = true;
+  });
+  return <instancedMesh ref={ref} args={[SPRAY_PLANE, mat, SPRAY_N]} frustumCulled={false} />;
 }

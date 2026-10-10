@@ -6,20 +6,21 @@ import { Vector3, type PerspectiveCamera } from "three";
 import { LANE_W } from "@/game/config";
 import type { GameEngine } from "@/game/engine";
 import type { Settings } from "@/game/settings";
-import type { PlayerModel } from "@/game/types";
-import { EngineCtx, NightCtx, useEngine } from "./context";
-import { SkidMarks, Smoke } from "./Fx";
+import type { PlayerModel, Weather } from "@/game/types";
+import { EngineCtx, NightCtx, WeatherCtx, useEngine } from "./context";
+import { Rain, SkidMarks, Smoke, Spray } from "./Fx";
 import { NpcCar, PlayerCar } from "./Vehicles";
 import { World } from "./World";
 
 /** Renders `engine.state` every frame. Never writes to it. */
-export function Scene({ engine, night, quality, reduceMotion, car, paint }: {
+export function Scene({ engine, night, quality, reduceMotion, car, paint, weather }: {
   engine: GameEngine;
   night: boolean;
   quality: Settings["quality"];
   reduceMotion: boolean;
   car: PlayerModel;
   paint: string; // body colour
+  weather: Weather;
 }) {
   const tag = useRef<HTMLDivElement>(null);
   const high = quality === "high";
@@ -29,14 +30,22 @@ export function Scene({ engine, night, quality, reduceMotion, car, paint }: {
       <Canvas key={quality} shadows={high} flat dpr={high ? [1, 2] : 1} camera={{ fov: FOV, near: 1, far: 400, position: [0, CAM_H, CAM_BACK] }}>
         <EngineCtx.Provider value={engine}>
           <NightCtx.Provider value={night}>
-            <Atmosphere night={night} />
-            <CameraRig still={reduceMotion} />
-            <World />
-            <SkidMarks />
-            <PlayerCar model={car} color={paint} />
-            <Smoke />
-            <Traffic />
-            <WordTag el={tag} />
+            <WeatherCtx.Provider value={weather}>
+              <Atmosphere night={night} weather={weather} />
+              <CameraRig still={reduceMotion} />
+              <World />
+              <SkidMarks />
+              <PlayerCar model={car} color={paint} />
+              <Smoke />
+              <Traffic />
+              {weather === "rain" && (
+                <>
+                  <Rain />
+                  <Spray />
+                </>
+              )}
+              <WordTag el={tag} />
+            </WeatherCtx.Provider>
           </NightCtx.Provider>
         </EngineCtx.Provider>
       </Canvas>
@@ -49,20 +58,35 @@ export function Scene({ engine, night, quality, reduceMotion, car, paint }: {
   );
 }
 
-const SKY = { day: "#f2d5bd", night: "#0a0f22" };
+/**
+ * Sky/fog colour, fog start and end (m from the camera, which is ~90 m up), hemisphere sky/ground/intensity, sun or moon colour/intensity.
+ * Overcast skies trade direct sun for sky light. In fog the haze starts above the car itself and swallows the road ~100 m ahead (~140 m when clear).
+ */
+const LOOKS: Record<"day" | "night", Record<Weather, { sky: string; fog: [number, number]; hemi: [string, string, number]; sun: [string, number] }>> = {
+  day: {
+    clear: { sky: "#f2d5bd", fog: [105, 175], hemi: ["#fff2e0", "#b4bc98", 1.7], sun: ["#ffe6c4", 2.1] },
+    rain: { sky: "#a9b0b8", fog: [100, 165], hemi: ["#dfe5ec", "#8d9488", 2.3], sun: ["#e6ecf2", 0.9] },
+    fog: { sky: "#d9d5ce", fog: [76, 138], hemi: ["#f2efe8", "#b8b9a8", 2.5], sun: ["#fff4e6", 0.7] },
+  },
+  night: {
+    clear: { sky: "#0a0f22", fog: [105, 175], hemi: ["#3a4d86", "#07080f", 0.8], sun: ["#9db0ff", 0.7] },
+    rain: { sky: "#0a0d18", fog: [100, 160], hemi: ["#33405f", "#06070c", 0.7], sun: ["#9db0ff", 0.35] },
+    fog: { sky: "#1c2232", fog: [76, 135], hemi: ["#46506e", "#0b0d14", 0.9], sun: ["#9db0ff", 0.3] },
+  },
+};
 
 // Physical light units: diffuse ≈ albedo × intensity / π, so day lights sum to ~π.
-function Atmosphere({ night }: { night: boolean }) {
-  const sky = night ? SKY.night : SKY.day;
+function Atmosphere({ night, weather }: { night: boolean; weather: Weather }) {
+  const { sky, fog, hemi, sun } = LOOKS[night ? "night" : "day"][weather];
   return (
     <>
       <color attach="background" args={[sky]} />
-      <fog attach="fog" args={[sky, 105, 175]} />
-      <hemisphereLight key={`h${night}`} args={night ? ["#3a4d86", "#07080f", 0.8] : ["#fff2e0", "#b4bc98", 1.7]} />
+      <fog key={`f${night}${weather}`} attach="fog" args={[sky, ...fog]} />
+      <hemisphereLight key={`h${night}${weather}`} args={hemi} />
       <directionalLight
         position={night ? [25, 60, -10] : [-30, 60, 25]}
-        color={night ? "#9db0ff" : "#ffe6c4"}
-        intensity={night ? 0.7 : 2.1}
+        color={sun[0]}
+        intensity={sun[1]}
         castShadow
         shadow-mapSize={[2048, 2048]}
         shadow-bias={-0.0004}
