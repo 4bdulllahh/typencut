@@ -210,17 +210,18 @@ test("combo timer: the multiplier holds after a pass, then drains a step a secon
   assert.equal(s.stats.combo, 0);
 });
 
-test("slipstream: close behind a car fills the meter, and the next word fires a free nitro", () => {
+test("slipstream: close behind a car fills the meter, which recharges nitro without firing it", () => {
   const s = running();
+  s.player.nitroCd = 4;
   const lead = put(s, 2, 6);
   lead.speed = lead.cruise = s.player.speed; // hold the gap so only the draft changes
   const ev = run(s, 1);
-  assert.equal(s.player.draft, 1);
-  assert.ok(ev.some((e) => e.type === "draftReady"));
+  assert.ok(ev.some((e) => e.type === "slipstream"));
+  assert.equal(s.player.nitroCd, 0);
+  assert.ok(s.player.draft < 1, "the meter starts over");
   const word = applyCommand(s, { type: "word", dir: 1, nitro: false });
-  assert.ok(word.some((e) => e.type === "slipstream") && word.some((e) => e.type === "nitro"));
-  assert.ok(s.player.nitroT > 0);
-  assert.equal(s.player.draft, 0);
+  assert.ok(!word.some((e) => e.type === "nitro"), "no nitro unless asked for");
+  s.player.draft = 0;
   s.npcs = [];
   run(s, 2);
   assert.equal(s.player.draft, 0, "no car ahead, no draft");
@@ -344,12 +345,12 @@ test("hearts: driving through one gives a life back, up to three; zen gets none"
   s.hearts = [{ id: 997, s: s.player.s + 3, x: laneX(0), lane: 0 }]; // another lane: missed
   assert.equal(step(s, 0.01).filter((e) => e.type === "heart").length, 0);
 
-  // About 6.5% of lane spawns are hearts; zen never gets one.
+  // A 20% roll every 8 s: about 15 in 10 minutes; zen never gets one.
   const hearts = (mode: "classic" | "zen") => {
     const t = createState(11, { mode });
     applyCommand(t, { type: "key", correct: true });
     const seen = new Set<number>();
-    for (let i = 0; i < 120 * 60; i++) {
+    for (let i = 0; i < 600 * 60; i++) {
       step(t, 1 / 60);
       t.player.lives = 3;
       t.player.invulnT = 1;
@@ -357,22 +358,26 @@ test("hearts: driving through one gives a life back, up to three; zen gets none"
     }
     return seen.size;
   };
-  assert.ok(hearts("classic") > 3);
+  const n = hearts("classic");
+  assert.ok(n >= 6 && n <= 28, `${n} hearts in 10 minutes`);
   assert.equal(hearts("zen"), 0);
 });
 
-test("nitro recharges for 5 s: a second nitro inside that is a plain move, a full draft waits", () => {
+test("nitro recharges for 5 s: a second nitro inside that is a plain move; a clean cut recharges it", () => {
   const s = running();
   applyCommand(s, { type: "word", dir: 1, nitro: true });
   assert.ok(s.player.nitroT > 0);
   for (let i = 0; i < 60; i++) step(s, 1 / 60); // 1 s later: burn over, still recharging
   const again = applyCommand(s, { type: "word", dir: -1, nitro: true }).map((e) => e.type);
   assert.ok(again.includes("nitroDenied") && again.includes("laneChange") && !again.includes("nitro"));
-  s.player.draft = 1;
-  applyCommand(s, { type: "drive", dir: 0, nitro: false });
-  assert.equal(s.player.draft, 1); // kept for later
   assert.ok(snapshot(s).nitroCharge > 0.15 && snapshot(s).nitroCharge < 0.25);
   for (let i = 0; i < 4 * 60 + 5; i++) step(s, 1 / 60), (s.player.lives = 3), (s.player.invulnT = 1);
   assert.equal(snapshot(s).nitroCharge, 1);
-  assert.ok(applyCommand(s, { type: "drive", dir: 0, nitro: false }).some((e) => e.type === "slipstream"));
+
+  applyCommand(s, { type: "word", dir: 1, nitro: true });
+  const cut = put(s, 1, -5); // the car we just cut out from behind, already passed
+  s.player.cutId = cut.id;
+  assert.ok(step(s, 1 / 60).some((e) => e.type === "overtake" && e.grade === "cleanCut"));
+  assert.equal(snapshot(s).nitroCharge, 1);
+  assert.equal(s.player.nitroT > 0, true, "the nitro already burning keeps going");
 });

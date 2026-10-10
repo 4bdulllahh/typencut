@@ -62,10 +62,8 @@ export function Dashboard({ snap }: { snap: Snapshot }) {
         </div>
         <div className="text-[10px] font-semibold uppercase tracking-widest opacity-70">mph {mode && `· ${mode}`}</div>
         <Bar pct={snap.speedMph / NITRO_MPH} className={snap.nitro ? "bg-orange-400" : snap.brake ? "bg-rose-400" : "bg-white"} />
-        <div className={`mt-1 text-[9px] font-semibold uppercase tracking-widest ${snap.draft >= 1 ? "text-amber-300" : "opacity-70"}`}>
-          {snap.draft >= 1 ? "nitro ready" : "draft"}
-        </div>
-        <Bar pct={snap.draft} className={snap.draft >= 1 ? "bg-amber-300" : "bg-sky-300"} />
+        <div className="mt-1 text-[9px] font-semibold uppercase tracking-widest opacity-70">draft</div>
+        <Bar pct={snap.draft} className="bg-sky-300" />
       </div>
       <div>
         <div className="flex items-baseline justify-between">
@@ -99,11 +97,10 @@ export function Dashboard({ snap }: { snap: Snapshot }) {
 
 interface Pop { id: number; text: string; sub: string; big: boolean }
 
-const popFor = (e: GameEvent, drive: boolean): Omit<Pop, "id"> | null =>
+const popFor = (e: GameEvent): Omit<Pop, "id"> | null =>
   e.type === "overtake" ? { text: `+${e.points}`, sub: e.grade === "cleanCut" ? "CLEAN CUT" : e.grade === "dangerous" ? "close pass" : "", big: e.grade === "cleanCut" }
   : e.type === "speedTrap" ? { text: `+${e.points} · ${e.mph} mph`, sub: "SPEED TRAP", big: true }
-  : e.type === "draftReady" ? { text: "DRAFT READY", sub: drive ? "next move = nitro" : "next word = nitro", big: false }
-  : e.type === "slipstream" ? { text: "SLIPSTREAM", sub: "", big: false }
+  : e.type === "slipstream" ? { text: "SLIPSTREAM", sub: "nitro recharged", big: false }
   : e.type === "collision" && e.lives > 0 ? { text: "CRASH", sub: `${e.lives} ♥ left`, big: false }
   : e.type === "nitroDenied" ? { text: "NITRO RECHARGING", sub: "", big: false }
   : e.type === "heart" ? { text: e.healed ? "+1 ♥" : "♥ FULL", sub: "", big: false }
@@ -117,7 +114,7 @@ export function Popups({ engine }: { engine: GameEngine }) {
     let n = 0;
     const off = engine.on((e) => {
       if (e.type === "speedTrap") setFlash((f) => f + 1);
-      const pop = popFor(e, engine.state.mode === "drive");
+      const pop = popFor(e);
       if (!pop) return;
       const id = ++n;
       setItems((list) => [...list.slice(-3), { id, ...pop }]);
@@ -129,11 +126,12 @@ export function Popups({ engine }: { engine: GameEngine }) {
     <>
       {/* Remounting by key replays the flash; it is outside the dock, so no input loses focus. */}
       {flash > 0 && <div key={flash} className="flash pointer-events-none absolute inset-0 bg-white" />}
-      <div className="pointer-events-none absolute inset-x-0 top-[30%] flex flex-col items-center gap-1" aria-live="polite">
+      {/* Small, top right under the dashboard, so the road stays clear. */}
+      <div className="pointer-events-none absolute right-4 top-[136px] flex flex-col items-end gap-0.5" aria-live="polite">
         {items.map((p) => (
           <div key={p.id} className={`pop text-center font-black italic text-white drop-shadow-[0_2px_6px_rgba(0,0,0,0.5)] ${p.big ? "text-amber-300" : ""}`}>
-            {p.sub && <div className={p.big ? "text-5xl tracking-tight" : "text-sm uppercase tracking-widest"}>{p.sub}</div>}
-            <div className={p.big ? "text-3xl" : "text-2xl"}>{p.text}</div>
+            {p.sub && <div className={p.big ? "text-xl tracking-tight" : "text-[10px] uppercase tracking-widest"}>{p.sub}</div>}
+            <div className={p.big ? "text-lg" : "text-base"}>{p.text}</div>
           </div>
         ))}
       </div>
@@ -151,20 +149,20 @@ function Controls({ cut = "text-amber-300", steer, drive }: { cut?: string; stee
         <li><Key>A</Key> <Key>D</Key> or <Key>←</Key> <Key>→</Key> switch lanes</li>
         <li><Key>W</Key> or <Key>↑</Key> for a burst of speed; tap it twice quickly for <b>nitro</b> (it recharges for 5 s, see the ring by the speed)</li>
         <li><Key>S</Key> or <Key>↓</Key> brakes</li>
-        <li>Sit close behind a car to fill the <b>draft</b> meter: your next move is a free nitro</li>
+        <li>Sit close behind a car to fill the <b>draft</b> meter: a full meter recharges nitro</li>
         <li>Grab the floating <b className="text-rose-400">♥</b> hearts to win back a life</li>
-        <li>Cut out from right behind a car for a <b className={cut}>CLEAN CUT</b></li>
+        <li>Cut out from right behind a car for a <b className={cut}>CLEAN CUT</b>, which recharges nitro</li>
       </ul>
     );
   return (
     <ul className="space-y-1 text-sm">
       <li>Type the word, then <Key>{keyLabel(steer.left.key)}</Key> to go left or <Key>{keyLabel(steer.right.key)}</Key> to go right</li>
       <li><Key>Enter</Key> keeps your lane with a small speed boost</li>
-      <li>Sit close behind a car to fill the <b>draft</b> meter: your next word is a free nitro</li>
+      <li>Sit close behind a car to fill the <b>draft</b> meter: a full meter recharges nitro</li>
       <li>Pass a speed camera at <b>150+ mph</b> for a speed-trap bonus, and keep passing or your multiplier drains</li>
       <li><b>ALL CAPS</b> fires nitro, which then recharges for 5 s (the ring by the speed) · <Key>Enter</Key> twice on an empty box brakes</li>
       <li>Grab the floating <b className="text-rose-400">♥</b> hearts to win back a life</li>
-      <li>Cut out from right behind a car for a <b className={cut}>CLEAN CUT</b></li>
+      <li>Cut out from right behind a car for a <b className={cut}>CLEAN CUT</b>, which recharges nitro</li>
     </ul>
   );
 }
@@ -179,6 +177,30 @@ export function ReadyOverlay({ best, mode, pack, day, weather, steer }: { best: 
       </p>
       <Controls steer={steer} drive={mode === "drive"} />
       <p className="mt-4 text-sm font-semibold opacity-90">{mode === "drive" ? "Press a drive key to go" : "Start typing to go"}{best > 0 && ` · best ${best.toLocaleString()}`}</p>
+    </div>
+  );
+}
+
+/** Esc during a run. The game is stopped while this shows; Esc again (Game.tsx) or Continue carries on. */
+export function PauseMenu({ onContinue, onRestart, onEnd }: { onContinue: () => void; onRestart: () => void; onEnd: () => void }) {
+  const btn = "w-full rounded-full py-3 font-semibold";
+  return (
+    <div className="absolute inset-0 grid place-items-center bg-black/40 p-4 backdrop-blur-sm">
+      <div role="dialog" aria-modal="true" aria-labelledby="pause-title" className="w-full max-w-xs space-y-2 rounded-panel border border-line bg-surface p-6 text-center text-fg shadow-elev-2">
+        <h2 id="pause-title" className="text-2xl font-black italic tracking-tight">Paused</h2>
+        <p className="pb-2 text-xs text-fg-subtle">
+          <kbd>Esc</kbd> to continue
+        </p>
+        <button autoFocus onClick={onContinue} className={`${btn} bg-stone-900 text-white hover:bg-stone-700 dark:bg-white dark:text-slate-900 dark:hover:bg-slate-200`}>
+          Continue
+        </button>
+        <button onClick={onRestart} className={`${btn} bg-black/5 hover:bg-black/10 dark:bg-white/10 dark:hover:bg-white/15`}>
+          Play again
+        </button>
+        <button onClick={onEnd} className={`${btn} bg-black/5 hover:bg-black/10 dark:bg-white/10 dark:hover:bg-white/15`}>
+          End run
+        </button>
+      </div>
     </div>
   );
 }
@@ -357,7 +379,7 @@ export function Menu({ section, expanded, shifted, onHover, onClose, settings, o
   );
   if (!shown) return null;
   return (
-    <div className={`z-40 shrink-0 max-sm:absolute max-sm:inset-x-3 max-sm:bottom-3 max-sm:top-[94px] sm:relative sm:w-14 sm:transition-transform sm:duration-200 ${shifted ? "sm:translate-x-[156px]" : ""}`} onMouseEnter={onHover} onFocus={onHover}>
+    <div className={`z-40 shrink-0 max-sm:absolute max-sm:inset-x-3 max-sm:bottom-3 max-sm:top-[94px] sm:relative sm:w-14 sm:transition-transform sm:duration-200 ${shifted ? "sm:translate-x-[156px]" : ""}`} onMouseEnter={onHover} onFocus={(e) => e.target.matches(":focus-visible") && onHover()}>
       <section
         id="game-menu"
         aria-label={title}
@@ -402,18 +424,19 @@ export function Menu({ section, expanded, shifted, onHover, onClose, settings, o
           ))}
         </fieldset>
         <section className="text-sm">
-          <label className="block">
-            <span className="mb-1 block text-xs font-semibold uppercase tracking-widest opacity-60">Words</span>
-            <select
-              value={settings.pack}
-              onChange={(e) => set("pack", e.target.value as PackId)}
-              className="w-full rounded-xl bg-black/5 px-3 py-2 font-semibold dark:bg-white/10"
-            >
+          <fieldset>
+            <legend className="mb-1 block text-xs font-semibold uppercase tracking-widest opacity-60">Words</legend>
+            <div className="grid grid-cols-2 gap-1 rounded-xl bg-black/5 p-1 dark:bg-white/10">
               {PACK_IDS.map((id) => (
-                <option key={id} value={id}>{PACK_LABELS[id]}</option>
+                <label key={id} className={`cursor-pointer ${id === "custom" ? "col-span-2" : ""}`}>
+                  <input type="radio" name="pack" checked={settings.pack === id} onChange={() => set("pack", id)} className="peer sr-only" />
+                  <span className="block rounded-lg px-2 py-1.5 text-center text-xs font-semibold peer-checked:bg-white peer-checked:shadow peer-focus-visible:ring-2 peer-focus-visible:ring-amber-500 dark:peer-checked:bg-slate-700">
+                    {PACK_LABELS[id]}
+                  </span>
+                </label>
               ))}
-            </select>
-          </label>
+            </div>
+          </fieldset>
           {settings.pack === "custom" && (
             <div className="mt-2">
               <textarea

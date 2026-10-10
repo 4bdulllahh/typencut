@@ -27,7 +27,7 @@ export const SPEED_CAMERA = { period: 360, offset: 35, mph: 150 } as const;
 export const MULTIPLIER_STEP = 0.2;
 export const POINTS = { standard: 50, dangerous: 100, cleanCut: 500 } as const;
 export const MODES: Mode[] = ["classic", "drive", "zen", "rush", "timeAttack", "daily"];
-export const HEART_CHANCE = 0.065; // share of lane spawns that are a heart instead of a car (never in zen)
+export const HEART = { every: 8, chance: 0.2 } as const; // every 8 s of running time, a 20% chance of a heart (never in zen)
 export const TIME_ATTACK_S = 90;
 export const RUSH_GAP = 0.55; // rush hour: lane gaps shrink to this fraction
 

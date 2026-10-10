@@ -17,7 +17,7 @@ export const ACHIEVEMENTS: Achievement[] = [
   { id: "passes100", name: "Century", desc: "100 passes in one run", met: (s) => s.stats.passes >= 100 },
   { id: "trap1", name: "Say cheese", desc: "Set off a speed trap", met: (s) => s.stats.traps >= 1 },
   { id: "trap5", name: "Most wanted", desc: "5 speed traps in one run", met: (s) => s.stats.traps >= 5 },
-  { id: "slip1", name: "Slipstreamer", desc: "Fire a free nitro from the draft", met: (s) => s.stats.slipstreams >= 1 },
+  { id: "slip1", name: "Slipstreamer", desc: "Fill the draft meter to recharge nitro", met: (s) => s.stats.slipstreams >= 1 },
   { id: "clean5k", name: "Clean sheet", desc: "5 km without a crash", met: (s) => s.stats.bestClean >= 5000 },
   { id: "score10k", name: "Five figures", desc: "10,000 points in one run", met: (s) => s.stats.score >= 10_000 },
   { id: "score50k", name: "High roller", desc: "50,000 points in one run", met: (s) => s.stats.score >= 50_000 },

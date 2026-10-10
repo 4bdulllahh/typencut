@@ -9,7 +9,7 @@ import { loadSettings, saveSettings } from "@/game/settings";
 import { rollWeather, seedFromDate, snapshot } from "@/game/sim";
 import type { Weather } from "@/game/types";
 import { packWords } from "@/game/words";
-import { Dashboard, GameOver, Leaderboard, Menu, Popups, ReadyOverlay, type RunNews } from "./Hud";
+import { Dashboard, GameOver, Leaderboard, Menu, PauseMenu, Popups, ReadyOverlay, type RunNews } from "./Hud";
 import { Music } from "./Music";
 import { Rail, type Section } from "./Rail";
 import { Scene } from "./scene/Scene";
@@ -52,8 +52,11 @@ export function Game() {
   const [railOpen, setRailOpen] = useState(false);
   const [subOpen, setSubOpen] = useState(false);
   const openSection = useCallback((s: Section) => (setSection(s), setRailOpen(false), setSubOpen(true)), []);
+  const [paused, setPaused] = useState(false); // Esc during a run
   const menu = section !== null;
+  const halted = menu || paused; // either one stops the game
   const closeMenu = useCallback(() => setSection(null), []);
+  const sectionRef = useRef(section);
   const [settings, setSettings] = useState(loadSettings);
   const [day, setDay] = useState(today); // fixed when a mode is applied, so a run that crosses midnight keeps its board
   const key = boardKey(settings.mode, day);
@@ -94,7 +97,18 @@ export function Game() {
   }, [settings]);
 
   useEffect(() => audio.current?.set({ ...settings, rain: weather === "rain" }), [settings, weather]);
-  useEffect(() => audio.current?.pause(menu), [menu]);
+  useEffect(() => audio.current?.pause(halted), [halted]);
+
+  // Esc pauses a running run and Esc again continues; with a sub pill open, Esc only closes that (Menu's own listener).
+  useEffect(() => {
+    sectionRef.current = section;
+  }, [section]);
+  useEffect(() => {
+    const onKey = (e: KeyboardEvent) => e.key === "Escape" && !sectionRef.current && engine.state.status === "running" && setPaused((p) => !p);
+    window.addEventListener("keydown", onKey);
+    const off = engine.on((e) => (e.type === "gameOver" || e.type === "restart") && setPaused(false));
+    return () => (window.removeEventListener("keydown", onKey), off());
+  }, [engine]);
 
   useEffect(() => {
     keyRef.current = key;
@@ -156,12 +170,12 @@ export function Game() {
     };
   }, [engine]);
 
-  // The open menu pauses the game.
+  // The open menu or the pause card stops the game.
   useEffect(() => {
-    if (menu) return;
+    if (halted) return;
     engine.start();
     return () => engine.stop();
-  }, [engine, menu]);
+  }, [engine, halted]);
 
   return (
     <main className="relative flex h-dvh flex-col gap-3 p-3 sm:flex-row">
@@ -206,11 +220,12 @@ export function Game() {
         {snap.status === "ready" && <ReadyOverlay best={board.best.score} mode={settings.mode} pack={settings.pack} day={day} weather={weather} steer={settings.steer} />}
         <div className={`absolute inset-x-0 flex justify-center px-3 ${settings.touch ? "bottom-2" : "bottom-6"}`}>
           {snap.mode === "drive" ? (
-            <DriveDock engine={engine} disabled={snap.status === "over" || menu} touch={settings.touch} />
+            <DriveDock engine={engine} disabled={snap.status === "over" || halted} touch={settings.touch} />
           ) : (
-            <TypingDock engine={engine} word={snap.word} nextWord={snap.nextWord} disabled={snap.status === "over" || menu} touch={settings.touch} steer={settings.steer} />
+            <TypingDock engine={engine} word={snap.word} nextWord={snap.nextWord} disabled={snap.status === "over" || halted} touch={settings.touch} steer={settings.steer} />
           )}
         </div>
+        {paused && <PauseMenu onContinue={() => setPaused(false)} onRestart={() => (engine.restart(), reroll())} onEnd={() => engine.send({ type: "end" })} />}
         {snap.status === "over" && <GameOver snap={snap} board={board} runDate={runDate} day={day} news={news} onRestart={() => (engine.restart(), reroll())} />}
       </div>
       {/* Right column: the leaderboard island (wide screens) over the now-playing pill. */}

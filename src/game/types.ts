@@ -83,6 +83,7 @@ export interface GameState {
   player: Player;
   npcs: Npc[];
   hearts: Heart[];
+  heartT: number; // running seconds since the last heart roll
   stats: Stats;
   word: string;
   nextWord: string;
@@ -107,8 +108,7 @@ export type GameEvent =
   | { type: "nitro" }
   | { type: "nitroDenied" } // asked for nitro while it was still recharging
   | { type: "boost" }
-  | { type: "draftReady" }
-  | { type: "slipstream" } // a word spent a full draft meter on a free nitro
+  | { type: "slipstream" } // the draft meter filled and recharged nitro
   | { type: "speedTrap"; mph: number; points: number }
   | { type: "brake" }
   | { type: "overtake"; grade: PassGrade; points: number; npcId: number }

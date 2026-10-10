@@ -81,7 +81,7 @@ export function Rail({ open, onOpen, night, onTheme, expanded, onEnter, onLeave 
       className="relative z-50 shrink-0 max-sm:flex-1 sm:w-[68px]"
       onMouseEnter={onEnter}
       onMouseLeave={onLeave}
-      onFocus={onEnter}
+      onFocus={(e) => e.target.matches(":focus-visible") && onEnter()} // keyboard only: a click is already a hover
       onBlur={(e) => !e.currentTarget.contains(e.relatedTarget) && onLeave()}
     >
       <div className={`flex gap-1 overflow-hidden rounded-panel border border-line bg-surface p-2.5 shadow-elev-1 max-sm:justify-around sm:absolute sm:inset-y-0 sm:left-0 sm:flex-col sm:transition-[width] sm:duration-200 ${expanded ? "sm:w-56 sm:shadow-elev-2" : "sm:w-[68px]"}`}>
