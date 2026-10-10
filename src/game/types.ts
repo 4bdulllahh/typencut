@@ -4,8 +4,8 @@ export type NpcKind = "cruiser" | "merger";
 export type Dir = -1 | 1;
 export type PassGrade = "standard" | "dangerous" | "cleanCut";
 export type Status = "ready" | "running" | "over";
-/** daily = classic rules on a seed taken from the date. zen = crashes cost no lives. */
-export type Mode = "classic" | "zen" | "rush" | "timeAttack" | "daily";
+/** daily = classic rules on a seed taken from the date. zen = crashes cost no lives. drive = classic rules, steered with WASD/arrows instead of typing. */
+export type Mode = "classic" | "zen" | "rush" | "timeAttack" | "daily" | "drive";
 /** Looks and sound only: the simulation drives the same in every weather. */
 export type Weather = "clear" | "rain" | "fog";
 
@@ -27,6 +27,14 @@ export interface Npc {
   mergeCd: number; // seconds until it may think about merging again
   passed: boolean;
   hit: boolean;
+}
+
+/** A floating heart on the road: driving through it gives back a life. */
+export interface Heart {
+  id: number;
+  s: number;
+  x: number;
+  lane: number;
 }
 
 export interface Player {
@@ -73,6 +81,7 @@ export interface GameState {
   nextId: number;
   player: Player;
   npcs: Npc[];
+  hearts: Heart[];
   stats: Stats;
   word: string;
   nextWord: string;
@@ -83,6 +92,7 @@ export interface GameState {
 export type Command =
   | { type: "key"; correct: boolean }
   | { type: "word"; dir: Dir | 0; nitro: boolean } // dir 0 = submitted with Enter: no steer, small boost
+  | { type: "drive"; dir: Dir | 0; nitro: boolean } // drive mode: a lane change or (dir 0) a boost, no word
   | { type: "miss" }
   | { type: "brake" }
   | { type: "end" }; // finish the run now (the only way out of zen)
@@ -101,5 +111,6 @@ export type GameEvent =
   | { type: "brake" }
   | { type: "overtake"; grade: PassGrade; points: number; npcId: number }
   | { type: "collision"; npcId: number; lives: number }
+  | { type: "heart"; lives: number; healed: boolean }
   | { type: "gameOver" }
   | { type: "restart" };

@@ -5,16 +5,19 @@ import { useEffect, useMemo, useRef, useState } from "react";
 import { Vector3, type PerspectiveCamera } from "three";
 import { LANE_W } from "@/game/config";
 import type { GameEngine } from "@/game/engine";
+import { keyLabel, type SteerKeys } from "@/game/input";
 import type { Settings } from "@/game/settings";
 import type { PlayerModel, Weather } from "@/game/types";
 import { EngineCtx, NightCtx, WeatherCtx, useEngine } from "./context";
-import { Rain, SkidMarks, Smoke, Spray } from "./Fx";
+import { Hearts, Rain, SkidMarks, Smoke, Spray } from "./Fx";
 import { NpcCar, PlayerCar } from "./Vehicles";
 import { World } from "./World";
 
 /** Renders `engine.state` every frame. Never writes to it. */
-export function Scene({ engine, night, quality, reduceMotion, car, paint, weather }: {
+export function Scene({ engine, drive, steer, night, quality, reduceMotion, car, paint, weather }: {
   engine: GameEngine;
+  drive: boolean; // drive mode: no floating word, and the gantry signs teach WASD
+  steer: SteerKeys;
   night: boolean;
   quality: Settings["quality"];
   reduceMotion: boolean;
@@ -24,6 +27,9 @@ export function Scene({ engine, night, quality, reduceMotion, car, paint, weathe
 }) {
   const tag = useRef<HTMLDivElement>(null);
   const high = quality === "high";
+  const signs: [string[], string[]] = drive
+    ? [["‹  A  LEFT", "W W = NITRO"], ["RIGHT  D  ›", "S = BRAKE"]]
+    : [[`‹  ${keyLabel(steer.left.key)}  LEFT`, "type the word"], [`RIGHT  ${keyLabel(steer.right.key)}  ›`, "CAPS = NITRO"]];
   return (
     <div className="absolute inset-0">
       {/* Remounted on a quality change: shadow maps can't be switched on a live renderer. */}
@@ -33,24 +39,26 @@ export function Scene({ engine, night, quality, reduceMotion, car, paint, weathe
             <WeatherCtx.Provider value={weather}>
               <Atmosphere night={night} weather={weather} />
               <CameraRig still={reduceMotion} />
-              <World />
+              <World signs={signs} />
               <SkidMarks />
               <PlayerCar model={car} color={paint} />
               <Smoke />
               <Traffic />
+              <Hearts />
               {weather === "rain" && (
                 <>
                   <Rain />
                   <Spray />
                 </>
               )}
-              <WordTag el={tag} />
+              {!drive && <WordTag el={tag} />}
             </WeatherCtx.Provider>
           </NightCtx.Provider>
         </EngineCtx.Provider>
       </Canvas>
       <div
         ref={tag}
+        hidden={drive}
         aria-hidden
         className="pointer-events-none absolute left-0 top-0 whitespace-nowrap rounded-full bg-white/85 px-2.5 py-0.5 text-sm font-semibold text-stone-800 shadow-md dark:bg-slate-900/85 dark:text-slate-100"
       />

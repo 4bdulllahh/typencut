@@ -25,7 +25,8 @@ export const DRAFT_RANGE = 16; // m behind a car (bumper to bumper) where the sl
 export const SPEED_CAMERA = { period: 360, offset: 35, mph: 150 } as const;
 export const MULTIPLIER_STEP = 0.2;
 export const POINTS = { standard: 50, dangerous: 100, cleanCut: 500 } as const;
-export const MODES: Mode[] = ["classic", "zen", "rush", "timeAttack", "daily"];
+export const MODES: Mode[] = ["classic", "drive", "zen", "rush", "timeAttack", "daily"];
+export const HEART_CHANCE = 0.065; // share of lane spawns that are a heart instead of a car (never in zen)
 export const TIME_ATTACK_S = 90;
 export const RUSH_GAP = 0.55; // rush hour: lane gaps shrink to this fraction
 

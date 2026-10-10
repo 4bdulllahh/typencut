@@ -12,7 +12,7 @@ import { packWords } from "@/game/words";
 import { Dashboard, GameOver, Leaderboard, Menu, Popups, ReadyOverlay, type RunNews } from "./Hud";
 import { Rail, type Section } from "./Rail";
 import { Scene } from "./scene/Scene";
-import { TypingDock } from "./TypingDock";
+import { DriveDock, TypingDock } from "./TypingDock";
 
 const THEME_KEY = "typencut.theme";
 const readTheme = () => {
@@ -166,7 +166,7 @@ export function Game() {
       {/* Game + rail; the menu panel opens inside this box, right beside the rail. */}
       <div className="relative flex min-h-0 min-w-0 flex-1 flex-col gap-3 sm:flex-initial sm:flex-row">
       <div className="relative min-h-0 min-w-0 flex-1 overflow-hidden rounded-panel border border-line shadow-elev-1 sm:aspect-[3/4] sm:flex-initial">
-        <Scene engine={engine} night={night} quality={settings.quality} reduceMotion={settings.reduceMotion} car={car} paint={paint} weather={weather} />
+        <Scene engine={engine} drive={snap.mode === "drive"} steer={settings.steer} night={night} quality={settings.quality} reduceMotion={settings.reduceMotion} car={car} paint={paint} weather={weather} />
         <EdgeFx speedMph={snap.speedMph} nitro={snap.nitro} still={settings.reduceMotion} />
         <div className="pointer-events-none absolute inset-x-3 top-3 flex flex-col gap-2">
           <Dashboard snap={snap} />
@@ -177,9 +177,13 @@ export function Game() {
           )}
         </div>
         <Popups engine={engine} />
-        {snap.status === "ready" && <ReadyOverlay best={board.best.score} mode={settings.mode} pack={settings.pack} day={day} weather={weather} />}
+        {snap.status === "ready" && <ReadyOverlay best={board.best.score} mode={settings.mode} pack={settings.pack} day={day} weather={weather} steer={settings.steer} />}
         <div className={`absolute inset-x-0 flex justify-center px-3 ${settings.touch ? "bottom-2" : "bottom-6"}`}>
-          <TypingDock engine={engine} word={snap.word} nextWord={snap.nextWord} disabled={snap.status === "over" || menu} touch={settings.touch} />
+          {snap.mode === "drive" ? (
+            <DriveDock engine={engine} disabled={snap.status === "over" || menu} touch={settings.touch} />
+          ) : (
+            <TypingDock engine={engine} word={snap.word} nextWord={snap.nextWord} disabled={snap.status === "over" || menu} touch={settings.touch} steer={settings.steer} />
+          )}
         </div>
         {snap.status === "over" && <GameOver snap={snap} board={board} runDate={runDate} day={day} news={news} onRestart={() => (engine.restart(), reroll())} />}
       </div>

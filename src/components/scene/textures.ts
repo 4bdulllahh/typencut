@@ -40,7 +40,7 @@ export const signTexture = (lines: string[]) =>
     g.textBaseline = "middle";
     lines.forEach((line, i) => {
       g.font = `bold ${i === 0 ? 76 : 40}px system-ui, sans-serif`;
-      g.fillText(line, 256, lines.length === 1 ? 112 : 88 + i * 74);
+      g.fillText(line, 256, lines.length === 1 ? 112 : 88 + i * 74, 470); // squeezes a long key name to fit
     });
   });
 

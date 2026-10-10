@@ -4,7 +4,7 @@ Type to weave a Porsche 911 GT3 RS through highway traffic.
 
 A browser speed-typing game inspired by *Assetto Corsa: No Hesi* highway weaving, drawn in the flat-shaded, low-poly style of *Art of Rally*. Every word you type moves you: finish it with a comma to go one lane left, a full stop to go right, or Enter to hold your lane with a burst of speed. Shout it in ALL CAPS for nitro, and tap Enter twice to brake. Slip past black cruisers and lane-hopping red mergers, chain close passes into a 5× multiplier, and cut out from right behind a car for a 500-point CLEAN CUT. No account, no server and no downloads: every car, tree, sign and sound is generated in code.
 
-**Live:** https://typencut-two.vercel.app · **Version:** 1.7.0
+**Live:** https://typencut-two.vercel.app · **Version:** 1.8.0
 
 [![Deploy with Vercel](https://vercel.com/button)](https://vercel.com/new/clone?repository-url=https%3A%2F%2Fgithub.com%2F4bdulllahh%2Ftypencut&project-name=typencut&repository-name=typencut)
 [![CI](https://github.com/4bdulllahh/typencut/actions/workflows/ci.yml/badge.svg)](https://github.com/4bdulllahh/typencut/actions/workflows/ci.yml)
@@ -14,7 +14,7 @@ A browser speed-typing game inspired by *Assetto Corsa: No Hesi* highway weaving
 
 ## Features
 
-- **Typing is steering.** Type the word in the dock, then press **`,`** to move one lane left, **`.`** to move one lane right, or **Enter** to stay in your lane with a short speed boost (+12 mph for under a second). The same word floats over the next car in your lane, so your eyes can stay on the road. Letters turn green or red as you type; a wrong word shakes the dock and the car stays put.
+- **Typing is steering.** Type the word in the dock, then press **`,`** to move one lane left, **`.`** to move one lane right (or your own keys: any key but a letter, Enter, Backspace, Tab, Escape, Shift or Caps Lock can be set in Settings; the overhead signs follow), or **Enter** to stay in your lane with a short speed boost (+12 mph for under a second). The same word floats over the next car in your lane, so your eyes can stay on the road. Letters turn green or red as you type; a wrong word shakes the dock and the car stays put.
 - **Nitro and brakes.** Type the word in **ALL CAPS** and the car surges toward 180 mph for one second with exhaust flames, camera shake and a wider field of view. Press **Enter twice** within 350 ms with the dock empty to brake hard for a second, with the full-width LED strip lit.
 - **Traffic with two personalities.** Five black cruisers (Toyota Yaris, Honda Civic, Chevrolet Malibu, Nissan Rogue, Ford F-150) hold their lane at a steady speed: 85 to 95 mph in the far-left lane, 60 to 80 mph elsewhere. Three red mergers (BMW M3, Mercedes-Benz C63 AMG, Audi A5) change lanes: usually they flash an amber indicator for 1.5 to 2 seconds first, but 12% of the time they cut straight across without warning.
 - **Scoring that rewards risk.** +50 for a pass, +100 for a close pass in the next lane, **+500 for a clean cut**: dodging out from right behind a car and passing it. Every pass without contact raises the multiplier by 0.2×, up to 5×. A crash costs one of three lives and resets it.
@@ -22,7 +22,8 @@ A browser speed-typing game inspired by *Assetto Corsa: No Hesi* highway weaving
 - **Slipstream.** Sit close behind a car in your lane and the draft meter under the speedometer fills, faster the closer you are. When it reads "nitro ready", your next word fires a free nitro, perfect for cutting out from behind that same car. Partial fills carry over between cars.
 - **Speed traps.** The roadside speed cameras carry a 150 mph sign. Blast past one at 150 or faster (cruising tops out at 140, so time a nitro) for a bonus of 200 points plus 10 for every mph over, times your multiplier, with a camera flash and a SPEED TRAP banner.
 - **Traffic without dead stretches.** Every lane is refilled on its own, so cars stay evenly spread across all five lanes: about eight in view on average and never an empty road.
-- **Five modes.** Classic (three lives, endless road), Zen (crashes cost no lives; end the run from the menu), Rush hour (traffic nearly twice as dense), Time attack (best score in 90 seconds, with a countdown on the dashboard) and a Daily challenge. Each mode keeps its own leaderboard.
+- **Hearts.** Now and then a floating, spinning heart rides above a lane (6.5% of the cars that would appear become one, so roughly one every 8 seconds in Classic). Drive through it to win back a life, up to three. Zen has none.
+- **Six modes.** Classic (three lives, endless road), Drive (no typing: **A**/**D** or **←**/**→** switch lanes, **W**/**↑** gives a short burst of speed and a quick double tap fires nitro, **S**/**↓** brakes; phones get four buttons), Zen (crashes cost no lives; end the run from the menu), Rush hour (traffic nearly twice as dense), Time attack (best score in 90 seconds, with a countdown on the dashboard) and a Daily challenge. Each mode keeps its own leaderboard.
 - **Daily challenge.** A run seeded from today's date (UTC), so everyone starts on the same road with the same words, under Classic rules. It keeps a separate best for each day.
 - **Word packs.** Driving, Common English, Programming, Spanish, French or German, or paste your own list. Every pack is sorted by word length, so the difficulty still ramps from short words to long ones.
 - **Achievements.** Sixteen of them, from your first clean cut to 5 km without a crash, five speed traps in a run or 20,000 points in Time attack. They pop up the moment you earn them, and the menu lists which you have.
@@ -47,7 +48,7 @@ A browser speed-typing game inspired by *Assetto Corsa: No Hesi* highway weaving
 
 ## Privacy
 
-Typencut has no backend. The game runs entirely in your browser and makes no network requests after the page loads: no analytics, cookies, accounts or third-party fonts. It remembers four kinds of thing, all in your browser's localStorage: your day/night choice (`typencut.theme`), your settings, including your mode, word pack, your own word list, car, paint and weather (`typencut.settings`), your lifetime points and achievements (`typencut.progress`), and your leaderboards (`typencut.board` for Classic, `typencut.board.<mode>` for the others, `typencut.board.daily.<date>` for each daily challenge). Clearing site data resets them. The share card is drawn in your browser and goes only where you send it.
+Typencut has no backend. The game runs entirely in your browser and makes no network requests after the page loads: no analytics, cookies, accounts or third-party fonts. It remembers four kinds of thing, all in your browser's localStorage: your day/night choice (`typencut.theme`), your settings, including your mode, word pack, your own word list, car, paint, weather and lane-switch keys (`typencut.settings`), your lifetime points and achievements (`typencut.progress`), and your leaderboards (`typencut.board` for Classic, `typencut.board.<mode>` for the others, `typencut.board.daily.<date>` for each daily challenge). Clearing site data resets them. The share card is drawn in your browser and goes only where you send it.
 
 ## Principles
 
@@ -209,7 +210,7 @@ flowchart LR
 
 - The whole game is played from the keyboard. The game-over card is a labelled dialog whose Play again button takes focus, so Enter starts the next run.
 - The rail is a labelled navigation landmark whose buttons say which panel they open; it widens on keyboard focus as well as hover. A panel opens with focus on Close, Escape or a click outside closes it, and the game pauses while it is open.
-- The typing input is labelled with the current word and the controls. Score popups are announced politely to screen readers, and the hearts have a text label.
+- The typing input is labelled with the current word and the controls, including rebound lane-switch keys. Each key-picker button says which key it holds and when it is waiting for a new one; Escape cancels a pick, and a refused key is explained in a status message. Drive mode needs no typing at all. Score popups are announced politely to screen readers, and the hearts have a text label.
 - **Reduce motion** (in Settings, and on by default when your system asks for less motion) removes camera shake, the nitro zoom and the edge blur, and score popups fade instead of flying.
 - Settings use native controls (a slider, checkboxes and radio buttons, including the weather choice), so they work with the keyboard and screen readers. Paint swatches are buttons named after the paint, and a locked one says how many points unlock it. New achievements are announced as a status message.
 - It is a fast visual game at heart: the traffic itself can't be followed with a screen reader.
@@ -230,7 +231,7 @@ npm run dev        # http://localhost:3000
 | `npm run dev` | Development server with hot reload |
 | `npm run build` | Production build |
 | `npm start` | Serve the production build |
-| `npm test` | Simulation, modes, word packs, input, leaderboard, achievements and unlocks, settings, weather and engine-sound tests (29, with `node --test`) |
+| `npm test` | Simulation, modes, word packs, input, leaderboard, achievements and unlocks, settings, weather, engine-sound, Drive mode, heart and key-binding tests (32, with `node --test`) |
 | `npm run typecheck` | Type check with `tsc --noEmit` |
 | `node scripts/shot.mjs <url> <outDir> [--night]` | Plays a run in headless Chrome (eight words including two nitros and one Enter submit, a brake, then idles until game over), saves six screenshots and prints any console errors. Set `CHROME` if Chrome isn't in its default Windows location |
 
@@ -266,7 +267,7 @@ CI runs the type check, tests and production build on every push and pull reques
 - [x] **M10** Progression: achievements, unlockable paints and cars, a shareable result card (v1.5.0)
 - [x] **M11** Weather: rain and fog (v1.6.0)
 - [x] **M12** Layout: soft rounded panels, a right-hand rail that widens on hover with Day/Night in it, a wider 3:4 road, top 7 leaderboard (v1.7.0)
-- [ ] **M13** Drive mode (WASD or arrow keys, no typing), heart pickups on the road, your own lane-switch keys
+- [x] **M13** Drive mode (WASD or arrow keys, no typing), heart pickups on the road, your own lane-switch keys (v1.8.0)
 
 ## License
 

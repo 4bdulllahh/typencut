@@ -1,8 +1,8 @@
 import {
-  BOOST_MPH, BOOST_TIME, BRAKE_TIME, CLEAN_CUT_GAP, COMBO_TIME, DRAFT_RANGE, RUSH_GAP, SPEED_CAMERA, TIME_ATTACK_S, CRUISE_MPH, CRUISERS, INVULN_TIME, LANES, MAX_MULTIPLIER, MERGERS, MODELS, MPH,
+  BOOST_MPH, BOOST_TIME, HEART_CHANCE, BRAKE_TIME, CLEAN_CUT_GAP, COMBO_TIME, DRAFT_RANGE, RUSH_GAP, SPEED_CAMERA, TIME_ATTACK_S, CRUISE_MPH, CRUISERS, INVULN_TIME, LANES, MAX_MULTIPLIER, MERGERS, MODELS, MPH,
   MULTIPLIER_STEP, NITRO_MPH, NITRO_TIME, PLAYER_DIMS, POINTS, START_LIVES, SURPRISE_CUT_CHANCE, laneX, toMph,
 } from "./config.ts";
-import type { Command, GameEvent, GameState, Mode, Npc, PassGrade, Weather } from "./types.ts";
+import type { Command, Dir, GameEvent, GameState, Mode, Npc, PassGrade, Weather } from "./types.ts";
 import { WORDS, pickWord } from "./words.ts";
 
 const LAT_K = 90; // lane-change spring stiffness (critically damped, ~0.5 s settle)
@@ -52,6 +52,7 @@ export function createState(seed = Date.now(), { mode = "classic", words = WORDS
       nitroT: 0, brakeT: 0, boostT: 0, draft: 0, invulnT: 0, lives: START_LIVES, cutId: 0,
     },
     npcs: [],
+    hearts: [],
     stats: {
       score: 0, combo: 0, multiplier: 1, comboT: 0, passes: 0, cleanCuts: 0, maxSpeed: 0,
       keys: 0, correctKeys: 0, words: 0, misses: 0, elapsed: 0, maxCombo: 0, traps: 0, slipstreams: 0, cleanFrom: 0, bestClean: 0,
@@ -75,11 +76,11 @@ export function applyCommand(state: GameState, cmd: Command): GameEvent[] {
   const events: GameEvent[] = [];
   if (state.status === "over") return events;
   const { player: pl, stats: st } = state;
+  if ((cmd.type === "key" || cmd.type === "drive") && state.status === "ready") {
+    state.status = "running";
+    events.push({ type: "start" });
+  }
   if (cmd.type === "key") {
-    if (state.status === "ready") {
-      state.status = "running";
-      events.push({ type: "start" });
-    }
     st.keys++;
     if (cmd.correct) st.correctKeys++;
     events.push({ type: "key", correct: cmd.correct });
@@ -96,45 +97,53 @@ export function applyCommand(state: GameState, cmd: Command): GameEvent[] {
     pl.brakeT = BRAKE_TIME;
     pl.nitroT = 0;
     events.push({ type: "brake" });
+  } else if (cmd.type === "drive") {
+    move(state, cmd.dir, cmd.nitro, events);
   } else {
     st.words++;
-    const to = pl.lane + cmd.dir;
-    const free = !cmd.nitro && pl.draft >= 1; // slipstream: a full meter turns this word into a nitro
-    const nitro = cmd.nitro || free;
-    if (cmd.dir === 0) {
-      if (!nitro) {
-        pl.boostT = BOOST_TIME;
-        pl.brakeT = 0;
-        events.push({ type: "boost" });
-      }
-    } else if (to >= 0 && to < LANES) {
-      // Clean-cut candidate: the car right ahead in the lane we are leaving.
-      const ahead = state.npcs
-        .filter((n) => !n.hit && Math.abs(n.x - laneX(pl.lane)) < 1.5)
-        .map((n) => ({ n, gap: n.s - pl.s - (n.length + PLAYER_DIMS.length) / 2 }))
-        .filter((a) => a.gap > -1 && a.gap < CLEAN_CUT_GAP)
-        .sort((a, b) => a.gap - b.gap)[0];
-      pl.cutId = ahead ? ahead.n.id : 0;
-      pl.prevLane = pl.lane;
-      pl.lane = to;
-      pl.laneAge = 0;
-      events.push({ type: "laneChange", dir: cmd.dir });
-    }
-    if (free) {
-      pl.draft = 0;
-      st.slipstreams++;
-      events.push({ type: "slipstream" });
-    }
-    if (nitro) {
-      pl.nitroT = NITRO_TIME;
-      pl.brakeT = 0;
-      events.push({ type: "nitro" });
-    }
+    move(state, cmd.dir, cmd.nitro, events);
     state.word = state.nextWord;
     state.nextWord = pickWord(() => rand(state), progress(state), state.word, state.words);
     events.push({ type: "word", word: state.word });
   }
   return events;
+}
+
+/** A lane change (or, dir 0, a short boost), with nitro if asked or if the slipstream meter is full. */
+function move(state: GameState, dir: Dir | 0, wantNitro: boolean, events: GameEvent[]) {
+  const { player: pl, stats: st } = state;
+  const to = pl.lane + dir;
+  const free = !wantNitro && pl.draft >= 1; // slipstream: a full meter turns this move into a nitro
+  const nitro = wantNitro || free;
+  if (dir === 0) {
+    if (!nitro) {
+      pl.boostT = BOOST_TIME;
+      pl.brakeT = 0;
+      events.push({ type: "boost" });
+    }
+  } else if (to >= 0 && to < LANES) {
+    // Clean-cut candidate: the car right ahead in the lane we are leaving.
+    const ahead = state.npcs
+      .filter((n) => !n.hit && Math.abs(n.x - laneX(pl.lane)) < 1.5)
+      .map((n) => ({ n, gap: n.s - pl.s - (n.length + PLAYER_DIMS.length) / 2 }))
+      .filter((a) => a.gap > -1 && a.gap < CLEAN_CUT_GAP)
+      .sort((a, b) => a.gap - b.gap)[0];
+    pl.cutId = ahead ? ahead.n.id : 0;
+    pl.prevLane = pl.lane;
+    pl.lane = to;
+    pl.laneAge = 0;
+    events.push({ type: "laneChange", dir });
+  }
+  if (free) {
+    pl.draft = 0;
+    st.slipstreams++;
+    events.push({ type: "slipstream" });
+  }
+  if (nitro) {
+    pl.nitroT = NITRO_TIME;
+    pl.brakeT = 0;
+    events.push({ type: "nitro" });
+  }
 }
 
 export function step(state: GameState, dt: number): GameEvent[] {
@@ -231,13 +240,34 @@ export function step(state: GameState, dt: number): GameEvent[] {
     } else if (n.passed && rel > 10) n.passed = false;
   }
 
+  // Hearts: drive through one for a life back (up to the start count).
+  for (const h of state.hearts) {
+    if (Math.abs(h.s - pl.s) < PLAYER_DIMS.length / 2 + 1 && Math.abs(h.x - pl.x) < 1.8) {
+      const healed = pl.lives < START_LIVES;
+      if (healed) pl.lives++;
+      h.s = -Infinity; // collected: dropped by the filter below
+      events.push({ type: "heart", lives: pl.lives, healed });
+    }
+  }
+
   state.npcs = state.npcs.filter((n) => n.s - pl.s > DESPAWN[0] && n.s - pl.s < DESPAWN[1]);
+  state.hearts = state.hearts.filter((h) => h.s - pl.s > DESPAWN[0]);
   // Each lane gets its next car once its last one has drifted a random gap behind the spawn line,
   // so traffic stays evenly spread instead of bunching where a slow-drifting car hogs a global count.
+  // Now and then that car becomes a heart (never in zen, where lives don't count); rolled only on a real spawn,
+  // so a crowded lane that retries every frame doesn't fill with hearts.
   for (let lane = 0; lane < LANES; lane++) {
     let last = -Infinity;
     for (const n of state.npcs) if (n.targetLane === lane && n.s - pl.s <= SPAWN_AT) last = Math.max(last, n.s);
-    if (last < pl.s + SPAWN_AT - state.laneGap[lane] && spawn(state, pl.s + SPAWN_AT, lane)) state.laneGap[lane] = laneGap(state);
+    for (const h of state.hearts) if (h.lane === lane) last = Math.max(last, h.s);
+    if (last >= pl.s + SPAWN_AT - state.laneGap[lane]) continue;
+    const n = spawn(state, pl.s + SPAWN_AT, lane);
+    if (!n) continue;
+    state.laneGap[lane] = laneGap(state);
+    if (state.mode !== "zen" && rand(state) < HEART_CHANCE) {
+      state.npcs.pop(); // spawn() pushed it last
+      state.hearts.push({ id: n.id, s: n.s, x: n.x, lane });
+    }
   }
   return events;
 }
@@ -383,6 +413,7 @@ export function snapshot(s: GameState) {
     comboT: st.comboT,
     draft: pl.draft,
     cleanCuts: st.cleanCuts,
+    passes: st.passes,
     accuracy: accuracy(st),
     distance: pl.s,
     nitro: pl.nitroT > 0,

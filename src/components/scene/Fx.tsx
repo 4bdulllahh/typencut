@@ -2,7 +2,10 @@
 
 import { useFrame } from "@react-three/fiber";
 import { useEffect, useMemo, useRef } from "react";
-import { BoxGeometry, IcosahedronGeometry, MeshBasicMaterial, MeshStandardMaterial, Object3D, PlaneGeometry, type InstancedMesh, type Mesh } from "three";
+import {
+  AdditiveBlending, BoxGeometry, ExtrudeGeometry, IcosahedronGeometry, MeshBasicMaterial, MeshStandardMaterial, Object3D, PlaneGeometry, Shape,
+  type Group, type InstancedMesh, type Mesh,
+} from "three";
 import { MODELS } from "@/game/config";
 import { useEngine } from "./context";
 import { softGlowTexture } from "./textures";
@@ -178,4 +181,48 @@ export function Spray() {
     mesh.instanceMatrix.needsUpdate = true;
   });
   return <instancedMesh ref={ref} args={[SPRAY_PLANE, mat, SPRAY_N]} frustumCulled={false} />;
+}
+
+/** A heart laid flat for the overhead camera: lobes up the road, point toward the player. ~3 m across. */
+const HEART = (() => {
+  const h = new Shape();
+  h.moveTo(5, 5);
+  h.bezierCurveTo(5, 5, 4, 0, 0, 0);
+  h.bezierCurveTo(-6, 0, -6, 7, -6, 7);
+  h.bezierCurveTo(-6, 11, -3, 15.4, 5, 19);
+  h.bezierCurveTo(12, 15.4, 16, 11, 16, 7);
+  h.bezierCurveTo(16, 7, 16, 0, 10, 0);
+  h.bezierCurveTo(7, 0, 5, 5, 5, 5);
+  const g = new ExtrudeGeometry(h, { depth: 4, bevelEnabled: true, bevelSize: 1, bevelThickness: 1, bevelSegments: 2 });
+  g.center();
+  g.scale(0.14, 0.14, 0.14);
+  return g.rotateX(Math.PI / 2);
+})();
+// Emissive so it still pops at night and in fog.
+const HEART_MAT = new MeshStandardMaterial({ color: "#ff3b5c", emissive: "#e11d48", emissiveIntensity: 1, roughness: 0.35 });
+const HEART_GLOW = new MeshBasicMaterial({ map: softGlowTexture(), color: "#ff5577", transparent: true, opacity: 0.7, blending: AdditiveBlending, depthWrite: false });
+const HEART_POOL = 8;
+
+/** Floating, spinning heart pickups, from a fixed pool (only a few are ever on screen). */
+export function Hearts() {
+  const engine = useEngine();
+  const groups = useRef<(Group | null)[]>([]);
+  useFrame(({ clock }) => {
+    const { hearts, player } = engine.state;
+    const t = clock.elapsedTime;
+    groups.current.forEach((g, i) => {
+      const h = hearts[i];
+      if (!g) return;
+      g.visible = !!h;
+      if (!h) return;
+      g.position.set(h.x, 2.6 + Math.sin(t * 3 + h.id) * 0.3, -(h.s - player.s));
+      g.children[0].rotation.y = t * 2.5 + h.id;
+    });
+  });
+  return Array.from({ length: HEART_POOL }, (_, i) => (
+    <group key={i} ref={(g) => void (groups.current[i] = g)} visible={false}>
+      <mesh geometry={HEART} material={HEART_MAT} castShadow />
+      <mesh geometry={FLAT} material={HEART_GLOW} position-y={-2.5} scale={5} />
+    </group>
+  ));
 }

@@ -5,6 +5,7 @@ import { COMBO_TIME, MAX_MULTIPLIER, NITRO_MPH, START_LIVES } from "@/game/confi
 import type { GameEngine } from "@/game/engine";
 import type { Board } from "@/game/leaderboard";
 import { ACHIEVEMENTS, CARS, PAINTS, type Progress } from "@/game/progress";
+import { DEFAULT_STEER, bindable, keyLabel, type SteerKeys } from "@/game/input";
 import { WEATHERS, type Settings } from "@/game/settings";
 import type { Snapshot } from "@/game/sim";
 import type { GameEvent, Mode, Weather } from "@/game/types";
@@ -14,6 +15,7 @@ import { shareRun } from "./shareCard";
 
 export const MODE_INFO: Record<Mode, [name: string, blurb: string]> = {
   classic: ["Classic", "Three lives, endless road"],
+  drive: ["Drive", "No typing: WASD or the arrow keys, three lives"],
   zen: ["Zen", "Crashes cost no lives; end the run from the menu"],
   rush: ["Rush hour", "Traffic nearly twice as dense"],
   timeAttack: ["Time attack", "Best score in 90 seconds"],
@@ -65,7 +67,7 @@ export function Dashboard({ snap }: { snap: Snapshot }) {
       </div>
       <div className="text-right">
         <div className="text-xl font-extrabold leading-tight">{snap.score.toLocaleString()}</div>
-        <div className="text-xs font-semibold opacity-80">{Math.round(snap.accuracy)}% accuracy</div>
+        <div className="text-xs font-semibold opacity-80">{snap.mode === "drive" ? `${(snap.distance / 1000).toFixed(1)} km` : `${Math.round(snap.accuracy)}% accuracy`}</div>
         {snap.timeLeft !== null && (
           <div className={`text-sm font-extrabold ${snap.timeLeft < 10 ? "text-rose-300" : "text-amber-200"}`} aria-label={`${Math.ceil(snap.timeLeft)} seconds left`}>
             {clock(snap.timeLeft)}
@@ -78,12 +80,13 @@ export function Dashboard({ snap }: { snap: Snapshot }) {
 
 interface Pop { id: number; text: string; sub: string; big: boolean }
 
-const popFor = (e: GameEvent): Omit<Pop, "id"> | null =>
+const popFor = (e: GameEvent, drive: boolean): Omit<Pop, "id"> | null =>
   e.type === "overtake" ? { text: `+${e.points}`, sub: e.grade === "cleanCut" ? "CLEAN CUT" : e.grade === "dangerous" ? "close pass" : "", big: e.grade === "cleanCut" }
   : e.type === "speedTrap" ? { text: `+${e.points} · ${e.mph} mph`, sub: "SPEED TRAP", big: true }
-  : e.type === "draftReady" ? { text: "DRAFT READY", sub: "next word = nitro", big: false }
+  : e.type === "draftReady" ? { text: "DRAFT READY", sub: drive ? "next move = nitro" : "next word = nitro", big: false }
   : e.type === "slipstream" ? { text: "SLIPSTREAM", sub: "", big: false }
   : e.type === "collision" && e.lives > 0 ? { text: "CRASH", sub: `${e.lives} ♥ left`, big: false }
+  : e.type === "heart" ? { text: e.healed ? "+1 ♥" : "♥ FULL", sub: "", big: false }
   : null;
 
 /** Floating callouts; clean cuts and speed traps get a big banner, and a speed trap flashes the screen like a camera. */
@@ -94,7 +97,7 @@ export function Popups({ engine }: { engine: GameEngine }) {
     let n = 0;
     const off = engine.on((e) => {
       if (e.type === "speedTrap") setFlash((f) => f + 1);
-      const pop = popFor(e);
+      const pop = popFor(e, engine.state.mode === "drive");
       if (!pop) return;
       const id = ++n;
       setItems((list) => [...list.slice(-3), { id, ...pop }]);
@@ -121,29 +124,41 @@ export function Popups({ engine }: { engine: GameEngine }) {
 const Key = ({ children }: { children: React.ReactNode }) => <kbd className="rounded bg-white/15 px-1.5 font-semibold">{children}</kbd>;
 
 /** The controls, shared by the start card (on dark glass) and the menu (on the page colour). */
-function Controls({ cut = "text-amber-300" }: { cut?: string }) {
+function Controls({ cut = "text-amber-300", steer, drive }: { cut?: string; steer: SteerKeys; drive: boolean }) {
+  if (drive)
+    return (
+      <ul className="space-y-1 text-sm">
+        <li><Key>A</Key> <Key>D</Key> or <Key>←</Key> <Key>→</Key> switch lanes</li>
+        <li><Key>W</Key> or <Key>↑</Key> for a burst of speed; tap it twice quickly for <b>nitro</b></li>
+        <li><Key>S</Key> or <Key>↓</Key> brakes</li>
+        <li>Sit close behind a car to fill the <b>draft</b> meter: your next move is a free nitro</li>
+        <li>Grab the floating <b className="text-rose-400">♥</b> hearts to win back a life</li>
+        <li>Cut out from right behind a car for a <b className={cut}>CLEAN CUT</b></li>
+      </ul>
+    );
   return (
     <ul className="space-y-1 text-sm">
-      <li>Type the word, then <Key>,</Key> to go left or <Key>.</Key> to go right</li>
+      <li>Type the word, then <Key>{keyLabel(steer.left.key)}</Key> to go left or <Key>{keyLabel(steer.right.key)}</Key> to go right</li>
       <li><Key>Enter</Key> keeps your lane with a small speed boost</li>
       <li>Sit close behind a car to fill the <b>draft</b> meter: your next word is a free nitro</li>
       <li>Pass a speed camera at <b>150+ mph</b> for a speed-trap bonus, and keep passing or your multiplier drains</li>
       <li><b>ALL CAPS</b> fires nitro · <Key>Enter</Key> twice on an empty box brakes</li>
+      <li>Grab the floating <b className="text-rose-400">♥</b> hearts to win back a life</li>
       <li>Cut out from right behind a car for a <b className={cut}>CLEAN CUT</b></li>
     </ul>
   );
 }
 
-export function ReadyOverlay({ best, mode, pack, day, weather }: { best: number; mode: Mode; pack: PackId; day: string; weather: Weather }) {
+export function ReadyOverlay({ best, mode, pack, day, weather, steer }: { best: number; mode: Mode; pack: PackId; day: string; weather: Weather; steer: SteerKeys }) {
   return (
     <div className="pointer-events-none absolute inset-x-4 top-[26%] mx-auto max-w-md rounded-[24px] border border-white/10 bg-black/45 p-6 text-center text-white shadow-xl backdrop-blur-md">
       <h1 className="text-3xl font-black italic tracking-tight">TYPENCUT</h1>
       <p className="mb-3 mt-1 text-xs font-semibold uppercase tracking-widest text-amber-200">
         {MODE_INFO[mode][0]}
-        {mode === "daily" && ` · ${dayLabel(day)}`} · {PACK_LABELS[pack]} words{weather !== "clear" && ` · ${weather}`}
+        {mode === "daily" && ` · ${dayLabel(day)}`}{mode !== "drive" && ` · ${PACK_LABELS[pack]} words`}{weather !== "clear" && ` · ${weather}`}
       </p>
-      <Controls />
-      <p className="mt-4 text-sm font-semibold opacity-90">Start typing to go{best > 0 && ` · best ${best.toLocaleString()}`}</p>
+      <Controls steer={steer} drive={mode === "drive"} />
+      <p className="mt-4 text-sm font-semibold opacity-90">{mode === "drive" ? "Press a drive key to go" : "Start typing to go"}{best > 0 && ` · best ${best.toLocaleString()}`}</p>
     </div>
   );
 }
@@ -162,7 +177,7 @@ export function GameOver({ snap, board, runDate, day, news, onRestart }: {
   const title = snap.mode === "daily" ? `Daily challenge · ${dayLabel(day)}` : MODE_INFO[snap.mode][0];
   const newBest = snap.score > 0 && snap.score >= board.best.score;
   const stats: [string, string][] = [
-    ["Accuracy", `${Math.round(snap.accuracy)}%`],
+    snap.mode === "drive" ? ["Passes", snap.passes.toString()] : ["Accuracy", `${Math.round(snap.accuracy)}%`],
     ["Top speed", `${Math.round(snap.maxSpeedMph)} mph`],
     ["Clean cuts", snap.cleanCuts.toString()],
     ["Distance", `${(snap.distance / 1000).toFixed(1)} km`],
@@ -214,9 +229,10 @@ const dateFmt = new Intl.DateTimeFormat(undefined, { month: "short", day: "numer
 /** Top runs by score plus best-ever records, from localStorage. */
 export function Leaderboard({ board, highlight, mode, day, compact = false }: { board: Board; highlight?: number; mode: Mode; day: string; compact?: boolean }) {
   const runs = compact ? board.runs.slice(0, 5) : board.runs;
+  const typing = mode !== "drive"; // drive mode has no typing, so no accuracy
   const records: [string, string][] = [
     ["Score", board.best.score.toLocaleString()],
-    ["Accuracy", `${Math.round(board.best.accuracy)}%`],
+    ...(typing ? [["Accuracy", `${Math.round(board.best.accuracy)}%`] as [string, string]] : []),
     ["Top speed", `${Math.round(board.best.maxSpeedMph)} mph`],
     ["Clean cuts", board.best.cleanCuts.toString()],
   ];
@@ -233,7 +249,7 @@ export function Leaderboard({ board, highlight, mode, day, compact = false }: { 
             <li key={`${r.date}-${i}`} className={`flex gap-3 rounded-md px-2 py-0.5 ${r.date === highlight ? "bg-amber-300/30 font-bold" : ""}`}>
               <span className="w-5 opacity-50">{i + 1}</span>
               <span className="flex-1 font-semibold">{r.score.toLocaleString()}</span>
-              <span className="opacity-70">{Math.round(r.accuracy)}%</span>
+              {typing && <span className="opacity-70">{Math.round(r.accuracy)}%</span>}
               {!compact && <span className="w-14 text-right opacity-50">{dateFmt.format(r.date)}</span>}
             </li>
           ))}
@@ -485,16 +501,67 @@ export function Menu({ section, onClose, settings, onSettings, progress, onEnd, 
               ))}
             </div>
           </fieldset>
+          <SteerPicker steer={settings.steer} onChange={(v) => set("steer", v)} />
           {toggle("reduceMotion", "Reduce motion", "No camera shake, nitro zoom or edge blur")}
           {toggle("touch", "On-screen controls", "Steering buttons, and vibration on crashes")}
         </section>
         )}
         {shown === "help" && (
           <div className="[&_kbd]:bg-black/10 dark:[&_kbd]:bg-white/15">
-            <Controls cut="text-amber-700 dark:text-amber-300" />
+            <Controls cut="text-amber-700 dark:text-amber-300" steer={settings.steer} drive={settings.mode === "drive"} />
           </div>
         )}
       </section>
     </div>
+  );
+}
+
+/** Rebind the lane-switch keys: click a side, press any key but a letter (letters are the words). Escape cancels. */
+function SteerPicker({ steer, onChange }: { steer: SteerKeys; onChange: (s: SteerKeys) => void }) {
+  const [wait, setWait] = useState<"left" | "right" | null>(null);
+  const [error, setError] = useState("");
+  const capture = (side: "left" | "right") => (e: React.KeyboardEvent) => {
+    if (wait !== side || e.key === "Tab") return; // Tab still moves focus away
+    e.preventDefault();
+    e.stopPropagation();
+    if (e.key === "Escape") return setWait(null);
+    const other = steer[side === "left" ? "right" : "left"];
+    if (!bindable(e.code)) setError(/^Key/.test(e.code) ? "Letters are for typing words: pick another key." : `${keyLabel(e.key)} is taken by the game.`);
+    else if (e.code === other.code) setError("That key already steers the other way.");
+    else {
+      onChange({ ...steer, [side]: { code: e.code, key: e.key } });
+      setError("");
+      setWait(null);
+    }
+  };
+  const changed = steer.left.code !== DEFAULT_STEER.left.code || steer.right.code !== DEFAULT_STEER.right.code;
+  return (
+    <fieldset className="py-1.5">
+      <legend className="font-semibold">Lane-switch keys</legend>
+      <span className="block text-xs opacity-60">For the typing modes. Click a side, then press any key except a letter</span>
+      <div className="mt-1.5 grid grid-cols-2 gap-2">
+        {(["left", "right"] as const).map((side) => (
+          <button
+            key={side}
+            onClick={() => (setWait(wait === side ? null : side), setError(""))}
+            onKeyDown={capture(side)}
+            onBlur={() => wait === side && setWait(null)}
+            aria-label={`${side === "left" ? "Left" : "Right"}: ${keyLabel(steer[side].key)}. ${wait === side ? "Press the new key" : "Click to change"}`}
+            className={`rounded-xl border px-3 py-2 text-left ${wait === side ? "border-amber-500 bg-accent-soft" : "border-line bg-surface-muted hover:border-amber-500/60"}`}
+          >
+            <span className="block text-[10px] font-semibold uppercase tracking-widest opacity-60">{side === "left" ? "‹ Left" : "Right ›"}</span>
+            <span className="block text-base font-bold">{wait === side ? "Press a key…" : keyLabel(steer[side].key)}</span>
+          </button>
+        ))}
+      </div>
+      <div className="mt-1 flex items-center justify-between gap-2 text-xs">
+        <span role="status" className="text-rose-600 dark:text-rose-300">{error}</span>
+        {changed && (
+          <button onClick={() => onChange(DEFAULT_STEER)} className="shrink-0 font-semibold underline-offset-2 hover:underline">
+            Reset to , and .
+          </button>
+        )}
+      </div>
+    </fieldset>
   );
 }

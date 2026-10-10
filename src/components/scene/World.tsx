@@ -81,7 +81,8 @@ const hash = (k: number, salt = 0) => {
   return x - Math.floor(x);
 };
 
-export function World() {
+/** `signs`: the left and right gantry signs' lines, which teach the current controls. */
+export function World({ signs }: { signs: [string[], string[]] }) {
   return (
     <>
       <Ground />
@@ -99,7 +100,7 @@ export function World() {
         <StreetLight side={1} />
       </Repeat>
       <Repeat period={520} offset={48}>
-        <Gantry />
+        <Gantry signs={signs} />
       </Repeat>
       <Repeat period={SPEED_CAMERA.period} offset={SPEED_CAMERA.offset}>
         <SpeedCamera />
@@ -195,7 +196,7 @@ function StreetLight({ side }: { side: -1 | 1 }) {
   );
 }
 
-function Gantry() {
+function Gantry({ signs }: { signs: [string[], string[]] }) {
   return (
     <group>
       {[-1, 1].map((side) => (
@@ -206,8 +207,8 @@ function Gantry() {
       <mesh material={M.metal} position={[0, 7.6, 0]} castShadow>
         <boxGeometry args={[POLE * 2 + 0.4, 0.5, 0.6]} />
       </mesh>
-      <Sign x={-laneX(3)} lines={["‹  ,  LEFT", "type the word"]} />
-      <Sign x={laneX(3)} lines={["RIGHT  .  ›", "CAPS = NITRO"]} />
+      <Sign x={-laneX(3)} lines={signs[0]} />
+      <Sign x={laneX(3)} lines={signs[1]} />
     </group>
   );
 }

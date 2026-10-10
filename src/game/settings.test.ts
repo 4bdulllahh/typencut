@@ -1,6 +1,7 @@
 import assert from "node:assert/strict";
 import { test } from "node:test";
 import { revs } from "./audio.ts";
+import { DEFAULT_STEER, bindable, steerDir } from "./input.ts";
 import { defaultSettings, parseSettings } from "./settings.ts";
 
 test("parseSettings keeps valid fields and drops the rest", () => {
@@ -34,4 +35,17 @@ test("engine revs climb through each gear and drop on the upshift", () => {
   assert.equal(revs(0).rpm, 0.35);
   assert.equal(revs(500).gear, 7);
   assert.equal(revs(500).rpm, 1);
+});
+
+test("lane-switch keys: no letters or reserved keys, two different keys, Shift-proof", () => {
+  const base = defaultSettings();
+  const steer = (left: string, right: string) => parseSettings(JSON.stringify({ steer: { left: { code: left, key: "x" }, right: { code: right, key: "y" } } }), base).steer;
+  assert.deepEqual(steer("ArrowLeft", "ArrowRight").left.code, "ArrowLeft");
+  assert.deepEqual(steer("Digit1", "Space").right.code, "Space");
+  for (const [l, r] of [["KeyA", "Period"], ["Enter", "Period"], ["Comma", "Comma"], ["Comma", "<script>"]]) assert.deepEqual(steer(l, r), DEFAULT_STEER);
+  assert.ok(!bindable("KeyZ") && !bindable("Backspace") && !bindable("CapsLock") && bindable("Semicolon") && bindable("Numpad4"));
+  assert.equal(steerDir("Comma", "<", DEFAULT_STEER), -1); // Shift held for an ALL CAPS word
+  assert.equal(steerDir("Period", ".", DEFAULT_STEER), 1);
+  assert.equal(steerDir("", ",", DEFAULT_STEER), -1); // a phone keyboard with no code
+  assert.equal(steerDir("KeyA", "a", DEFAULT_STEER), 0);
 });

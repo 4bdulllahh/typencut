@@ -319,3 +319,44 @@ test("weather rolls are stable per seed and come out roughly 50/30/20", () => {
   for (let seed = 0; seed < 10000; seed++) n[rollWeather(seed * 7919 + Date.UTC(2026, 0, 1))]++;
   assert.ok(Math.abs(n.clear - 5000) < 300 && Math.abs(n.rain - 3000) < 300 && Math.abs(n.fog - 2000) < 300, JSON.stringify(n));
 });
+
+test("drive mode: a drive command starts the run, steers or boosts, and never touches the word", () => {
+  const s = createState(3, { mode: "drive" });
+  s.npcs = [];
+  const word = s.word;
+  assert.deepEqual(applyCommand(s, { type: "drive", dir: -1, nitro: false }).map((e) => e.type), ["start", "laneChange"]);
+  assert.equal(s.player.lane, 1);
+  assert.deepEqual(applyCommand(s, { type: "drive", dir: 0, nitro: false }).map((e) => e.type), ["boost"]);
+  assert.ok(s.player.boostT > 0);
+  assert.deepEqual(applyCommand(s, { type: "drive", dir: 0, nitro: true }).map((e) => e.type), ["nitro"]);
+  assert.equal(s.word, word);
+  assert.equal(s.stats.words, 0);
+});
+
+test("hearts: driving through one gives a life back, up to three; zen gets none", () => {
+  const s = running();
+  s.player.lives = 2;
+  s.hearts = [{ id: 999, s: s.player.s + 3, x: s.player.x, lane: 2 }];
+  assert.deepEqual(step(s, 0.01).filter((e) => e.type === "heart"), [{ type: "heart", lives: 3, healed: true }]);
+  assert.ok(!s.hearts.some((h) => h.id === 999));
+  s.hearts = [{ id: 998, s: s.player.s + 3, x: s.player.x, lane: 2 }];
+  assert.deepEqual(step(s, 0.01).filter((e) => e.type === "heart"), [{ type: "heart", lives: 3, healed: false }]);
+  s.hearts = [{ id: 997, s: s.player.s + 3, x: laneX(0), lane: 0 }]; // another lane: missed
+  assert.equal(step(s, 0.01).filter((e) => e.type === "heart").length, 0);
+
+  // About 6.5% of lane spawns are hearts; zen never gets one.
+  const hearts = (mode: "classic" | "zen") => {
+    const t = createState(11, { mode });
+    applyCommand(t, { type: "key", correct: true });
+    const seen = new Set<number>();
+    for (let i = 0; i < 120 * 60; i++) {
+      step(t, 1 / 60);
+      t.player.lives = 3;
+      t.player.invulnT = 1;
+      for (const h of t.hearts) seen.add(h.id);
+    }
+    return seen.size;
+  };
+  assert.ok(hearts("classic") > 3);
+  assert.equal(hearts("zen"), 0);
+});

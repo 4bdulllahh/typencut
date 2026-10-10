@@ -148,6 +148,10 @@ export function attachAudio(engine: GameEngine, initial: AudioSettings) {
         tone("square", 392, 370, 0.07, 0.01, 0.4, 1800);
         tone("square", 494, 466, 0.07, 0.01, 0.4, 1800);
         break;
+      case "heart":
+        tone("sine", 880, 880, 0.14, 0.005, 0.12); // two-note pickup chime
+        setTimeout(() => tone("sine", 1320, 1320, 0.14, 0.005, 0.25), 90);
+        break;
       case "collision":
         tone("sine", 95, 32, 0.9, 0.005, 0.45);
         hiss("lowpass", 900, 150, 0.8, 0.8, 0.005, 0.3);

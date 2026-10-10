@@ -1,4 +1,5 @@
 import { MODES } from "./config.ts";
+import { DEFAULT_STEER, bindable, type KeyBind, type SteerKeys } from "./input.ts";
 import { CARS, PAINTS, type PaintId } from "./progress.ts";
 import type { Mode, PlayerModel, Weather } from "./types.ts";
 import { PACK_IDS, type PackId } from "./words.ts";
@@ -16,13 +17,14 @@ export interface Settings {
   car: PlayerModel; // chosen in the garage; Game.tsx falls back to the GT3 RS if it is still locked
   paint: PaintId;
   weather: Weather | "random"; // random = rolled per run from its seed (see rollWeather)
+  steer: SteerKeys; // lane-switch keys in the typing modes
 }
 
 const KEY = "typencut.settings";
 export const WEATHERS = ["random", "clear", "rain", "fog"] as const;
 
 export const defaultSettings = (reduceMotion = false, touch = false): Settings => ({
-  volume: 0.8, muted: false, engine: true, quality: "high", reduceMotion, touch, mode: "classic", pack: "driving", customWords: "", car: "gt3rs", paint: "white", weather: "random",
+  volume: 0.8, muted: false, engine: true, quality: "high", reduceMotion, touch, mode: "classic", pack: "driving", customWords: "", car: "gt3rs", paint: "white", weather: "random", steer: DEFAULT_STEER,
 });
 
 /** localStorage is user-editable: each field is kept only if it has the right type and range. */
@@ -39,9 +41,14 @@ export function parseSettings(raw: string | null, base: Settings): Settings {
     if (PAINTS.some((c) => c.id === d?.paint)) s.paint = d.paint;
     if (WEATHERS.includes(d?.weather)) s.weather = d.weather;
     if (typeof d?.customWords === "string" && d.customWords.length <= 5000) s.customWords = d.customWords;
+    const { left, right } = d?.steer ?? {};
+    if (isBind(left) && isBind(right) && left.code !== right.code) s.steer = { left: { code: left.code, key: left.key }, right: { code: right.code, key: right.key } };
   } catch {}
   return s;
 }
+
+const isBind = (b: unknown): b is KeyBind =>
+  typeof (b as KeyBind)?.code === "string" && bindable((b as KeyBind).code) && typeof (b as KeyBind).key === "string" && (b as KeyBind).key.length <= 32;
 
 /** Defaults follow the device: reduced motion from the OS, buttons on touch screens. */
 export function loadSettings(): Settings {
