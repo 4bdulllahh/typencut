@@ -1,19 +1,17 @@
 # Typencut: handover (compact)
 
-_Updated 2026-10-10 · v1.1 + M7 pushed · **live** https://typencut-two.vercel.app · repo `C:\Users\Computer\Documents\GitHub\typencut`, remote https://github.com/4bdulllahh/typencut · full brief in `docs/spec.md`._
+_Updated 2026-10-10 · M7 + M8 pushed · **live** https://typencut-two.vercel.app · repo `C:\Users\Computer\Documents\GitHub\typencut`, remote https://github.com/4bdulllahh/typencut · full brief in `docs/spec.md`._
 
 ## Resume here
-- **v1.0 + v1.1** are on `origin/main` (`64bc78b`). Owner confirmed the audio sounds right.
-- **M7** (settings + feel) pushed: typecheck + build clean, 17 tests pass, desktop day/night shot runs clean, phone-size probe checked on-screen buttons (submit + focus stays on the input), Settings panel, Low quality remount, no console errors. Version 1.2.0.
-  - `src/game/settings.ts` (+ test): `typencut.settings` = volume, muted, engine, quality high|low, reduceMotion, touch; validated on load; defaults from `prefers-reduced-motion` and `pointer: coarse`.
-  - `audio.ts` now returns `{ set, pause, detach }`; master gain = volume × 0.62 (0 when muted); engine note (saw + sub square → resonant low-pass) driven at 20 Hz from `revs(mph)` (7-speed gearbox, tested).
-  - Graphics Low = `shadows` off + dpr 1 (Canvas remounts via `key={quality}`); reduce motion = no shake, no nitro FOV, no edge blur, popups fade (`.reduce-motion` on `<html>`).
-  - Phone controls in `TypingDock` (‹ ↑ ›, act on pointerdown with default cancelled so the input keeps focus; ↑ = same `enter()` as the Enter key); `navigator.vibrate` on collisions when `touch` is on; dock sits lower (`bottom-2`) when the buttons show so they clear the car.
-- Audio changes (engine note, volume) were never heard: headless only. Ask the owner to listen.
+- **v1.0, v1.1, M7** are on `origin/main` (`2773485`). Owner confirmed the audio sounds right (before the M7 engine note).
+- **M8** (gameplay) pushed: typecheck + build clean, 20 tests pass, a headless run that nitros through cameras saw the SPEED TRAP banner + flash day and night, regression shot run clean. Version 1.3.0.
+  - Sim: `COMBO_TIME` 6 s → `stats.comboT`, drains one combo step per second after (`MAX_COMBO` clamp); `player.draft` 0–1 fills within `DRAFT_RANGE` 16 m behind a car in lane (`draftGap`, rate 3 × closeness), fades 0.25/s, full = next correct word is a nitro (`slipstream` + `nitro` events; Enter + full draft = nitro, no boost); `SPEED_CAMERA` {period 360, offset 35, mph 150} in `config.ts` → `speedTrap` event, (200 + 10 × over) × multiplier. Events: `draftReady`, `slipstream`, `speedTrap`.
+  - HUD: draft bar under the speedometer ("nitro ready" when full), thin combo-timer bar under the multiplier (rose under 2 s), popups for SPEED TRAP (big), DRAFT READY, SLIPSTREAM, `.flash` camera flash; how-to lines for draft + traps. Audio: draft chirp, trap shutter + chime. World: round 150 limit sign on each camera (`limitSignTexture`).
+  - Never saw "nitro ready" in a headless run (the scripted driver closes too fast); covered by a unit test. Tuning knob if the owner finds it hard: fill rate 3 in `step()`.
 
-**First thing next session:** continue **M8** (in progress, see below) or start it.
+**First thing next session:** continue or start **M9**.
 
-**Next:** M8 → M11 in the milestone table, one at a time, stopping after each. Not picked (don't build): police chase, ghost of best run, online leaderboard.
+**Next:** M9 → M11 in the milestone table, one at a time, stopping after each. Not picked (don't build): police chase, ghost of best run, online leaderboard.
 
 Open ideas, none promised: hide the floating word while a popup is on screen; ESLint (no lint script exists); `@react-three/drei` is unused (spec names it, so it was kept).
 
@@ -33,7 +31,7 @@ Open ideas, none promised: hide the floating word while a popup is on screen; ES
 | M6 | Polish + ship: tuning pass, headless screenshots, vercel.json (not needed: Vercel zero-config), CI, README final | done |
 | v1.1 | Owner feedback: Enter = straight + boost, menu, one font, lofted cars, per-lamp taillight glow, even traffic, accuracy not WPM | done |
 | M7 | Settings + feel: Settings panel in the menu (volume + mute, graphics quality: shadows/DPR, reduce motion → no shake/blur), synthesised engine note rising with speed (gear shifts, nitro howl), phone controls (on-screen left/straight/right buttons, vibration on crash) | done |
-| M8 | Gameplay: slipstream (close behind a car fills a draft meter → next word = free nitro), speed traps (pass a speed camera above ~150 mph = SPEED TRAP bonus + flash), combo timer (multiplier drains when you stop passing) | todo |
+| M8 | Gameplay: slipstream (close behind a car fills a draft meter → next word = free nitro), speed traps (pass a speed camera above ~150 mph = SPEED TRAP bonus + flash), combo timer (multiplier drains when you stop passing) | done |
 | M9 | Modes + content: Zen (no crashes), Rush hour (dense traffic), Time attack (90 s); word packs (driving, programming, common English, other languages, your own list); daily challenge (same seed for everyone per day, its own daily best) | todo |
 | M10 | Progression: achievements (first clean cut, 200 mph, 10-pass streak, 5 km clean…) shown in the menu; unlocks by total score (GT3 RS paints, more player cars e.g. 911 Turbo S, M4); share card (image of the run's stats) | todo |
 | M11 | Weather: rain (wet-road reflections, spray behind cars) and fog, random or chosen in Settings | todo |
@@ -56,7 +54,7 @@ Next.js 16 + React 19 + TypeScript 5.9 (strict) · R3F 9 + drei 10 + three 0.186
 - `src/game/config.ts` constants, lane geometry, car dimensions · `types.ts` state/command/event types · `words.ts` word buckets + `pickWord` · `sim.ts` ★ `createState`, `applyCommand`, `step`, `snapshot`; traffic spawns per lane at 200 m ahead once the lane's last car is `laneGap` (`(90 − 38·progress) × 0.6–1.4` m) behind that line · `input.ts` `matchWord`, `isPrefix` · `engine.ts` loop + pub/sub.
 - `src/app/` layout, page (server) → `components/GameLoader.tsx` (`next/dynamic`, `ssr:false`) → `Game.tsx` (engine owner, 10 Hz HUD snapshot + refresh on every event, 9:16 column).
 - `components/TypingDock.tsx` ★ the only keystroke → command code (invisible input over the capsule; refocuses on blur).
-- `components/scene/context.ts` `EngineCtx`/`useEngine`, `NightCtx`/`useNight` · `textures.ts` cached canvas textures (`glowTexture`, `softGlowTexture`, `signTexture`).
+- `components/scene/context.ts` `EngineCtx`/`useEngine`, `NightCtx`/`useNight` · `textures.ts` cached canvas textures (`glowTexture`, `softGlowTexture`, `signTexture`, `limitSignTexture`).
 - `components/scene/Scene.tsx` Canvas (`shadows`, `flat` = no tone mapping), `Atmosphere` (sky/fog/hemi/sun per mode; sun shadow box ±70 m around the player at the origin), `CameraRig` (90 m up, 10 m behind, 20° tilt, follows 35% of player x; shake on collision/nitro/clean cut; +8° FOV in nitro), Traffic (re-renders only when the id list changes; mounts one `NpcCar` per id).
 - `components/scene/World.tsx` ★ `Repeat` (copies children every `period` m with optional `offset`, window NEAR 25 m behind to FAR 140 m ahead; `place(g, k)` varies copy k via `hash`) · static strips (grass, asphalt, shoulders, edge lines yellow-left/white-right, jersey barriers) · repeated dashes 12 m, trees 6 m, streetlights 42 m (night: lit heads + additive pools), gantry 520 m (first at 48 m; signs tilted back 1 rad to read from above, they teach `,` `.` CAPS), speed camera 360 m.
 - `components/scene/Vehicles.tsx` ★ `STYLE` per model: `stations` `[t, halfWidth, waist, roof?, wingRise?]` traced from the real car, plus ride, greenhouse taper (`gb`/`gt`), wheel, axles, head/tail lamp layout (`tail[0] = 0` = full-width strip), `hood`/`roofAccent` (GT3 carbon), `bed`, `rails`. `bodyGeometry()` lofts 12-point rings through the stations (groups 0 paint, 1 glass, 2 accent; winding fixed per triangle; cached per model). `at(model, t)` interpolates half-width/waist/z for placing details. `Body` adds wheels + hubs, mirrors, lamps, bed, rails. `PlayerCar`: GT3 RS extras (carbon hood/roof, louvers, swan-neck wing, dual exhausts, LED strip = brake light while `brakeT > 0`), `scuffs` group at `lives <= 2`, `dents` at `lives <= 1`, invuln blink, yaw from `vx`, night spotLight. `NpcCar`: black cruiser / red merger, amber corner blinkers per side, yaw while sliding. `NightLights`: additive ground beam ahead + one soft red pool per taillight, stretched by speed (`setTrails`). `GT3_REAR_AXLE` is exported for the skid marks.

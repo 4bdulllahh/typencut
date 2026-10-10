@@ -6,9 +6,9 @@ import {
   AdditiveBlending, BoxGeometry, ConeGeometry, CylinderGeometry, IcosahedronGeometry, MeshBasicMaterial,
   MeshStandardMaterial, PlaneGeometry, type Group,
 } from "three";
-import { LANES, LANE_W, laneX } from "@/game/config";
+import { LANES, LANE_W, SPEED_CAMERA, laneX } from "@/game/config";
 import { useEngine, useNight } from "./context";
-import { glowTexture, signTexture } from "./textures";
+import { glowTexture, limitSignTexture, signTexture } from "./textures";
 
 // Road cross-section (m from centre)
 const ROAD = (LANES * LANE_W) / 2; // 9
@@ -98,7 +98,7 @@ export function World() {
       <Repeat period={520} offset={48}>
         <Gantry />
       </Repeat>
-      <Repeat period={360} offset={35}>
+      <Repeat period={SPEED_CAMERA.period} offset={SPEED_CAMERA.offset}>
         <SpeedCamera />
       </Repeat>
     </>
@@ -233,9 +233,10 @@ function SpeedCamera() {
       <mesh material={M.dark} position={[-0.25, 4.9, -0.52]}>
         <boxGeometry args={[0.4, 0.4, 0.06]} />
       </mesh>
-      <mesh position={[0, 2.6, 0.2]} rotation-x={-0.6}>
-        <planeGeometry args={[0.9, 0.9]} />
-        <meshBasicMaterial color="#2b5fb3" />
+      {/* The speed-trap limit, tilted back to read from above (and unlit, so it shows at night). */}
+      <mesh position={[-1, 3.8, 0.6]} rotation-x={-1}>
+        <circleGeometry args={[1.6, 24]} />
+        <meshBasicMaterial map={limitSignTexture(SPEED_CAMERA.mph)} transparent />
       </mesh>
     </group>
   );

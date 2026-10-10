@@ -114,6 +114,14 @@ export function attachAudio(engine: GameEngine, initial: AudioSettings) {
       case "boost":
         hiss("bandpass", 700, 2200, 1.2, 0.22, 0.04, 0.3); // short rising whoosh
         break;
+      case "draftReady":
+        tone("triangle", 660, 990, 0.12, 0.01, 0.12); // rising chirp: the slipstream nitro is armed
+        break;
+      case "speedTrap":
+        hiss("highpass", 4000, 6000, 0.7, 0.35, 0.001, 0.05); // shutter click
+        tone("sine", 1320, 1320, 0.12, 0.005, 0.25);
+        tone("sine", 1760, 1760, 0.08, 0.005, 0.35);
+        break;
       case "laneChange":
         hiss("bandpass", 2300, 1700, 9, 0.35, 0.02, 0.3);
         break;

@@ -36,6 +36,15 @@ kbd {
 .pop {
   animation: pop-rise 1.1s ease-out forwards;
 }
+/* Speed-trap camera flash: soft, short, once. */
+@keyframes camera-flash {
+  0% { opacity: 0.4; }
+  100% { opacity: 0; }
+}
+.flash {
+  animation: camera-flash 0.35s ease-out forwards;
+}
+
 @keyframes pop-fade {
   0%, 70% { opacity: 1; }
   100% { opacity: 0; }

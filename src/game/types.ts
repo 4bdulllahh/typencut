@@ -35,6 +35,7 @@ export interface Player {
   nitroT: number;
   brakeT: number;
   boostT: number;
+  draft: number; // slipstream meter 0–1; full = the next word fires a free nitro
   invulnT: number;
   lives: number;
   cutId: number; // npc we just cut out from behind (clean-cut candidate), 0 = none
@@ -44,6 +45,7 @@ export interface Stats {
   score: number;
   combo: number;
   multiplier: number;
+  comboT: number; // seconds before the multiplier starts draining
   passes: number;
   cleanCuts: number;
   maxSpeed: number; // m/s
@@ -80,6 +82,9 @@ export type GameEvent =
   | { type: "laneChange"; dir: Dir }
   | { type: "nitro" }
   | { type: "boost" }
+  | { type: "draftReady" }
+  | { type: "slipstream" } // a word spent a full draft meter on a free nitro
+  | { type: "speedTrap"; mph: number; points: number }
   | { type: "brake" }
   | { type: "overtake"; grade: PassGrade; points: number; npcId: number }
   | { type: "collision"; npcId: number; lives: number }

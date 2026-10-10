@@ -1,5 +1,5 @@
 import {
-  BOOST_MPH, BOOST_TIME, BRAKE_TIME, CLEAN_CUT_GAP, CRUISE_MPH, CRUISERS, INVULN_TIME, LANES, MAX_MULTIPLIER, MERGERS, MODELS, MPH,
+  BOOST_MPH, BOOST_TIME, BRAKE_TIME, CLEAN_CUT_GAP, COMBO_TIME, DRAFT_RANGE, SPEED_CAMERA, CRUISE_MPH, CRUISERS, INVULN_TIME, LANES, MAX_MULTIPLIER, MERGERS, MODELS, MPH,
   MULTIPLIER_STEP, NITRO_MPH, NITRO_TIME, PLAYER_DIMS, POINTS, START_LIVES, SURPRISE_CUT_CHANCE, laneX, toMph,
 } from "./config.ts";
 import type { Command, GameEvent, GameState, Npc, PassGrade } from "./types.ts";
@@ -33,11 +33,11 @@ export function createState(seed = Date.now()): GameState {
     nextId: 1,
     player: {
       s: 0, x: laneX(2), vx: 0, lane: 2, prevLane: 2, laneAge: 99, speed: cruiseSpeed(0),
-      nitroT: 0, brakeT: 0, boostT: 0, invulnT: 0, lives: START_LIVES, cutId: 0,
+      nitroT: 0, brakeT: 0, boostT: 0, draft: 0, invulnT: 0, lives: START_LIVES, cutId: 0,
     },
     npcs: [],
     stats: {
-      score: 0, combo: 0, multiplier: 1, passes: 0, cleanCuts: 0, maxSpeed: 0,
+      score: 0, combo: 0, multiplier: 1, comboT: 0, passes: 0, cleanCuts: 0, maxSpeed: 0,
       keys: 0, correctKeys: 0, words: 0, misses: 0, elapsed: 0,
     },
     word: "",
@@ -79,8 +79,10 @@ export function applyCommand(state: GameState, cmd: Command): GameEvent[] {
   } else {
     st.words++;
     const to = pl.lane + cmd.dir;
+    const free = !cmd.nitro && pl.draft >= 1; // slipstream: a full meter turns this word into a nitro
+    const nitro = cmd.nitro || free;
     if (cmd.dir === 0) {
-      if (!cmd.nitro) {
+      if (!nitro) {
         pl.boostT = BOOST_TIME;
         pl.brakeT = 0;
         events.push({ type: "boost" });
@@ -98,7 +100,11 @@ export function applyCommand(state: GameState, cmd: Command): GameEvent[] {
       pl.laneAge = 0;
       events.push({ type: "laneChange", dir: cmd.dir });
     }
-    if (cmd.nitro) {
+    if (free) {
+      pl.draft = 0;
+      events.push({ type: "slipstream" });
+    }
+    if (nitro) {
       pl.nitroT = NITRO_TIME;
       pl.brakeT = 0;
       events.push({ type: "nitro" });
@@ -130,7 +136,35 @@ export function step(state: GameState, dt: number): GameEvent[] {
   else if (pl.nitroT > 0) [target, accel] = [NITRO_MPH * MPH, 45];
   else if (pl.boostT > 0) [target, accel] = [cruise + BOOST_MPH * MPH, 14];
   pl.speed = approach(pl.speed, target, accel * dt);
+  const camera = (s: number) => Math.floor((s - SPEED_CAMERA.offset) / SPEED_CAMERA.period);
+  const before = camera(pl.s);
   pl.s += pl.speed * dt;
+  if (camera(pl.s) > before && toMph(pl.speed) >= SPEED_CAMERA.mph) {
+    const mph = toMph(pl.speed);
+    const points = Math.round((200 + 10 * (mph - SPEED_CAMERA.mph)) * st.multiplier);
+    st.score += points;
+    events.push({ type: "speedTrap", mph: Math.round(mph), points });
+  }
+
+  // Combo timer: a pass refills it; once empty the multiplier drops a step every second.
+  if (st.combo > 0) {
+    st.comboT -= dt;
+    if (st.comboT <= 0) {
+      st.combo = Math.min(st.combo, MAX_COMBO) - 1;
+      st.multiplier = multiplier(st.combo);
+      st.comboT = st.combo > 0 ? 1 : 0;
+    }
+  }
+
+  // Slipstream: close behind a car in our lane fills the meter (faster the closer); away from one it fades.
+  if (pl.draft < 1) {
+    const gap = draftGap(state);
+    if (gap === null) pl.draft = Math.max(0, pl.draft - dt * 0.25);
+    else {
+      pl.draft = Math.min(1, pl.draft + dt * 3 * (1 - gap / DRAFT_RANGE));
+      if (pl.draft === 1) events.push({ type: "draftReady" });
+    }
+  }
   st.maxSpeed = Math.max(st.maxSpeed, pl.speed);
 
   // Player: lateral spring (semi-implicit Euler)
@@ -178,6 +212,21 @@ export function step(state: GameState, dt: number): GameEvent[] {
     if (last < pl.s + SPAWN_AT - state.laneGap[lane] && spawn(state, pl.s + SPAWN_AT, lane)) state.laneGap[lane] = laneGap(state);
   }
   return events;
+}
+
+const MAX_COMBO = Math.round((MAX_MULTIPLIER - 1) / MULTIPLIER_STEP); // passes that reach the top multiplier
+const multiplier = (combo: number) => Math.min(MAX_MULTIPLIER, 1 + combo * MULTIPLIER_STEP);
+
+/** Bumper gap to the nearest car ahead in the player's lane, if it is within slipstream range. */
+function draftGap(state: GameState): number | null {
+  const pl = state.player;
+  let best: number | null = null;
+  for (const n of state.npcs) {
+    if (n.hit || Math.abs(n.x - pl.x) > (n.width + PLAYER_DIMS.width) * 0.4) continue;
+    const gap = n.s - pl.s - (n.length + PLAYER_DIMS.length) / 2;
+    if (gap > 0 && gap < DRAFT_RANGE && (best === null || gap < best)) best = gap;
+  }
+  return best;
 }
 
 /** Nearest car (or the player) ahead that overlaps this one sideways. */
@@ -234,6 +283,7 @@ function collide(state: GameState, n: Npc, events: GameEvent[]) {
   pl.cutId = 0;
   pl.vx += Math.sign(pl.x - n.x || 1) * 4;
   st.combo = 0;
+  st.comboT = 0;
   st.multiplier = 1;
   events.push({ type: "collision", npcId: n.id, lives: pl.lives });
   if (pl.lives <= 0) {
@@ -255,7 +305,8 @@ function scorePass(state: GameState, n: Npc, events: GameEvent[]) {
   st.score += points;
   st.passes++;
   st.combo++;
-  st.multiplier = Math.min(MAX_MULTIPLIER, 1 + st.combo * MULTIPLIER_STEP);
+  st.comboT = COMBO_TIME;
+  st.multiplier = multiplier(st.combo);
   events.push({ type: "overtake", grade, points, npcId: n.id });
 }
 
@@ -297,6 +348,8 @@ export function snapshot(s: GameState) {
     score: st.score,
     multiplier: st.multiplier,
     combo: st.combo,
+    comboT: st.comboT,
+    draft: pl.draft,
     cleanCuts: st.cleanCuts,
     accuracy: accuracy(st),
     distance: pl.s,

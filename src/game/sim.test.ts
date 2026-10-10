@@ -1,6 +1,6 @@
 import assert from "node:assert/strict";
 import { test } from "node:test";
-import { LANES, MPH, POINTS, laneX } from "./config.ts";
+import { COMBO_TIME, LANES, MPH, POINTS, SPEED_CAMERA, laneX } from "./config.ts";
 import { isPrefix, matchWord } from "./input.ts";
 import { applyCommand, createState, rand, spawn, step } from "./sim.ts";
 import type { GameState, Npc } from "./types.ts";
@@ -189,4 +189,50 @@ test("traffic stays spread out: the view ahead is never empty", () => {
     }
     assert.ok(fewest >= 3, `seed ${seed}: only ${fewest} cars in view`);
   }
+});
+
+test("combo timer: the multiplier holds after a pass, then drains a step a second", () => {
+  const s = running();
+  put(s, 0, 20);
+  for (let i = 0; i < 300 && !step(s, 1 / 60).some((e) => e.type === "overtake"); i++);
+  assert.equal(s.stats.multiplier, 1.2);
+  s.npcs = [];
+  run(s, COMBO_TIME - 0.5); // still inside the window
+  assert.equal(s.stats.multiplier, 1.2);
+  run(s, 1);
+  assert.equal(s.stats.multiplier, 1);
+  assert.equal(s.stats.combo, 0);
+});
+
+test("slipstream: close behind a car fills the meter, and the next word fires a free nitro", () => {
+  const s = running();
+  const lead = put(s, 2, 6);
+  lead.speed = lead.cruise = s.player.speed; // hold the gap so only the draft changes
+  const ev = run(s, 1);
+  assert.equal(s.player.draft, 1);
+  assert.ok(ev.some((e) => e.type === "draftReady"));
+  const word = applyCommand(s, { type: "word", dir: 1, nitro: false });
+  assert.ok(word.some((e) => e.type === "slipstream") && word.some((e) => e.type === "nitro"));
+  assert.ok(s.player.nitroT > 0);
+  assert.equal(s.player.draft, 0);
+  s.npcs = [];
+  run(s, 2);
+  assert.equal(s.player.draft, 0, "no car ahead, no draft");
+});
+
+test("speed traps pay out only at or above the camera's limit", () => {
+  const s = running();
+  const cam = SPEED_CAMERA.offset + SPEED_CAMERA.period * 3;
+  s.player.s = cam - 1;
+  s.player.speed = 120 * MPH;
+  s.npcs = []; // the jump would otherwise count every car it skipped as a pass
+  assert.ok(!step(s, 0.1).some((e) => e.type === "speedTrap"));
+  s.player.s = cam + SPEED_CAMERA.period - 1;
+  s.player.speed = 165 * MPH;
+  s.player.nitroT = 1; // hold the speed
+  s.npcs = [];
+  const before = s.stats.score;
+  const trap = step(s, 0.1).find((e) => e.type === "speedTrap");
+  assert.ok(trap && trap.type === "speedTrap" && trap.mph >= 165 && trap.points >= 350);
+  assert.equal(s.stats.score, before + (trap.type === "speedTrap" ? trap.points : 0));
 });

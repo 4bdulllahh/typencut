@@ -4,7 +4,7 @@ Type to weave a Porsche 911 GT3 RS through highway traffic.
 
 A browser speed-typing game inspired by *Assetto Corsa: No Hesi* highway weaving, drawn in the flat-shaded, low-poly style of *Art of Rally*. Every word you type moves you: finish it with a comma to go one lane left, a full stop to go right, or Enter to hold your lane with a burst of speed. Shout it in ALL CAPS for nitro, and tap Enter twice to brake. Slip past black cruisers and lane-hopping red mergers, chain close passes into a 5× multiplier, and cut out from right behind a car for a 500-point CLEAN CUT. No account, no server and no downloads: every car, tree, sign and sound is generated in code.
 
-**Live:** https://typencut-two.vercel.app · **Version:** 1.2.0
+**Live:** https://typencut-two.vercel.app · **Version:** 1.3.0
 
 [![Deploy with Vercel](https://vercel.com/button)](https://vercel.com/new/clone?repository-url=https%3A%2F%2Fgithub.com%2F4bdulllahh%2Ftypencut&project-name=typencut&repository-name=typencut)
 [![CI](https://github.com/4bdulllahh/typencut/actions/workflows/ci.yml/badge.svg)](https://github.com/4bdulllahh/typencut/actions/workflows/ci.yml)
@@ -18,6 +18,9 @@ A browser speed-typing game inspired by *Assetto Corsa: No Hesi* highway weaving
 - **Nitro and brakes.** Type the word in **ALL CAPS** and the car surges toward 180 mph for one second with exhaust flames, camera shake and a wider field of view. Press **Enter twice** within 350 ms with the dock empty to brake hard for a second, with the full-width LED strip lit.
 - **Traffic with two personalities.** Five black cruisers (Toyota Yaris, Honda Civic, Chevrolet Malibu, Nissan Rogue, Ford F-150) hold their lane at a steady speed: 85 to 95 mph in the far-left lane, 60 to 80 mph elsewhere. Three red mergers (BMW M3, Mercedes-Benz C63 AMG, Audi A5) change lanes: usually they flash an amber indicator for 1.5 to 2 seconds first, but 12% of the time they cut straight across without warning.
 - **Scoring that rewards risk.** +50 for a pass, +100 for a close pass in the next lane, **+500 for a clean cut**: dodging out from right behind a car and passing it. Every pass without contact raises the multiplier by 0.2×, up to 5×. A crash costs one of three lives and resets it.
+- **Keep moving.** Each pass refills a six-second combo timer, shown as a thin line under the multiplier. Stop passing and the multiplier drains one step a second.
+- **Slipstream.** Sit close behind a car in your lane and the draft meter under the speedometer fills, faster the closer you are. When it reads "nitro ready", your next word fires a free nitro, perfect for cutting out from behind that same car. Partial fills carry over between cars.
+- **Speed traps.** The roadside speed cameras carry a 150 mph sign. Blast past one at 150 or faster (cruising tops out at 140, so time a nitro) for a bonus of 200 points plus 10 for every mph over, times your multiplier, with a camera flash and a SPEED TRAP banner.
 - **Traffic without dead stretches.** Every lane is refilled on its own, so cars stay evenly spread across all five lanes: about eight in view on average and never an empty road.
 - **Gets harder as you go.** Your cruising speed climbs from 100 to 140 mph, traffic gets about 70% denser, and words grow from three letters to seven or more, with mixed casing (`DrIft`) that must be typed exactly.
 - **Cars you can recognise.** Every model has its own shaped body, built from its real side profile and plan taper: the 911's fastback and raised front wings, the Yaris's short hatch, the Civic's sloping fastback, the Malibu's long three-box sedan, the Rogue's tall SUV body with roof rails, the F-150's cab and open bed, and the sporty M3, C63 and A5. Each has glass where its windows are, mirrors, its own wheelbase and its own head- and taillight layout.
@@ -63,7 +66,7 @@ Typencut has no backend. The game runs entirely in your browser and makes no net
 [`TypingDock`](src/components/TypingDock.tsx) is the only place keystrokes turn into game commands. It keeps an invisible text input over the capsule (and refocuses it if focus wanders), and reads the target word straight from the engine at key time, so fast typists never race a stale word.
 
 - **Each letter** is checked as a prefix of the target, ignoring case, and counted for accuracy. Case is only judged when you submit.
-- **`,` or `.`** (or `<` and `>`) submits and steers one lane. **Enter** submits without steering and gives a short boost. An exact match counts; the same letters in ALL CAPS also fire nitro (with Enter, nitro without changing lane); anything else is a miss. Steering into a wall is ignored, but the word still counts.
+- **`,` or `.`** (or `<` and `>`) submits and steers one lane. **Enter** submits without steering and gives a short boost. An exact match counts; the same letters in ALL CAPS also fire nitro (with Enter, nitro without changing lane), and so does any correct word while the draft meter is full; anything else is a miss. Steering into a wall is ignored, but the word still counts.
 - **Enter twice** within 350 ms with the dock empty brakes. An Enter that submits a word never counts toward a brake.
 - **Accuracy** is correct keystrokes over all keystrokes, including the submitting key. There is no WPM: you wait for gaps in traffic, so typing speed says little about how well you drive.
 
@@ -77,18 +80,22 @@ Words come from 221 driving words in five length buckets (3, 4, 5, 6 and 7+ lett
 - **Lane changes** use a critically damped spring, which settles in about half a second without overshoot.
 - **Nitro** pulls speed toward 180 mph for one second. An **Enter boost** pulls it 12 mph above cruise for 0.8 seconds. **Braking** pulls it toward 40% of cruise speed for one second.
 - **Traffic** is spawned per lane, 200 m ahead (just past the fog). Each lane gets its next car once its last one has drifted a random 54 to 126 m behind that line, shrinking to 31 to 73 m at full difficulty. Spawning from one road-wide car count left empty stretches: far-left-lane cars drive almost as fast as you, so they stayed in view for a long time and used up the count, starving the other lanes. A test now fails if the view is ever left with fewer than three cars. Cars are removed 40 m behind or 460 m ahead. Every car follows the one in front: it matches its speed inside 25 m and brakes below it inside 6 m, so cars never drive through each other. Mergers reconsider every 2 to 6 seconds, only move into a clear lane, and never swerve into a player already alongside, since that crash would be unavoidable.
+- **Combo timer.** Every pass sets a 6-second timer. When it runs out the combo drops by one (multiplier −0.2×) and the timer restarts at one second, so a stall drains the multiplier step by step rather than all at once.
+- **Slipstream.** While a car is ahead in your lane with less than 16 m between bumpers, the draft meter fills at up to 3 per second, scaled by how close you are (0 at 16 m, full rate at touching distance). Away from one it fades by 0.25 per second. Once full it stays full until a word spends it.
+- **Speed traps.** Cameras stand every 360 m from the 35 m mark (`SPEED_CAMERA` in `config.ts`, shared by the sim and the scene). Crossing one at 150 mph or more scores (200 + 10 × mph over 150) × multiplier. Speed traps add score but don't count as passes.
 - **Crashes** use the cars' real footprints. A hit costs a life, halves your speed, cancels nitro, resets the combo, nudges you sideways and makes you untouchable for two seconds (the car blinks).
 - **Randomness** comes from a seeded generator (mulberry32) stored in the state, so the same seed and the same inputs replay the same run. That is tested, and it is what a ghost car would need.
 
 ## How scoring works
 
-| Pass | Rule | Points |
+| Event | Rule | Points |
 | --- | --- | --- |
 | Standard | Passing a car with more than 2 m of side gap | 50 |
 | Close pass | Passing with under 2 m of side gap, usually in the next lane | 100 |
 | Clean cut | Passing the car you steered out from behind, if its bumper was under 12 m ahead when you switched lanes | 500 |
+| Speed trap | Passing a roadside camera at 150 mph or more | 200 + 10 per mph over |
 
-Points are multiplied by your multiplier when scored. The multiplier is 1 + 0.2 × your current combo (passes since the last crash), capped at 5×. Cars you hit don't count as passes.
+Points are multiplied by your multiplier when scored. The multiplier is 1 + 0.2 × your current combo (passes since the last crash, drained by the combo timer), capped at 5×. Cars you hit don't count as passes.
 
 ## How the world is drawn
 
@@ -125,6 +132,8 @@ Points are multiplied by your multiplier when scored. The multiplier is 1 + 0.2 
 | Enter boost | A short rising whoosh |
 | Lane change | A short, narrow tyre screech |
 | Brake | A longer screech |
+| Draft meter full | A rising triangle-wave chirp |
+| Speed trap | A high-passed shutter click and a bright two-note chime |
 | Close pass or clean cut | A two-tone horn that drops in pitch as you pull away |
 | Crash | A falling low sine thud with a burst of low noise |
 
@@ -177,7 +186,7 @@ npm run dev        # http://localhost:3000
 | `npm run dev` | Development server with hot reload |
 | `npm run build` | Production build |
 | `npm start` | Serve the production build |
-| `npm test` | Simulation, input, word, leaderboard, settings and engine-sound tests (17, with `node --test`) |
+| `npm test` | Simulation, input, word, leaderboard, settings and engine-sound tests (20, with `node --test`) |
 | `npm run typecheck` | Type check with `tsc --noEmit` |
 | `node scripts/shot.mjs <url> <outDir> [--night]` | Plays a run in headless Chrome (eight words including two nitros and one Enter submit, a brake, then idles until game over), saves six screenshots and prints any console errors. Set `CHROME` if Chrome isn't in its default Windows location |
 
@@ -207,7 +216,7 @@ CI runs the type check, tests and production build on every push and pull reques
 - [x] **M6** Polish and release: handling tuning, CI, screenshots, documentation (v1.0.0)
 - [x] **v1.1** Enter to hold your lane with a boost, recognisable lofted car bodies, per-car taillight glows, even traffic in every lane, accuracy instead of WPM, one typeface, left menu with pause
 - [x] **M7** Settings and feel: volume and mute, graphics quality, reduce motion, an engine note that rises with speed, on-screen phone controls (v1.2.0)
-- [ ] **M8** Gameplay: slipstream meter, speed-trap bonuses at the roadside cameras, a combo timer
+- [x] **M8** Gameplay: slipstream meter, speed-trap bonuses at the roadside cameras, a combo timer (v1.3.0)
 - [ ] **M9** Modes and content: Zen, Rush hour and Time attack modes, word packs, a daily challenge
 - [ ] **M10** Progression: achievements, unlockable paints and cars, a shareable result card
 - [ ] **M11** Weather: rain and fog

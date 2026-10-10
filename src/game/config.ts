@@ -19,6 +19,10 @@ export const BOOST_MPH = 12;
 export const SURPRISE_CUT_CHANCE = 0.12;
 export const CLEAN_CUT_GAP = 12; // m between bumpers when the player switches out
 export const MAX_MULTIPLIER = 5;
+export const COMBO_TIME = 6; // s a pass keeps the multiplier alive; after that it drains one step a second
+export const DRAFT_RANGE = 16; // m behind a car (bumper to bumper) where the slipstream meter fills
+/** Roadside speed cameras: one every `period` m from `offset`; passing one at `mph`+ is a speed trap. */
+export const SPEED_CAMERA = { period: 360, offset: 35, mph: 150 } as const;
 export const MULTIPLIER_STEP = 0.2;
 export const POINTS = { standard: 50, dangerous: 100, cleanCut: 500 } as const;
 

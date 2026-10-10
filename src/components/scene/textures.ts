@@ -52,3 +52,22 @@ export const softGlowTexture = () =>
     g.fillStyle = grad;
     g.fillRect(0, 0, 128, 128);
   });
+
+/** Round speed-limit sign (red ring, black number) for the speed cameras. */
+export const limitSignTexture = (mph: number) =>
+  canvasTexture(`limit:${mph}`, 256, 256, (g) => {
+    g.fillStyle = "#f4f2ea";
+    g.beginPath();
+    g.arc(128, 128, 124, 0, Math.PI * 2);
+    g.fill();
+    g.strokeStyle = "#d22b2b";
+    g.lineWidth = 30;
+    g.beginPath();
+    g.arc(128, 128, 104, 0, Math.PI * 2);
+    g.stroke();
+    g.fillStyle = "#1c1c1c";
+    g.textAlign = "center";
+    g.textBaseline = "middle";
+    g.font = "bold 92px system-ui, sans-serif";
+    g.fillText(String(mph), 128, 134);
+  });

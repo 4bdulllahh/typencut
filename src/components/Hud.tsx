@@ -1,19 +1,20 @@
 "use client";
 
 import { useEffect, useRef, useState } from "react";
-import { MAX_MULTIPLIER, NITRO_MPH, START_LIVES } from "@/game/config";
+import { COMBO_TIME, MAX_MULTIPLIER, NITRO_MPH, START_LIVES } from "@/game/config";
 import type { GameEngine } from "@/game/engine";
 import type { Board } from "@/game/leaderboard";
 import type { Settings } from "@/game/settings";
 import type { Snapshot } from "@/game/sim";
+import type { GameEvent } from "@/game/types";
 
-const Bar = ({ pct, className }: { pct: number; className: string }) => (
-  <div className="mt-1 h-1.5 overflow-hidden rounded-full bg-white/20">
+const Bar = ({ pct, className, thin = false }: { pct: number; className: string; thin?: boolean }) => (
+  <div className={`overflow-hidden rounded-full bg-white/20 ${thin ? "mt-0.5 h-0.5" : "mt-1 h-1.5"}`}>
     <div className={`h-full rounded-full transition-[width] duration-150 ${className}`} style={{ width: `${Math.max(0, Math.min(1, pct)) * 100}%` }} />
   </div>
 );
 
-/** Digital dash: speedometer, hearts + combo multiplier, score + live accuracy. */
+/** Digital dash: speedometer + slipstream meter, hearts + multiplier with its combo timer, score + live accuracy. */
 export function Dashboard({ snap }: { snap: Snapshot }) {
   const mode = snap.nitro ? "nitro" : snap.brake ? "brake" : "";
   return (
@@ -22,6 +23,10 @@ export function Dashboard({ snap }: { snap: Snapshot }) {
         <div className={`text-3xl font-extrabold leading-none ${snap.nitro ? "text-orange-300" : snap.brake ? "text-rose-300" : ""}`}>{Math.round(snap.speedMph)}</div>
         <div className="text-[10px] font-semibold uppercase tracking-widest opacity-70">mph {mode && `· ${mode}`}</div>
         <Bar pct={snap.speedMph / NITRO_MPH} className={snap.nitro ? "bg-orange-400" : snap.brake ? "bg-rose-400" : "bg-white"} />
+        <div className={`mt-1 text-[9px] font-semibold uppercase tracking-widest ${snap.draft >= 1 ? "text-amber-300" : "opacity-70"}`}>
+          {snap.draft >= 1 ? "nitro ready" : "draft"}
+        </div>
+        <Bar pct={snap.draft} className={snap.draft >= 1 ? "bg-amber-300" : "bg-sky-300"} />
       </div>
       <div>
         <div className="flex items-baseline justify-between">
@@ -33,6 +38,7 @@ export function Dashboard({ snap }: { snap: Snapshot }) {
           <span className="text-lg font-extrabold">×{snap.multiplier.toFixed(1)}</span>
         </div>
         <Bar pct={(snap.multiplier - 1) / (MAX_MULTIPLIER - 1)} className="bg-amber-300" />
+        <Bar thin pct={snap.comboT / COMBO_TIME} className={snap.comboT < 2 ? "bg-rose-300" : "bg-white/80"} />
         <div className="mt-0.5 text-[10px] font-semibold uppercase tracking-widest opacity-70">combo {snap.combo}</div>
       </div>
       <div className="text-right">
@@ -45,16 +51,23 @@ export function Dashboard({ snap }: { snap: Snapshot }) {
 
 interface Pop { id: number; text: string; sub: string; big: boolean }
 
-/** Floating "+points" callouts; a clean cut gets the big CLEAN CUT banner. */
+const popFor = (e: GameEvent): Omit<Pop, "id"> | null =>
+  e.type === "overtake" ? { text: `+${e.points}`, sub: e.grade === "cleanCut" ? "CLEAN CUT" : e.grade === "dangerous" ? "close pass" : "", big: e.grade === "cleanCut" }
+  : e.type === "speedTrap" ? { text: `+${e.points} · ${e.mph} mph`, sub: "SPEED TRAP", big: true }
+  : e.type === "draftReady" ? { text: "DRAFT READY", sub: "next word = nitro", big: false }
+  : e.type === "slipstream" ? { text: "SLIPSTREAM", sub: "", big: false }
+  : e.type === "collision" && e.lives > 0 ? { text: "CRASH", sub: `${e.lives} ♥ left`, big: false }
+  : null;
+
+/** Floating callouts; clean cuts and speed traps get a big banner, and a speed trap flashes the screen like a camera. */
 export function Popups({ engine }: { engine: GameEngine }) {
   const [items, setItems] = useState<Pop[]>([]);
+  const [flash, setFlash] = useState(0);
   useEffect(() => {
     let n = 0;
     const off = engine.on((e) => {
-      const pop =
-        e.type === "overtake" ? { text: `+${e.points}`, sub: e.grade === "cleanCut" ? "CLEAN CUT" : e.grade === "dangerous" ? "close pass" : "", big: e.grade === "cleanCut" }
-        : e.type === "collision" && e.lives > 0 ? { text: "CRASH", sub: `${e.lives} ♥ left`, big: false }
-        : null;
+      if (e.type === "speedTrap") setFlash((f) => f + 1);
+      const pop = popFor(e);
       if (!pop) return;
       const id = ++n;
       setItems((list) => [...list.slice(-3), { id, ...pop }]);
@@ -63,14 +76,18 @@ export function Popups({ engine }: { engine: GameEngine }) {
     return off;
   }, [engine]);
   return (
-    <div className="pointer-events-none absolute inset-x-0 top-[30%] flex flex-col items-center gap-1" aria-live="polite">
-      {items.map((p) => (
-        <div key={p.id} className={`pop text-center font-black italic text-white drop-shadow-[0_2px_6px_rgba(0,0,0,0.5)] ${p.big ? "text-amber-300" : ""}`}>
-          {p.sub && <div className={p.big ? "text-5xl tracking-tight" : "text-sm uppercase tracking-widest"}>{p.sub}</div>}
-          <div className={p.big ? "text-3xl" : "text-2xl"}>{p.text}</div>
-        </div>
-      ))}
-    </div>
+    <>
+      {/* Remounting by key replays the flash; it is outside the dock, so no input loses focus. */}
+      {flash > 0 && <div key={flash} className="flash pointer-events-none absolute inset-0 bg-white" />}
+      <div className="pointer-events-none absolute inset-x-0 top-[30%] flex flex-col items-center gap-1" aria-live="polite">
+        {items.map((p) => (
+          <div key={p.id} className={`pop text-center font-black italic text-white drop-shadow-[0_2px_6px_rgba(0,0,0,0.5)] ${p.big ? "text-amber-300" : ""}`}>
+            {p.sub && <div className={p.big ? "text-5xl tracking-tight" : "text-sm uppercase tracking-widest"}>{p.sub}</div>}
+            <div className={p.big ? "text-3xl" : "text-2xl"}>{p.text}</div>
+          </div>
+        ))}
+      </div>
+    </>
   );
 }
 
@@ -82,6 +99,8 @@ function Controls({ cut = "text-amber-300" }: { cut?: string }) {
     <ul className="space-y-1 text-sm">
       <li>Type the word, then <Key>,</Key> to go left or <Key>.</Key> to go right</li>
       <li><Key>Enter</Key> keeps your lane with a small speed boost</li>
+      <li>Sit close behind a car to fill the <b>draft</b> meter: your next word is a free nitro</li>
+      <li>Pass a speed camera at <b>150+ mph</b> for a speed-trap bonus, and keep passing or your multiplier drains</li>
       <li><b>ALL CAPS</b> fires nitro · <Key>Enter</Key> twice on an empty box brakes</li>
       <li>Cut out from right behind a car for a <b className={cut}>CLEAN CUT</b></li>
     </ul>
