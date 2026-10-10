@@ -34,6 +34,8 @@ export const PLAYER_DIMS = { length: 4.57, width: 1.9 };
 /** Real-world footprints (m), so the hitboxes match the meshes. */
 export const MODELS: Record<CarModel, { length: number; width: number; kind: NpcKind | "player" }> = {
   gt3rs: { length: 4.57, width: 1.9, kind: "player" },
+  turbos: { length: 4.54, width: 1.9, kind: "player" }, // unlockable looks; every player car uses PLAYER_DIMS for its hitbox
+  m4: { length: 4.79, width: 1.89, kind: "player" },
   yaris: { length: 3.95, width: 1.7, kind: "cruiser" },
   civic: { length: 4.67, width: 1.8, kind: "cruiser" },
   malibu: { length: 4.92, width: 1.85, kind: "cruiser" },

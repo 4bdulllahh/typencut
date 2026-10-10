@@ -4,10 +4,11 @@ import { useCallback, useEffect, useMemo, useRef, useState } from "react";
 import { attachAudio } from "@/game/audio";
 import { GameEngine } from "@/game/engine";
 import { boardKey, loadBoard, saveRun } from "@/game/leaderboard";
+import { CARS, PAINTS, earn, fresh, loadProgress, saveProgress, unlockedBetween } from "@/game/progress";
 import { loadSettings, saveSettings } from "@/game/settings";
 import { seedFromDate, snapshot } from "@/game/sim";
 import { packWords } from "@/game/words";
-import { Dashboard, GameOver, Leaderboard, Menu, Popups, ReadyOverlay } from "./Hud";
+import { Dashboard, GameOver, Leaderboard, Menu, Popups, ReadyOverlay, type RunNews } from "./Hud";
 import { Scene } from "./scene/Scene";
 import { TypingDock } from "./TypingDock";
 
@@ -51,6 +52,13 @@ export function Game() {
   const keyRef = useRef(key);
   const [board, setBoard] = useState(() => loadBoard(key));
   const words = useMemo(() => packWords(settings.pack, settings.customWords), [settings.pack, settings.customWords]);
+  const progressRef = useRef(loadProgress());
+  const [progress, setProgress] = useState(progressRef.current);
+  const [news, setNews] = useState<RunNews>({ achievements: [], unlocks: [] });
+  const [toast, setToast] = useState<{ id: number; text: string }>();
+  // A locked choice (only possible by editing storage) falls back to the starting car and paint.
+  const car = CARS.find((c) => c.id === settings.car && c.cost <= progress.total)?.id ?? "gt3rs";
+  const paint = (PAINTS.find((p) => p.id === settings.paint && p.cost <= progress.total) ?? PAINTS[0]).color;
   const audio = useRef<ReturnType<typeof attachAudio>>(null);
   const vibrate = useRef(settings.touch);
 
@@ -93,14 +101,37 @@ export function Game() {
     () =>
       engine.on((e) => {
         if (e.type === "collision" && vibrate.current) navigator.vibrate?.(e.lives > 0 ? 120 : [120, 60, 240]);
-        if (e.type !== "gameOver") return;
-        const s = snapshot(engine.state);
-        const date = Date.now();
-        setBoard(saveRun({ score: s.score, accuracy: s.accuracy, maxSpeedMph: s.maxSpeedMph, cleanCuts: s.cleanCuts, date }, keyRef.current));
-        setRunDate(date);
+        if (e.type === "restart") setNews({ achievements: [], unlocks: [] });
+        let p = progressRef.current;
+        const got = fresh(p, engine.state);
+        if (got.length) {
+          p = earn(p, got, Date.now());
+          const names = got.map((a) => a.name);
+          setToast({ id: Date.now(), text: names.join(" · ") });
+          setNews((n) => ({ ...n, achievements: [...n.achievements, ...names] }));
+        }
+        if (e.type === "gameOver") {
+          const s = snapshot(engine.state);
+          const date = Date.now();
+          setBoard(saveRun({ score: s.score, accuracy: s.accuracy, maxSpeedMph: s.maxSpeedMph, cleanCuts: s.cleanCuts, date }, keyRef.current));
+          setRunDate(date);
+          const unlocks = unlockedBetween(p.total, p.total + s.score);
+          setNews((n) => ({ ...n, unlocks }));
+          p = { ...p, total: p.total + s.score };
+        }
+        if (p === progressRef.current) return;
+        progressRef.current = p;
+        saveProgress(p);
+        setProgress(p);
       }),
     [engine],
   );
+
+  useEffect(() => {
+    if (!toast) return;
+    const id = setTimeout(() => setToast(undefined), 2500);
+    return () => clearTimeout(id);
+  }, [toast]);
 
   useEffect(() => {
     const refresh = () => setSnap(snapshot(engine.state));
@@ -123,7 +154,7 @@ export function Game() {
     <main className="flex h-dvh justify-center xl:gap-6">
       <div className="hidden w-72 shrink-0 xl:block" aria-hidden />
       <div className="relative aspect-[9/16] h-full max-w-full overflow-hidden">
-        <Scene engine={engine} night={night} quality={settings.quality} reduceMotion={settings.reduceMotion} />
+        <Scene engine={engine} night={night} quality={settings.quality} reduceMotion={settings.reduceMotion} car={car} paint={paint} />
         <EdgeFx speedMph={snap.speedMph} nitro={snap.nitro} still={settings.reduceMotion} />
         <div className="pointer-events-none absolute inset-x-3 top-3 flex flex-col gap-2">
           <Dashboard snap={snap} />
@@ -135,13 +166,18 @@ export function Game() {
               {night ? "☾ Night" : "☀ Day"}
             </button>
           </div>
+          {toast && (
+            <div key={toast.id} role="status" className="self-center rounded-full bg-amber-300 px-3 py-1 text-xs font-bold text-stone-900 shadow-lg">
+              ★ Achievement · {toast.text}
+            </div>
+          )}
         </div>
         <Popups engine={engine} />
         {snap.status === "ready" && <ReadyOverlay best={board.best.score} mode={settings.mode} pack={settings.pack} day={day} />}
         <div className={`absolute inset-x-0 flex justify-center px-3 ${settings.touch ? "bottom-2" : "bottom-6"}`}>
           <TypingDock engine={engine} word={snap.word} nextWord={snap.nextWord} disabled={snap.status === "over" || menu} touch={settings.touch} />
         </div>
-        {snap.status === "over" && <GameOver snap={snap} board={board} runDate={runDate} day={day} onRestart={() => engine.restart()} />}
+        {snap.status === "over" && <GameOver snap={snap} board={board} runDate={runDate} day={day} news={news} onRestart={() => engine.restart()} />}
       </div>
       <aside className="hidden w-72 shrink-0 overflow-y-auto py-6 xl:block">
         <Leaderboard board={board} highlight={runDate} mode={settings.mode} day={day} />
@@ -151,6 +187,7 @@ export function Game() {
         onClose={closeMenu}
         settings={settings}
         onSettings={setSettings}
+        progress={progress}
         onEnd={snap.status === "running" ? () => (engine.send({ type: "end" }), setMenu(false)) : undefined}
       />
     </main>

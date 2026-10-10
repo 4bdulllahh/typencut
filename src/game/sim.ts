@@ -48,7 +48,7 @@ export function createState(seed = Date.now(), { mode = "classic", words = WORDS
     npcs: [],
     stats: {
       score: 0, combo: 0, multiplier: 1, comboT: 0, passes: 0, cleanCuts: 0, maxSpeed: 0,
-      keys: 0, correctKeys: 0, words: 0, misses: 0, elapsed: 0,
+      keys: 0, correctKeys: 0, words: 0, misses: 0, elapsed: 0, maxCombo: 0, traps: 0, slipstreams: 0, cleanFrom: 0, bestClean: 0,
     },
     word: "",
     nextWord: "",
@@ -116,6 +116,7 @@ export function applyCommand(state: GameState, cmd: Command): GameEvent[] {
     }
     if (free) {
       pl.draft = 0;
+      st.slipstreams++;
       events.push({ type: "slipstream" });
     }
     if (nitro) {
@@ -158,10 +159,12 @@ export function step(state: GameState, dt: number): GameEvent[] {
   const camera = (s: number) => Math.floor((s - SPEED_CAMERA.offset) / SPEED_CAMERA.period);
   const before = camera(pl.s);
   pl.s += pl.speed * dt;
+  st.bestClean = Math.max(st.bestClean, pl.s - st.cleanFrom);
   if (camera(pl.s) > before && toMph(pl.speed) >= SPEED_CAMERA.mph) {
     const mph = toMph(pl.speed);
     const points = Math.round((200 + 10 * (mph - SPEED_CAMERA.mph)) * st.multiplier);
     st.score += points;
+    st.traps++;
     events.push({ type: "speedTrap", mph: Math.round(mph), points });
   }
 
@@ -304,6 +307,7 @@ function collide(state: GameState, n: Npc, events: GameEvent[]) {
   st.combo = 0;
   st.comboT = 0;
   st.multiplier = 1;
+  st.cleanFrom = pl.s;
   events.push({ type: "collision", npcId: n.id, lives: pl.lives });
   if (pl.lives <= 0) {
     state.status = "over";
@@ -324,6 +328,7 @@ function scorePass(state: GameState, n: Npc, events: GameEvent[]) {
   st.score += points;
   st.passes++;
   st.combo++;
+  st.maxCombo = Math.max(st.maxCombo, st.combo);
   st.comboT = COMBO_TIME;
   st.multiplier = multiplier(st.combo);
   events.push({ type: "overtake", grade, points, npcId: n.id });

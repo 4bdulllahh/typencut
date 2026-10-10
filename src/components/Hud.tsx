@@ -4,10 +4,12 @@ import { useEffect, useRef, useState } from "react";
 import { COMBO_TIME, MAX_MULTIPLIER, NITRO_MPH, START_LIVES } from "@/game/config";
 import type { GameEngine } from "@/game/engine";
 import type { Board } from "@/game/leaderboard";
+import { ACHIEVEMENTS, CARS, PAINTS, type Progress } from "@/game/progress";
 import type { Settings } from "@/game/settings";
 import type { Snapshot } from "@/game/sim";
 import type { GameEvent, Mode } from "@/game/types";
 import { MIN_CUSTOM_WORDS, PACK_IDS, parseWordList, type PackId } from "@/game/words";
+import { shareRun } from "./shareCard";
 
 export const MODE_INFO: Record<Mode, [name: string, blurb: string]> = {
   classic: ["Classic", "Three lives, endless road"],
@@ -20,7 +22,7 @@ const PACK_LABELS: Record<PackId, string> = {
   driving: "Driving", common: "Common English", programming: "Programming", spanish: "Spanish", french: "French", german: "German", custom: "Your own list",
 };
 const dayFmt = new Intl.DateTimeFormat(undefined, { month: "short", day: "numeric", timeZone: "UTC" });
-const dayLabel = (day: string) => dayFmt.format(new Date(`${day}T00:00:00Z`));
+export const dayLabel = (day: string) => dayFmt.format(new Date(`${day}T00:00:00Z`));
 const clock = (t: number) => `${Math.floor(Math.ceil(t) / 60)}:${String(Math.ceil(t) % 60).padStart(2, "0")}`;
 
 const Bar = ({ pct, className, thin = false }: { pct: number; className: string; thin?: boolean }) => (
@@ -145,7 +147,18 @@ export function ReadyOverlay({ best, mode, pack, day }: { best: number; mode: Mo
   );
 }
 
-export function GameOver({ snap, board, runDate, day, onRestart }: { snap: Snapshot; board: Board; runDate?: number; day: string; onRestart: () => void }) {
+/** What a run earned: achievement names and the paints/cars its score unlocked. */
+export interface RunNews { achievements: string[]; unlocks: string[] }
+
+export function GameOver({ snap, board, runDate, day, news, onRestart }: {
+  snap: Snapshot;
+  board: Board;
+  runDate?: number;
+  day: string;
+  news: RunNews;
+  onRestart: () => void;
+}) {
+  const title = snap.mode === "daily" ? `Daily challenge · ${dayLabel(day)}` : MODE_INFO[snap.mode][0];
   const newBest = snap.score > 0 && snap.score >= board.best.score;
   const stats: [string, string][] = [
     ["Accuracy", `${Math.round(snap.accuracy)}%`],
@@ -169,12 +182,27 @@ export function GameOver({ snap, board, runDate, day, onRestart }: { snap: Snaps
             </div>
           ))}
         </dl>
+        {news.achievements.length + news.unlocks.length > 0 && (
+          <ul className="mt-3 space-y-1 text-left text-sm">
+            {news.achievements.map((a) => (
+              <li key={a}><span className="text-amber-500">★</span> Achievement: <b>{a}</b></li>
+            ))}
+            {news.unlocks.map((u) => (
+              <li key={u}><span className="text-amber-500">◆</span> Unlocked: <b>{u}</b> (pick it in the menu)</li>
+            ))}
+          </ul>
+        )}
         <div className="mt-4 text-left xl:hidden">
           <Leaderboard board={board} highlight={runDate} mode={snap.mode} day={day} compact />
         </div>
-        <button autoFocus onClick={onRestart} className="mt-5 w-full rounded-full bg-stone-900 py-3 font-semibold text-white hover:bg-stone-700 dark:bg-white dark:text-slate-900 dark:hover:bg-slate-200">
-          Play again
-        </button>
+        <div className="mt-5 flex gap-2">
+          <button onClick={() => shareRun(snap, title)} className="rounded-full bg-black/5 px-5 py-3 font-semibold hover:bg-black/10 dark:bg-white/10 dark:hover:bg-white/15">
+            Share
+          </button>
+          <button autoFocus onClick={onRestart} className="flex-1 rounded-full bg-stone-900 py-3 font-semibold text-white hover:bg-stone-700 dark:bg-white dark:text-slate-900 dark:hover:bg-slate-200">
+            Play again
+          </button>
+        </div>
       </div>
     </div>
   );
@@ -230,11 +258,12 @@ export function Leaderboard({ board, highlight, mode, day, compact = false }: { 
 type Toggle = "muted" | "engine" | "reduceMotion" | "touch";
 
 /** Slide-in panel on the left with the settings. The game pauses while it is open (Game.tsx); Escape or the backdrop closes it. */
-export function Menu({ open, onClose, settings, onSettings, onEnd }: {
+export function Menu({ open, onClose, settings, onSettings, progress, onEnd }: {
   open: boolean;
   onClose: () => void;
   settings: Settings;
   onSettings: (s: Settings) => void;
+  progress: Progress;
   onEnd?: () => void; // only while a run is going
 }) {
   const [draft, setDraft] = useState(settings.customWords);
@@ -342,6 +371,60 @@ export function Menu({ open, onClose, settings, onSettings, onEnd }: {
             </div>
           )}
           <p className="mt-2 text-xs opacity-60">Changing the mode or words starts a new run.</p>
+        </section>
+        <section className="text-sm">
+          <h2 className="mb-1 flex justify-between text-xs font-semibold uppercase tracking-widest opacity-60">
+            Garage <span className="normal-case tracking-normal tabular-nums">{progress.total.toLocaleString()} lifetime pts</span>
+          </h2>
+          {CARS.map((c) => (
+            <label key={c.id} className={`flex items-center gap-2 py-1 ${progress.total < c.cost ? "opacity-50" : "cursor-pointer"}`}>
+              <input
+                type="radio" name="car" checked={settings.car === c.id} disabled={progress.total < c.cost}
+                onChange={() => set("car", c.id)} className="accent-amber-600"
+              />
+              <span className="flex-1 font-semibold">{c.name}</span>
+              {progress.total < c.cost && <span className="text-xs tabular-nums">🔒 {c.cost.toLocaleString()}</span>}
+            </label>
+          ))}
+          <div className="mt-2 flex flex-wrap gap-2" role="group" aria-label="Paint">
+            {PAINTS.map((p) => {
+              const locked = progress.total < p.cost;
+              return (
+                <button
+                  key={p.id}
+                  onClick={() => set("paint", p.id)}
+                  disabled={locked}
+                  aria-pressed={settings.paint === p.id}
+                  aria-label={locked ? `${p.name}, unlocks at ${p.cost.toLocaleString()} lifetime points` : p.name}
+                  title={locked ? `${p.name} · ${p.cost.toLocaleString()} pts` : p.name}
+                  className="grid h-8 w-8 place-items-center rounded-full border-2 border-black/15 text-xs aria-pressed:ring-2 aria-pressed:ring-amber-500 aria-pressed:ring-offset-2 disabled:opacity-40 dark:border-white/20 dark:ring-offset-[#0b1022]"
+                  style={{ background: p.color }}
+                >
+                  {locked && "🔒"}
+                </button>
+              );
+            })}
+          </div>
+          <p className="mt-2 text-xs opacity-60">Every finished run adds its score to your lifetime points.</p>
+        </section>
+        <section className="text-sm">
+          <h2 className="mb-1 flex justify-between text-xs font-semibold uppercase tracking-widest opacity-60">
+            Achievements <span className="tabular-nums">{Object.keys(progress.earned).length}/{ACHIEVEMENTS.length}</span>
+          </h2>
+          <ul className="space-y-1">
+            {ACHIEVEMENTS.map((a) => {
+              const got = a.id in progress.earned;
+              return (
+                <li key={a.id} className={`flex gap-2 ${got ? "" : "opacity-50"}`}>
+                  <span aria-hidden className={got ? "text-amber-600 dark:text-amber-300" : ""}>{got ? "★" : "☆"}</span>
+                  <span>
+                    <span className="block font-semibold">{a.name}<span className="sr-only">{got ? " (earned)" : " (not yet)"}</span></span>
+                    <span className="block text-xs opacity-70">{a.desc}</span>
+                  </span>
+                </li>
+              );
+            })}
+          </ul>
         </section>
         <section className="text-sm">
           <h2 className="mb-1 text-xs font-semibold uppercase tracking-widest opacity-60">Settings</h2>

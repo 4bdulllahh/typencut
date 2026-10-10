@@ -295,3 +295,20 @@ test("the daily seed is stable for a date and differs between dates", () => {
   assert.notEqual(seedFromDate("2026-10-10"), seedFromDate("2026-10-11"));
   assert.deepEqual(snapshot(createState(seedFromDate("2026-10-10"))).word, snapshot(createState(seedFromDate("2026-10-10"))).word);
 });
+
+test("run counters: best combo and the longest crash-free stretch", () => {
+  const s = running();
+  put(s, 0, 30);
+  run(s, 4);
+  assert.equal(s.stats.maxCombo, 1);
+  assert.ok(Math.abs(s.stats.bestClean - s.player.s) < 1e-9);
+  put(s, s.player.lane, 30, 30);
+  assert.ok(run(s, 3).some((e) => e.type === "collision"));
+  const crashAt = s.stats.cleanFrom;
+  assert.ok(crashAt > 0);
+  const before = s.stats.bestClean;
+  s.npcs = [];
+  run(s, 1);
+  assert.equal(s.stats.bestClean, before); // a short stretch after the crash does not beat the one before it
+  assert.equal(s.stats.maxCombo, 1); // the crash reset the combo, not the best
+});

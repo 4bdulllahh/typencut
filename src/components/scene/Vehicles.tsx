@@ -7,7 +7,7 @@ import {
   MeshStandardMaterial, Object3D, PlaneGeometry, Vector3, type Group, type Material, type Mesh,
 } from "three";
 import { MODELS, laneX } from "@/game/config";
-import type { CarModel, Npc } from "@/game/types";
+import type { CarModel, Npc, PlayerModel } from "@/game/types";
 import { useEngine, useNight } from "./context";
 import { glowTexture, softGlowTexture } from "./textures";
 
@@ -15,7 +15,6 @@ const flat = (color: string, roughness = 0.5) => new MeshStandardMaterial({ colo
 const glow = (color: string, opacity: number, soft = false) =>
   new MeshBasicMaterial({ map: soft ? softGlowTexture() : glowTexture(), color, transparent: true, opacity, blending: AdditiveBlending, depthWrite: false });
 const M = {
-  white: flat("#f4f3ee", 0.4),
   black: flat("#1b1d22", 0.35),
   red: flat("#c8323a", 0.35),
   carbon: flat("#2a2c31", 0.85),
@@ -72,6 +71,16 @@ const STYLE: Record<CarModel, Style> = {
     stations: [[0, 0.8, 0.48], [0.04, 0.92, 0.62, undefined, 0.06], [0.14, 0.97, 0.7, undefined, 0.11], [0.3, 0.95, 0.76, undefined, 0.08], [0.36, 0.94, 0.79, 0.81], [0.52, 0.93, 0.83, 1.27], [0.63, 0.97, 0.86, 1.28], [0.74, 1, 0.88, 1.12], [0.86, 1, 0.88, 0.92], [0.95, 0.99, 0.86], [1, 0.92, 0.7]],
     ride: 0.12, gb: 0.72, gt: 0.56, wheel: 0.35, axles: [0.19, 0.8], head: [0.7, 0.3], tail: [0, 1.74, 0.07],
     hood: [0.04, 0.36], roofAccent: true,
+  },
+  // 992 Turbo S: the same 911 shape with smoother wings, wider hips and no fixed wing
+  turbos: {
+    stations: [[0, 0.8, 0.48], [0.04, 0.92, 0.62, undefined, 0.04], [0.14, 0.97, 0.7, undefined, 0.08], [0.3, 0.95, 0.76, undefined, 0.05], [0.36, 0.94, 0.79, 0.81], [0.52, 0.93, 0.83, 1.27], [0.63, 0.98, 0.86, 1.28], [0.74, 1, 0.89, 1.12], [0.86, 1, 0.9, 0.94], [0.95, 0.99, 0.88], [1, 0.92, 0.72]],
+    ride: 0.12, gb: 0.72, gt: 0.56, wheel: 0.35, axles: [0.19, 0.8], head: [0.7, 0.3], tail: [0, 1.74, 0.07],
+  },
+  // G82 M4 coupe: long hood, carbon roof, short fastback deck
+  m4: {
+    stations: [[0, 0.82, 0.52], [0.04, 0.94, 0.68], [0.15, 0.99, 0.78], [0.33, 1, 0.86, undefined, 0.03], [0.36, 1, 0.88, 0.9], [0.5, 0.99, 0.9, 1.38], [0.67, 0.99, 0.92, 1.36], [0.83, 0.99, 0.95, 0.99], [0.94, 0.98, 0.95], [1, 0.9, 0.78]],
+    ride: 0.12, gb: 0.84, gt: 0.68, wheel: 0.35, axles: [0.17, 0.8], head: [0.7, 0.42], tail: [0.76, 0.4, 0.12], roofAccent: true,
   },
   yaris: {
     stations: [[0, 0.84, 0.55], [0.04, 0.94, 0.72], [0.15, 0.98, 0.84], [0.27, 0.99, 0.9], [0.3, 1, 0.92, 0.94], [0.47, 1, 0.94, 1.48], [0.85, 0.99, 0.96, 1.46], [0.96, 0.97, 0.96, 1.26], [1, 0.92, 0.82, 0.86]],
@@ -261,7 +270,11 @@ function setTrails(meshes: (Mesh | null)[], model: CarModel, speed: number) {
   }
 }
 
-export function PlayerCar() {
+/** Tailpipe x offsets and height: GT3 RS twin centre pipes, Turbo S twin outer pipes, M4 quad pipes. */
+const EXHAUSTS: Record<PlayerModel, number[]> = { gt3rs: [-0.1, 0.1], turbos: [-0.62, 0.62], m4: [-0.68, -0.52, 0.52, 0.68] };
+const EXHAUST_Y: Record<PlayerModel, number> = { gt3rs: 0.4, turbos: 0.3, m4: 0.3 };
+
+export function PlayerCar({ model, color }: { model: PlayerModel; color: string }) {
   const engine = useEngine();
   const night = useNight();
   const root = useRef<Group>(null);
@@ -271,6 +284,7 @@ export function PlayerCar() {
   const trails = useRef<(Mesh | null)[]>([]);
   const led = useMemo(() => new MeshBasicMaterial(), []);
   const target = useMemo(() => new Object3D(), []);
+  const paint = useMemo(() => flat(color, 0.35), [color]);
   useFrame(() => {
     const p = engine.state.player;
     if (!root.current || !scuffs.current || !dents.current || !flames.current) return;
@@ -282,35 +296,56 @@ export function PlayerCar() {
     flames.current.visible = p.nitroT > 0;
     flames.current.scale.z = 0.7 + Math.random() * 0.6;
     led.color.set(p.brakeT > 0 ? "#ff1428" : night ? "#e0283a" : "#7a1018");
-    setTrails(trails.current, "gt3rs", p.speed);
+    setTrails(trails.current, model, p.speed);
   });
-  const { length: L, width: W } = MODELS.gt3rs;
-  const wing = at("gt3rs", 0.93).y;
-  const fender = at("gt3rs", STYLE.gt3rs.axles[0]);
+  const { length: L, width: W } = MODELS[model];
+  const deck = at(model, 0.93).y;
+  const fender = at(model, STYLE[model].axles[0]);
+  const pipes = EXHAUSTS[model];
+  const pipeY = EXHAUST_Y[model];
   return (
     <group ref={root}>
-      <Body model="gt3rs" paint={M.white} accent={M.carbon} tailMat={led} />
-      {/* louvers on top of the front wings */}
-      {[-1, 1].flatMap((sx) =>
-        [0, 1, 2, 3].map((i) => (
-          <Box key={`${sx}${i}`} m={M.trim} s={[0.28, 0.02, 0.06]} p={[sx * fender.x * 0.86, fender.y + 0.11, fender.z + (i - 1.5) * 0.13]} shadow={false} />
-        )),
+      <Body model={model} paint={paint} accent={model === "turbos" ? paint : M.carbon} tailMat={led} />
+      {model === "gt3rs" && (
+        <>
+          {/* louvers on top of the front wings */}
+          {[-1, 1].flatMap((sx) =>
+            [0, 1, 2, 3].map((i) => (
+              <Box key={`${sx}${i}`} m={M.trim} s={[0.28, 0.02, 0.06]} p={[sx * fender.x * 0.86, fender.y + 0.11, fender.z + (i - 1.5) * 0.13]} shadow={false} />
+            )),
+          )}
+          {/* swan-neck wing: posts, plank, end plates */}
+          {[-1, 1].map((sx) => (
+            <group key={sx}>
+              <Box m={M.carbon} s={[0.05, 0.5, 0.14]} p={[sx * 0.34, deck + 0.25, L / 2 - 0.32]} />
+              <Box m={M.carbon} s={[0.04, 0.22, 0.52]} p={[sx * (W / 2 - 0.04), deck + 0.46, L / 2 - 0.24]} />
+            </group>
+          ))}
+          <Box m={M.carbon} s={[W - 0.06, 0.05, 0.46]} p={[0, deck + 0.52, L / 2 - 0.24]} />
+        </>
       )}
-      {/* swan-neck wing: posts, plank, end plates */}
-      {[-1, 1].map((sx) => (
-        <group key={sx}>
-          <Box m={M.carbon} s={[0.05, 0.5, 0.14]} p={[sx * 0.34, wing + 0.25, L / 2 - 0.32]} />
-          <Box m={M.carbon} s={[0.04, 0.22, 0.52]} p={[sx * (W / 2 - 0.04), wing + 0.46, L / 2 - 0.24]} />
-        </group>
+      {/* Turbo S: raised active spoiler and the intake grille behind the rear window */}
+      {model === "turbos" && (
+        <>
+          <Box m={paint} s={[W * 0.78, 0.05, 0.34]} p={[0, deck + 0.12, L / 2 - 0.3]} r={[-0.12, 0, 0]} />
+          <Box m={M.trim} s={[W * 0.42, 0.02, 0.2]} p={[0, at(model, 0.86).y + 0.01, -L / 2 + 0.86 * L]} shadow={false} />
+        </>
+      )}
+      {/* M4: tall kidney grille and a carbon boot lip */}
+      {model === "m4" && (
+        <>
+          {[-1, 1].map((sx) => (
+            <Box key={sx} m={M.trim} s={[0.3, 0.32, 0.06]} p={[sx * 0.18, at(model, 0.02).y - 0.2, -L / 2 + 0.02]} shadow={false} />
+          ))}
+          <Box m={M.carbon} s={[W * 0.7, 0.04, 0.12]} p={[0, deck + 0.04, L / 2 - 0.18]} r={[-0.3, 0, 0]} />
+        </>
+      )}
+      {pipes.map((x) => (
+        <mesh key={x} geometry={WHEEL} material={M.steel} scale={[0.22, 0.065, 0.065]} rotation-y={Math.PI / 2} position={[x, pipeY, L / 2 + 0.02]} />
       ))}
-      <Box m={M.carbon} s={[W - 0.06, 0.05, 0.46]} p={[0, wing + 0.52, L / 2 - 0.24]} />
-      {/* dual centre exhausts */}
-      {[-1, 1].map((sx) => (
-        <mesh key={sx} geometry={WHEEL} material={M.steel} scale={[0.22, 0.065, 0.065]} rotation-y={Math.PI / 2} position={[sx * 0.1, 0.4, L / 2 + 0.02]} />
-      ))}
-      <group ref={flames} position={[0, 0.4, L / 2 + 0.05]} visible={false}>
-        {[-1, 1].map((sx) => (
-          <group key={sx} position-x={sx * 0.1}>
+      <group ref={flames} position={[0, pipeY, L / 2 + 0.05]} visible={false}>
+        {pipes.map((x) => (
+          <group key={x} position-x={x}>
             <mesh geometry={CONE} material={M.flame} scale={[0.16, 0.16, 1.3]} />
             <mesh geometry={CONE} material={M.flameCore} scale={[0.07, 0.07, 0.6]} />
           </group>
@@ -318,19 +353,19 @@ export function PlayerCar() {
         <mesh geometry={FLAT} material={M.flameGlow} scale={[2.4, 1, 3.2]} position={[0, -0.35, 1.1]} />
       </group>
       <group ref={scuffs}>
-        <Box m={M.scuff} s={[0.5, 0.02, 0.36]} p={[-(W / 2 - 0.32), at("gt3rs", 0.9).y + 0.015, L / 2 - 0.5]} shadow={false} />
-        <Box m={M.scuff} s={[0.4, 0.02, 0.3]} p={[W / 2 - 0.3, at("gt3rs", 0.1).y + 0.1, -L / 2 + 0.45]} shadow={false} />
+        <Box m={M.scuff} s={[0.5, 0.02, 0.36]} p={[-(W / 2 - 0.32), at(model, 0.9).y + 0.015, L / 2 - 0.5]} shadow={false} />
+        <Box m={M.scuff} s={[0.4, 0.02, 0.3]} p={[W / 2 - 0.3, at(model, 0.1).y + 0.1, -L / 2 + 0.45]} shadow={false} />
         <Box m={M.scuff} s={[0.02, 0.2, 0.9]} p={[-W / 2 - 0.006, 0.5, 0.3]} shadow={false} />
       </group>
       <group ref={dents}>
         <Box m={M.dent} s={[0.6, 0.22, 0.5]} p={[-(W / 2 - 0.3), 0.5, -L / 2 + 0.22]} r={[0.35, 0.3, 0.1]} />
-        <Box m={M.carbon} s={[0.9, 0.03, 0.6]} p={[-0.15, at("gt3rs", 0.2).y + 0.1, -L / 2 + 0.9]} r={[0.25, 0.2, 0.06]} />
+        <Box m={M.carbon} s={[0.9, 0.03, 0.6]} p={[-0.15, at(model, 0.2).y + 0.1, -L / 2 + 0.9]} r={[0.25, 0.2, 0.06]} />
         <Box m={M.trim} s={[0.9, 0.08, 0.1]} p={[0.35, 0.2, -L / 2 - 0.06]} r={[0, 0.15, 0.25]} />
         <Box m={M.dent} s={[0.03, 0.24, 1.1]} p={[W / 2 + 0.01, 0.45, 0.6]} r={[0, 0.06, 0.12]} />
       </group>
       {night && (
         <>
-          <NightLights model="gt3rs" trails={trails} />
+          <NightLights model={model} trails={trails} />
           <primitive object={target} position={[0, 0, -30]} />
           <spotLight target={target} position={[0, 1, -L / 2]} color="#fff1d0" intensity={600} angle={0.42} penumbra={0.7} decay={2} />
         </>

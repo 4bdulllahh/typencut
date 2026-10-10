@@ -1,4 +1,5 @@
-export type CarModel = "gt3rs" | "yaris" | "civic" | "malibu" | "rogue" | "f150" | "m3" | "c63" | "a5";
+export type PlayerModel = "gt3rs" | "turbos" | "m4";
+export type CarModel = PlayerModel | "yaris" | "civic" | "malibu" | "rogue" | "f150" | "m3" | "c63" | "a5";
 export type NpcKind = "cruiser" | "merger";
 export type Dir = -1 | 1;
 export type PassGrade = "standard" | "dangerous" | "cleanCut";
@@ -56,6 +57,11 @@ export interface Stats {
   words: number;
   misses: number;
   elapsed: number; // seconds of running time
+  maxCombo: number;
+  traps: number; // speed traps triggered
+  slipstreams: number; // free nitros from a full draft meter
+  cleanFrom: number; // road distance of the last crash (0 = none yet)
+  bestClean: number; // longest stretch without a crash (m)
 }
 
 export interface GameState {

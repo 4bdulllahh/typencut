@@ -1,5 +1,6 @@
 import { MODES } from "./config.ts";
-import type { Mode } from "./types.ts";
+import { CARS, PAINTS, type PaintId } from "./progress.ts";
+import type { Mode, PlayerModel } from "./types.ts";
 import { PACK_IDS, type PackId } from "./words.ts";
 
 export interface Settings {
@@ -12,12 +13,14 @@ export interface Settings {
   mode: Mode;
   pack: PackId;
   customWords: string; // the player's own list, as typed (see parseWordList)
+  car: PlayerModel; // chosen in the garage; Game.tsx falls back to the GT3 RS if it is still locked
+  paint: PaintId;
 }
 
 const KEY = "typencut.settings";
 
 export const defaultSettings = (reduceMotion = false, touch = false): Settings => ({
-  volume: 0.8, muted: false, engine: true, quality: "high", reduceMotion, touch, mode: "classic", pack: "driving", customWords: "",
+  volume: 0.8, muted: false, engine: true, quality: "high", reduceMotion, touch, mode: "classic", pack: "driving", customWords: "", car: "gt3rs", paint: "white",
 });
 
 /** localStorage is user-editable: each field is kept only if it has the right type and range. */
@@ -30,6 +33,8 @@ export function parseSettings(raw: string | null, base: Settings): Settings {
     for (const k of ["muted", "engine", "reduceMotion", "touch"] as const) if (typeof d?.[k] === "boolean") s[k] = d[k];
     if (MODES.includes(d?.mode)) s.mode = d.mode;
     if (PACK_IDS.includes(d?.pack)) s.pack = d.pack;
+    if (CARS.some((c) => c.id === d?.car)) s.car = d.car;
+    if (PAINTS.some((c) => c.id === d?.paint)) s.paint = d.paint;
     if (typeof d?.customWords === "string" && d.customWords.length <= 5000) s.customWords = d.customWords;
   } catch {}
   return s;

@@ -6,13 +6,21 @@ import { Vector3, type PerspectiveCamera } from "three";
 import { LANE_W } from "@/game/config";
 import type { GameEngine } from "@/game/engine";
 import type { Settings } from "@/game/settings";
+import type { PlayerModel } from "@/game/types";
 import { EngineCtx, NightCtx, useEngine } from "./context";
 import { SkidMarks, Smoke } from "./Fx";
 import { NpcCar, PlayerCar } from "./Vehicles";
 import { World } from "./World";
 
 /** Renders `engine.state` every frame. Never writes to it. */
-export function Scene({ engine, night, quality, reduceMotion }: { engine: GameEngine; night: boolean; quality: Settings["quality"]; reduceMotion: boolean }) {
+export function Scene({ engine, night, quality, reduceMotion, car, paint }: {
+  engine: GameEngine;
+  night: boolean;
+  quality: Settings["quality"];
+  reduceMotion: boolean;
+  car: PlayerModel;
+  paint: string; // body colour
+}) {
   const tag = useRef<HTMLDivElement>(null);
   const high = quality === "high";
   return (
@@ -25,7 +33,7 @@ export function Scene({ engine, night, quality, reduceMotion }: { engine: GameEn
             <CameraRig still={reduceMotion} />
             <World />
             <SkidMarks />
-            <PlayerCar />
+            <PlayerCar model={car} color={paint} />
             <Smoke />
             <Traffic />
             <WordTag el={tag} />
