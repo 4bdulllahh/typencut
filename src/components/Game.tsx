@@ -47,6 +47,10 @@ export function Game() {
   const [night, setNight] = useState(() => readTheme() === "night");
   const [runDate, setRunDate] = useState<number>();
   const [section, setSection] = useState<Section | null>(null);
+  // The two pills: hovering one expands it and collapses the other (see Rail and Menu).
+  const [railOpen, setRailOpen] = useState(false);
+  const [subOpen, setSubOpen] = useState(false);
+  const openSection = useCallback((s: Section) => (setSection(s), setRailOpen(false), setSubOpen(true)), []);
   const menu = section !== null;
   const closeMenu = useCallback(() => setSection(null), []);
   const [settings, setSettings] = useState(loadSettings);
@@ -159,12 +163,33 @@ export function Game() {
   }, [engine, menu]);
 
   return (
-    <main className="flex h-dvh flex-col gap-3 p-3 sm:flex-row sm:justify-center">
-      <aside className="hidden w-72 shrink-0 overflow-y-auto rounded-panel border border-line bg-surface p-5 shadow-elev-1 xl:block">
-        <Leaderboard board={board} highlight={runDate} mode={settings.mode} day={day} />
-      </aside>
-      {/* Game + rail; the menu panel opens inside this box, right beside the rail. */}
-      <div className="relative flex min-h-0 min-w-0 flex-1 flex-col gap-3 sm:flex-initial sm:flex-row">
+    <main className="relative flex h-dvh flex-col gap-3 p-3 sm:flex-row">
+      {/* Far left: the menu pill and, once a section is open, the sub pill beside it. */}
+      <div className="flex shrink-0 gap-3">
+        <Rail
+          open={section}
+          onOpen={openSection}
+          night={night}
+          onTheme={() => setNight((n) => !n)}
+          expanded={railOpen}
+          onEnter={() => (setRailOpen(true), setSubOpen(false))}
+          onLeave={() => setRailOpen(false)}
+        />
+        <Menu
+          section={section}
+          expanded={subOpen}
+          shifted={railOpen}
+          onHover={() => (setSubOpen(true), setRailOpen(false))}
+          board={<Leaderboard board={board} highlight={runDate} mode={settings.mode} day={day} />}
+          onClose={closeMenu}
+          settings={settings}
+          onSettings={setSettings}
+          progress={progress}
+          onEnd={snap.status === "running" ? () => (engine.send({ type: "end" }), closeMenu()) : undefined}
+        />
+      </div>
+      {/* The road, with the leaderboard island to its right on wide screens. */}
+      <div className="flex min-h-0 min-w-0 flex-1 justify-center gap-3">
       <div className="relative min-h-0 min-w-0 flex-1 overflow-hidden rounded-panel border border-line shadow-elev-1 sm:aspect-[3/4] sm:flex-initial">
         <Scene engine={engine} drive={snap.mode === "drive"} steer={settings.steer} night={night} quality={settings.quality} reduceMotion={settings.reduceMotion} car={car} paint={paint} weather={weather} />
         <EdgeFx speedMph={snap.speedMph} nitro={snap.nitro} still={settings.reduceMotion} />
@@ -187,16 +212,9 @@ export function Game() {
         </div>
         {snap.status === "over" && <GameOver snap={snap} board={board} runDate={runDate} day={day} news={news} onRestart={() => (engine.restart(), reroll())} />}
       </div>
-      <Rail open={section} onOpen={setSection} night={night} onTheme={() => setNight((n) => !n)} />
-      <Menu
-        section={section}
-        board={<Leaderboard board={board} highlight={runDate} mode={settings.mode} day={day} />}
-        onClose={closeMenu}
-        settings={settings}
-        onSettings={setSettings}
-        progress={progress}
-        onEnd={snap.status === "running" ? () => (engine.send({ type: "end" }), closeMenu()) : undefined}
-      />
+      <aside className="hidden w-72 shrink-0 overflow-y-auto rounded-panel border border-line bg-surface p-5 shadow-elev-1 xl:block">
+        <Leaderboard board={board} highlight={runDate} mode={settings.mode} day={day} />
+      </aside>
       </div>
     </main>
   );

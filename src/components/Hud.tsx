@@ -10,7 +10,7 @@ import { MIX, WEATHERS, type Settings } from "@/game/settings";
 import type { Snapshot } from "@/game/sim";
 import type { GameEvent, Mode, Weather } from "@/game/types";
 import { MIN_CUSTOM_WORDS, PACK_IDS, parseWordList, type PackId } from "@/game/words";
-import { SECTIONS, type Section } from "./Rail";
+import { Icon, SECTIONS, type Section } from "./Rail";
 import { shareRun } from "./shareCard";
 
 export const MODE_INFO: Record<Mode, [name: string, blurb: string]> = {
@@ -300,9 +300,16 @@ const MIX_LABELS: Record<(typeof MIX)[number], [string, string]> = {
   effects: ["Effects", "Nitro, boosts, tyres, horns, crashes, pickups"],
 };
 
-/** One menu section as a panel beside the rail. The game pauses while it is open (Game.tsx); Escape or the backdrop closes it. */
-export function Menu({ section, onClose, settings, onSettings, progress, onEnd, board }: {
+/**
+ * The sub pill: one menu section, opened beside the menu pill. Collapsed it is a slim bar (Close, icon, sideways title)
+ * that stays open; hovering or focusing it expands it over the game (`onHover`). The game pauses while a section is
+ * open (Game.tsx); Close or Escape closes it. On phones it is always expanded, below the icon row.
+ */
+export function Menu({ section, expanded, shifted, onHover, onClose, settings, onSettings, progress, onEnd, board }: {
   section: Section | null;
+  expanded: boolean;
+  shifted: boolean; // the menu pill is expanded: slide over so this bar stays in reach beside it
+  onHover: () => void;
   onClose: () => void;
   board: React.ReactNode; // the leaderboard, for the Leaderboard section
   settings: Settings;
@@ -314,12 +321,11 @@ export function Menu({ section, onClose, settings, onSettings, progress, onEnd, 
   const draftCount = parseWordList(draft).length;
   const first = useRef<HTMLButtonElement>(null);
   const open = section !== null;
-  const [shown, setShown] = useState(section); // keeps the content while the panel slides out
-  if (section && section !== shown) setShown(section);
+  const shown = section;
   const title = SECTIONS.find(([id]) => id === shown)?.[1];
   useEffect(() => {
     if (!open) return;
-    first.current?.focus();
+    first.current?.focus({ preventScroll: true });
     const onKey = (e: KeyboardEvent) => e.key === "Escape" && onClose();
     window.addEventListener("keydown", onKey);
     return () => window.removeEventListener("keydown", onKey);
@@ -348,15 +354,23 @@ export function Menu({ section, onClose, settings, onSettings, progress, onEnd, 
       </button>
     </li>
   );
+  if (!shown) return null;
   return (
-    <div className={`absolute inset-0 z-30 ${open ? "" : "pointer-events-none"}`} aria-hidden={!open}>
-      <div className={`fixed inset-0 bg-black/30 transition-opacity duration-200 ${open ? "opacity-100" : "opacity-0"}`} onClick={onClose} />
+    <div className={`z-40 shrink-0 max-sm:absolute max-sm:inset-x-3 max-sm:bottom-3 max-sm:top-[94px] sm:relative sm:w-14 sm:transition-transform sm:duration-200 ${shifted ? "sm:translate-x-[156px]" : ""}`} onMouseEnter={onHover} onFocus={onHover}>
       <section
         id="game-menu"
         aria-label={title}
-        inert={!open}
-        className={`absolute inset-x-0 bottom-0 top-[82px] flex flex-col gap-5 overflow-y-auto rounded-panel border border-line bg-surface p-5 shadow-elev-2 transition duration-200 sm:left-auto sm:right-[80px] sm:top-0 sm:w-80 ${open ? "translate-x-0 opacity-100" : "translate-x-6 opacity-0"}`}
+        className={`flex overflow-hidden rounded-panel border border-line bg-surface shadow-elev-1 max-sm:h-full sm:absolute sm:inset-y-0 sm:left-0 sm:transition-[width] sm:duration-200 ${expanded ? "sm:w-80 sm:shadow-elev-2" : "sm:w-14"}`}
       >
+        {/* Collapsed: a slim bar like the resting menu pill. */}
+        <div className={`hidden w-14 shrink-0 flex-col items-center gap-4 py-3 ${expanded ? "" : "sm:flex"}`}>
+          <button onClick={onClose} aria-label={`Close ${title}`} className="grid size-9 place-items-center rounded-full border border-line text-fg-subtle hover:bg-surface-muted hover:text-fg">
+            <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth={2} strokeLinecap="round" className="size-4" aria-hidden><path d="M18 6 6 18M6 6l12 12" /></svg>
+          </button>
+          <span className="text-accent"><Icon name={shown} /></span>
+          <span className="text-sm font-bold text-fg-subtle [writing-mode:vertical-rl]">{title}</span>
+        </div>
+        <div className={`flex min-h-0 w-full shrink-0 flex-col gap-5 overflow-y-auto p-5 sm:w-80 ${expanded ? "" : "sm:hidden"}`}>
         <div className="flex items-center justify-between">
           <span>
             <span className="block text-lg font-bold">{title}</span>
@@ -553,6 +567,7 @@ export function Menu({ section, onClose, settings, onSettings, progress, onEnd, 
             <Controls cut="text-amber-700 dark:text-amber-300" steer={settings.steer} drive={settings.mode === "drive"} />
           </div>
         )}
+        </div>
       </section>
     </div>
   );

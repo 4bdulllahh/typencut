@@ -51,24 +51,40 @@ export const SECTIONS: [Section, string][] = [
   ["help", "How to play"],
 ];
 
-const Icon = ({ name }: { name: keyof typeof ICONS }) => (
+export const Icon = ({ name }: { name: keyof typeof ICONS }) => (
   <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth={2} strokeLinecap="round" strokeLinejoin="round" className="size-5 shrink-0" aria-hidden>
     {ICONS[name]}
   </svg>
 );
 
-// Labels only show on the expanded desktop rail; on phones the rail is a row of icons.
-const LABEL = "sr-only whitespace-nowrap sm:not-sr-only sm:opacity-0 sm:transition-opacity sm:group-hover/rail:opacity-100 sm:group-focus-within/rail:opacity-100";
 const ITEM = "flex h-12 shrink-0 items-center gap-3 rounded-2xl px-2.5 sm:px-3.5 text-sm font-semibold transition-colors";
 
 /**
- * Icon rail on the right (a row above the game on phones). It expands over the game on hover or keyboard focus,
- * without moving the layout. Opening a section pauses the game (Game.tsx).
+ * The menu pill: icons on the far left (a row above the game on phones). Game.tsx drives `expanded` from hover and
+ * focus; it widens to the right over whatever sits beside it, without moving the layout. Picking an item opens
+ * that section in the sub pill (Hud.tsx `Menu`) and collapses this one.
  */
-export function Rail({ open, onOpen, night, onTheme }: { open: Section | null; onOpen: (s: Section | null) => void; night: boolean; onTheme: () => void }) {
+export function Rail({ open, onOpen, night, onTheme, expanded, onEnter, onLeave }: {
+  open: Section | null;
+  onOpen: (s: Section) => void;
+  night: boolean;
+  onTheme: () => void;
+  expanded: boolean;
+  onEnter: () => void;
+  onLeave: () => void;
+}) {
+  // Labels only show on the expanded desktop pill; on phones the pill is a row of icons.
+  const LABEL = `sr-only whitespace-nowrap sm:not-sr-only sm:transition-opacity ${expanded ? "sm:opacity-100" : "sm:opacity-0"}`;
   return (
-    <nav aria-label="Menu" className="relative z-40 shrink-0 max-sm:order-first sm:w-[68px]">
-      <div className="group/rail flex gap-1 overflow-hidden rounded-panel border border-line bg-surface p-2.5 shadow-elev-1 max-sm:justify-around sm:absolute sm:inset-y-0 sm:right-0 sm:w-[68px] sm:flex-col sm:transition-[width] sm:duration-200 sm:hover:w-56 sm:hover:shadow-elev-2 sm:focus-within:w-56">
+    <nav
+      aria-label="Menu"
+      className="relative z-50 shrink-0 max-sm:flex-1 sm:w-[68px]"
+      onMouseEnter={onEnter}
+      onMouseLeave={onLeave}
+      onFocus={onEnter}
+      onBlur={(e) => !e.currentTarget.contains(e.relatedTarget) && onLeave()}
+    >
+      <div className={`flex gap-1 overflow-hidden rounded-panel border border-line bg-surface p-2.5 shadow-elev-1 max-sm:justify-around sm:absolute sm:inset-y-0 sm:left-0 sm:flex-col sm:transition-[width] sm:duration-200 ${expanded ? "sm:w-56 sm:shadow-elev-2" : "sm:w-[68px]"}`}>
         <div className="hidden h-12 shrink-0 items-center gap-3 px-2 sm:flex">
           <span className="grid size-8 shrink-0 place-items-center rounded-xl bg-accent text-sm font-black italic text-stone-900">T</span>
           <span className={`${LABEL} text-base font-black italic tracking-tight`}>TYPENCUT</span>
@@ -78,7 +94,7 @@ export function Rail({ open, onOpen, night, onTheme }: { open: Section | null; o
           return (
             <button
               key={id}
-              onClick={() => onOpen(on ? null : id)}
+              onClick={() => onOpen(id)}
               aria-expanded={on}
               aria-controls="game-menu"
               aria-label={label}
