@@ -46,6 +46,7 @@ export interface Player {
   laneAge: number; // seconds since the last lane change
   speed: number;
   nitroT: number;
+  nitroCd: number; // seconds until nitro can fire again
   brakeT: number;
   boostT: number;
   draft: number; // slipstream meter 0–1; full = the next word fires a free nitro
@@ -104,6 +105,7 @@ export type GameEvent =
   | { type: "miss" }
   | { type: "laneChange"; dir: Dir }
   | { type: "nitro" }
+  | { type: "nitroDenied" } // asked for nitro while it was still recharging
   | { type: "boost" }
   | { type: "draftReady" }
   | { type: "slipstream" } // a word spent a full draft meter on a free nitro

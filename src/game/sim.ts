@@ -1,6 +1,6 @@
 import {
   BOOST_MPH, BOOST_TIME, HEART_CHANCE, BRAKE_TIME, CLEAN_CUT_GAP, COMBO_TIME, DRAFT_RANGE, RUSH_GAP, SPEED_CAMERA, TIME_ATTACK_S, CRUISE_MPH, CRUISERS, INVULN_TIME, LANES, MAX_MULTIPLIER, MERGERS, MODELS, MPH,
-  MULTIPLIER_STEP, NITRO_MPH, NITRO_TIME, PLAYER_DIMS, POINTS, START_LIVES, SURPRISE_CUT_CHANCE, laneX, toMph,
+  MULTIPLIER_STEP, NITRO_COOLDOWN, NITRO_MPH, NITRO_TIME, PLAYER_DIMS, POINTS, START_LIVES, SURPRISE_CUT_CHANCE, laneX, toMph,
 } from "./config.ts";
 import type { Command, Dir, GameEvent, GameState, Mode, Npc, PassGrade, Weather } from "./types.ts";
 import { WORDS, pickWord } from "./words.ts";
@@ -49,7 +49,7 @@ export function createState(seed = Date.now(), { mode = "classic", words = WORDS
     nextId: 1,
     player: {
       s: 0, x: laneX(2), vx: 0, lane: 2, prevLane: 2, laneAge: 99, speed: cruiseSpeed(0),
-      nitroT: 0, brakeT: 0, boostT: 0, draft: 0, invulnT: 0, lives: START_LIVES, cutId: 0,
+      nitroT: 0, nitroCd: 0, brakeT: 0, boostT: 0, draft: 0, invulnT: 0, lives: START_LIVES, cutId: 0,
     },
     npcs: [],
     hearts: [],
@@ -109,12 +109,17 @@ export function applyCommand(state: GameState, cmd: Command): GameEvent[] {
   return events;
 }
 
-/** A lane change (or, dir 0, a short boost), with nitro if asked or if the slipstream meter is full. */
+/**
+ * A lane change (or, dir 0, a short boost), with nitro if asked or if the slipstream meter is full.
+ * Nitro recharges for NITRO_COOLDOWN s after firing; until then a nitro request is a plain move and a full draft waits.
+ */
 function move(state: GameState, dir: Dir | 0, wantNitro: boolean, events: GameEvent[]) {
   const { player: pl, stats: st } = state;
   const to = pl.lane + dir;
-  const free = !wantNitro && pl.draft >= 1; // slipstream: a full meter turns this move into a nitro
-  const nitro = wantNitro || free;
+  const ready = pl.nitroCd <= 0;
+  const free = ready && !wantNitro && pl.draft >= 1; // slipstream: a full meter turns this move into a nitro
+  const nitro = ready && (wantNitro || free);
+  if (wantNitro && !ready) events.push({ type: "nitroDenied" });
   if (dir === 0) {
     if (!nitro) {
       pl.boostT = BOOST_TIME;
@@ -141,6 +146,7 @@ function move(state: GameState, dir: Dir | 0, wantNitro: boolean, events: GameEv
   }
   if (nitro) {
     pl.nitroT = NITRO_TIME;
+    pl.nitroCd = NITRO_COOLDOWN;
     pl.brakeT = 0;
     events.push({ type: "nitro" });
   }
@@ -160,6 +166,7 @@ export function step(state: GameState, dt: number): GameEvent[] {
 
   // Player: speed
   pl.nitroT = Math.max(0, pl.nitroT - dt);
+  pl.nitroCd = Math.max(0, pl.nitroCd - dt);
   pl.brakeT = Math.max(0, pl.brakeT - dt);
   pl.boostT = Math.max(0, pl.boostT - dt);
   pl.invulnT = Math.max(0, pl.invulnT - dt);
@@ -417,6 +424,7 @@ export function snapshot(s: GameState) {
     accuracy: accuracy(st),
     distance: pl.s,
     nitro: pl.nitroT > 0,
+    nitroCharge: 1 - pl.nitroCd / NITRO_COOLDOWN, // 1 = ready
     brake: pl.brakeT > 0,
   };
 }

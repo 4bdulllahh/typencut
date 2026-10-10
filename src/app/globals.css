@@ -48,9 +48,34 @@ body {
   background: var(--canvas);
   color: var(--fg);
 }
-/* One typeface everywhere: key caps would otherwise fall back to monospace. */
+/*
+ * Key hints drawn as keycaps (outlined top face over a darker skirt). Unlayered, so it wins over the
+ * Tailwind utilities the kbd elements still carry. One typeface everywhere: no monospace fallback.
+ */
+:root {
+  --cap-face: #f6f6f4;
+  --cap-skirt: #b9bec6;
+  --cap-edge: #26262a;
+}
+.dark {
+  --cap-face: #e7e9f0;
+  --cap-skirt: #8d94a8;
+  --cap-edge: #0b0f1e;
+}
 kbd {
   font-family: inherit;
+  display: inline-block;
+  min-width: 1.7em;
+  padding: 0.05em 0.45em 0.2em;
+  border: 1.5px solid var(--cap-edge);
+  border-radius: 0.45em;
+  background: var(--cap-face);
+  color: #1f1f23;
+  box-shadow: inset 0 -0.22em 0 var(--cap-skirt), 0 1px 0 var(--cap-edge);
+  font-weight: 700;
+  line-height: 1.35;
+  text-align: center;
+  vertical-align: 0.05em;
 }
 
 @keyframes input-shake {

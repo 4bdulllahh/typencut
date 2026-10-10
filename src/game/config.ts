@@ -10,6 +10,7 @@ export const toMph = (ms: number) => ms / MPH;
 
 export const START_LIVES = 3;
 export const NITRO_TIME = 1;
+export const NITRO_COOLDOWN = 5; // s from one nitro firing until the next is allowed
 export const BRAKE_TIME = 1;
 export const INVULN_TIME = 2;
 export const CRUISE_MPH = [100, 140] as const; // player cruise at progress 0 → 1

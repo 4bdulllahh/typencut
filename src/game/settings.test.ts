@@ -22,6 +22,10 @@ test("parseSettings keeps valid fields and drops the rest", () => {
   assert.deepEqual([badCar.car, badCar.paint], ["gt3rs", "white"]);
   assert.equal(parseSettings(JSON.stringify({ weather: "fog" }), base).weather, "fog");
   assert.equal(parseSettings(JSON.stringify({ weather: "snow" }), base).weather, "random");
+  const mix = parseSettings(JSON.stringify({ mix: { engine: 0.2, weather: 3, typing: "loud", effects: 0 } }), base).mix;
+  assert.deepEqual(mix, { ...base.mix, engine: 0.2, effects: 0 });
+  assert.equal(parseSettings(JSON.stringify({ engine: false }), base).mix.engine, 0); // old engine switch carries over
+  assert.equal(base.mix.engine, defaultSettings().mix.engine); // parsing never mutates the defaults
 });
 
 test("engine revs climb through each gear and drop on the upshift", () => {

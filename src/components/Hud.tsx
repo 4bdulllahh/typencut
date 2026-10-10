@@ -6,7 +6,7 @@ import type { GameEngine } from "@/game/engine";
 import type { Board } from "@/game/leaderboard";
 import { ACHIEVEMENTS, CARS, PAINTS, type Progress } from "@/game/progress";
 import { DEFAULT_STEER, bindable, keyLabel, type SteerKeys } from "@/game/input";
-import { WEATHERS, type Settings } from "@/game/settings";
+import { MIX, WEATHERS, type Settings } from "@/game/settings";
 import type { Snapshot } from "@/game/sim";
 import type { GameEvent, Mode, Weather } from "@/game/types";
 import { MIN_CUSTOM_WORDS, PACK_IDS, parseWordList, type PackId } from "@/game/words";
@@ -34,13 +34,32 @@ const Bar = ({ pct, className, thin = false }: { pct: number; className: string;
   </div>
 );
 
-/** Digital dash: speedometer + slipstream meter, hearts + multiplier with its combo timer, score + live accuracy. */
+/** Nitro recharge as a small ring: fills over NITRO_COOLDOWN, amber and full when nitro is ready. */
+function NitroRing({ charge }: { charge: number }) {
+  const ready = charge >= 1;
+  const C = 2 * Math.PI * 7;
+  return (
+    <svg viewBox="0 0 18 18" className="size-[18px] shrink-0 -rotate-90" role="img" aria-label={ready ? "Nitro ready" : `Nitro recharging, ${Math.round(charge * 100)}%`}>
+      <circle cx="9" cy="9" r="7" fill="none" strokeWidth="2.5" className="stroke-white/20" />
+      <circle
+        cx="9" cy="9" r="7" fill="none" strokeWidth="2.5" strokeLinecap="round" strokeDasharray={C} strokeDashoffset={C * (1 - Math.max(0, Math.min(1, charge)))}
+        className={ready ? "stroke-orange-300" : "stroke-white/70"}
+      />
+      {ready && <circle cx="9" cy="9" r="2.5" className="fill-orange-300" />}
+    </svg>
+  );
+}
+
+/** Digital dash: speedometer + nitro recharge ring + slipstream meter, hearts + multiplier with its combo timer, score + live accuracy. */
 export function Dashboard({ snap }: { snap: Snapshot }) {
   const mode = snap.nitro ? "nitro" : snap.brake ? "brake" : "";
   return (
     <div className="grid grid-cols-[auto_1fr_auto] gap-4 rounded-[22px] border border-white/10 bg-black/40 px-4 py-2.5 text-white tabular-nums shadow-lg backdrop-blur-md">
-      <div className="w-20">
-        <div className={`text-3xl font-extrabold leading-none ${snap.nitro ? "text-orange-300" : snap.brake ? "text-rose-300" : ""}`}>{Math.round(snap.speedMph)}</div>
+      <div className="w-24">
+        <div className="flex items-center gap-2">
+          <div className={`text-3xl font-extrabold leading-none ${snap.nitro ? "text-orange-300" : snap.brake ? "text-rose-300" : ""}`}>{Math.round(snap.speedMph)}</div>
+          <NitroRing charge={snap.nitroCharge} />
+        </div>
         <div className="text-[10px] font-semibold uppercase tracking-widest opacity-70">mph {mode && `· ${mode}`}</div>
         <Bar pct={snap.speedMph / NITRO_MPH} className={snap.nitro ? "bg-orange-400" : snap.brake ? "bg-rose-400" : "bg-white"} />
         <div className={`mt-1 text-[9px] font-semibold uppercase tracking-widest ${snap.draft >= 1 ? "text-amber-300" : "opacity-70"}`}>
@@ -86,6 +105,7 @@ const popFor = (e: GameEvent, drive: boolean): Omit<Pop, "id"> | null =>
   : e.type === "draftReady" ? { text: "DRAFT READY", sub: drive ? "next move = nitro" : "next word = nitro", big: false }
   : e.type === "slipstream" ? { text: "SLIPSTREAM", sub: "", big: false }
   : e.type === "collision" && e.lives > 0 ? { text: "CRASH", sub: `${e.lives} ♥ left`, big: false }
+  : e.type === "nitroDenied" ? { text: "NITRO RECHARGING", sub: "", big: false }
   : e.type === "heart" ? { text: e.healed ? "+1 ♥" : "♥ FULL", sub: "", big: false }
   : null;
 
@@ -129,7 +149,7 @@ function Controls({ cut = "text-amber-300", steer, drive }: { cut?: string; stee
     return (
       <ul className="space-y-1 text-sm">
         <li><Key>A</Key> <Key>D</Key> or <Key>←</Key> <Key>→</Key> switch lanes</li>
-        <li><Key>W</Key> or <Key>↑</Key> for a burst of speed; tap it twice quickly for <b>nitro</b></li>
+        <li><Key>W</Key> or <Key>↑</Key> for a burst of speed; tap it twice quickly for <b>nitro</b> (it recharges for 5 s, see the ring by the speed)</li>
         <li><Key>S</Key> or <Key>↓</Key> brakes</li>
         <li>Sit close behind a car to fill the <b>draft</b> meter: your next move is a free nitro</li>
         <li>Grab the floating <b className="text-rose-400">♥</b> hearts to win back a life</li>
@@ -142,7 +162,7 @@ function Controls({ cut = "text-amber-300", steer, drive }: { cut?: string; stee
       <li><Key>Enter</Key> keeps your lane with a small speed boost</li>
       <li>Sit close behind a car to fill the <b>draft</b> meter: your next word is a free nitro</li>
       <li>Pass a speed camera at <b>150+ mph</b> for a speed-trap bonus, and keep passing or your multiplier drains</li>
-      <li><b>ALL CAPS</b> fires nitro · <Key>Enter</Key> twice on an empty box brakes</li>
+      <li><b>ALL CAPS</b> fires nitro, which then recharges for 5 s (the ring by the speed) · <Key>Enter</Key> twice on an empty box brakes</li>
       <li>Grab the floating <b className="text-rose-400">♥</b> hearts to win back a life</li>
       <li>Cut out from right behind a car for a <b className={cut}>CLEAN CUT</b></li>
     </ul>
@@ -272,7 +292,13 @@ export function Leaderboard({ board, highlight, mode, day, compact = false }: { 
   );
 }
 
-type Toggle = "muted" | "engine" | "reduceMotion" | "touch";
+type Toggle = "muted" | "reduceMotion" | "touch";
+const MIX_LABELS: Record<(typeof MIX)[number], [string, string]> = {
+  engine: ["Engine", "Your car's engine note"],
+  weather: ["Weather", "Rain"],
+  typing: ["Typing", "Key clicks"],
+  effects: ["Effects", "Nitro, boosts, tyres, horns, crashes, pickups"],
+};
 
 /** One menu section as a panel beside the rail. The game pauses while it is open (Game.tsx); Escape or the backdrop closes it. */
 export function Menu({ section, onClose, settings, onSettings, progress, onEnd, board }: {
@@ -463,7 +489,7 @@ export function Menu({ section, onClose, settings, onSettings, progress, onEnd, 
         <section className="text-sm">
           <label className="block py-1.5">
             <span className="flex justify-between font-semibold">
-              Volume <span className="tabular-nums opacity-60">{settings.muted ? "muted" : `${Math.round(settings.volume * 100)}%`}</span>
+              Master volume <span className="tabular-nums opacity-60">{settings.muted ? "muted" : `${Math.round(settings.volume * 100)}%`}</span>
             </span>
             <input
               type="range" min={0} max={100} value={Math.round(settings.volume * 100)}
@@ -471,8 +497,24 @@ export function Menu({ section, onClose, settings, onSettings, progress, onEnd, 
               className="mt-1 w-full accent-amber-600"
             />
           </label>
+          <div className="space-y-1 border-l-2 border-line pl-3">
+            {MIX.map((k) => (
+              <label key={k} className="block py-0.5">
+                <span className="flex justify-between gap-2">
+                  <span>
+                    <span className="font-semibold">{MIX_LABELS[k][0]}</span> <span className="text-xs opacity-60">{MIX_LABELS[k][1]}</span>
+                  </span>
+                  <span className="tabular-nums opacity-60">{Math.round(settings.mix[k] * 100)}%</span>
+                </span>
+                <input
+                  type="range" min={0} max={100} value={Math.round(settings.mix[k] * 100)}
+                  onChange={(e) => set("mix", { ...settings.mix, [k]: Number(e.target.value) / 100 })}
+                  className="w-full accent-amber-600"
+                />
+              </label>
+            ))}
+          </div>
           {toggle("muted", "Mute")}
-          {toggle("engine", "Engine sound", "Revs rise with speed and drop on each gear change")}
           <fieldset className="py-1.5">
             <legend className="font-semibold">Graphics</legend>
             <span className="block text-xs opacity-60">Low drops shadows and sharpness for slower devices</span>

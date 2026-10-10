@@ -14,7 +14,8 @@ export function revs(mph: number) {
   return { gear: g + 1, rpm: 0.35 + 0.65 * frac };
 }
 
-type AudioSettings = Pick<Settings, "volume" | "muted" | "engine"> & { rain?: boolean };
+type AudioSettings = Pick<Settings, "volume" | "muted" | "mix"> & { rain?: boolean };
+type Bus = "typing" | "effects";
 
 /**
  * Synthesised sound driven by engine events, plus a continuous engine note that follows the player's speed.
@@ -23,10 +24,11 @@ type AudioSettings = Pick<Settings, "volume" | "muted" | "engine"> & { rain?: bo
 export function attachAudio(engine: GameEngine, initial: AudioSettings) {
   let ctx: AudioContext | null = null;
   let out: GainNode;
+  const bus = {} as Record<Bus | "engine" | "weather", GainNode>; // one gain per Settings mix channel, into `out`
   let noise: AudioBuffer;
   let settings = initial;
   let paused = false;
-  let motor: { saw: OscillatorNode; sub: OscillatorNode; filter: BiquadFilterNode; gain: GainNode } | null = null;
+  let motor: { hum: OscillatorNode; sub: OscillatorNode; filter: BiquadFilterNode; gain: GainNode } | null = null;
   let rain: GainNode | null = null;
   const level = () => (settings.muted ? 0 : settings.volume * 0.62);
 
@@ -37,29 +39,35 @@ export function attachAudio(engine: GameEngine, initial: AudioSettings) {
       out = ctx.createGain();
       out.gain.value = level();
       out.connect(ctx.destination);
+      for (const k of ["engine", "weather", "typing", "effects"] as const) {
+        bus[k] = ctx.createGain();
+        bus[k].gain.value = settings.mix[k];
+        bus[k].connect(out);
+      }
       noise = ctx.createBuffer(1, ctx.sampleRate, ctx.sampleRate);
       const d = noise.getChannelData(0);
       for (let i = 0; i < d.length; i++) d[i] = Math.random() * 2 - 1;
-      // Engine: a sawtooth plus a square an octave down, through a resonant low-pass that opens with the revs.
+      // Engine: a low triangle plus a sine an octave down through a gentle low-pass, so it hums rather than buzzes
+      // (the v1.2 sawtooth + square through a resonant filter whined at cruise).
       const gain = ctx.createGain();
       gain.gain.value = 0;
-      gain.connect(out);
+      gain.connect(bus.engine);
       const filter = ctx.createBiquadFilter();
-      filter.Q.value = 3;
+      filter.Q.value = 0.7;
       filter.connect(gain);
-      const saw = ctx.createOscillator();
-      saw.type = "sawtooth";
+      const hum = ctx.createOscillator();
+      hum.type = "triangle";
       const sub = ctx.createOscillator();
-      sub.type = "square";
-      saw.connect(filter);
+      sub.type = "sine";
+      hum.connect(filter);
       sub.connect(filter);
-      saw.start();
+      hum.start();
       sub.start();
-      motor = { saw, sub, filter, gain };
+      motor = { hum, sub, filter, gain };
       // Rain: looped noise, band-limited to a soft hiss, faded in while it rains.
       rain = ctx.createGain();
       rain.gain.value = 0;
-      rain.connect(out);
+      rain.connect(bus.weather);
       const patter = ctx.createBufferSource();
       patter.buffer = noise;
       patter.loop = true;
@@ -74,18 +82,18 @@ export function attachAudio(engine: GameEngine, initial: AudioSettings) {
     return ctx;
   };
 
-  const envelope = (c: AudioContext, peak: number, attack: number, decay: number) => {
+  const envelope = (c: AudioContext, to: Bus, peak: number, attack: number, decay: number) => {
     const g = c.createGain();
     const t = c.currentTime;
     g.gain.setValueAtTime(0, t);
     g.gain.linearRampToValueAtTime(peak, t + attack);
     g.gain.exponentialRampToValueAtTime(0.0001, t + attack + decay);
-    g.connect(out);
+    g.connect(bus[to]);
     return g;
   };
 
   /** Filtered noise; the filter frequency glides from f0 to f1. */
-  const hiss = (type: BiquadFilterType, f0: number, f1: number, q: number, peak: number, attack: number, decay: number) => {
+  const hiss = (type: BiquadFilterType, f0: number, f1: number, q: number, peak: number, attack: number, decay: number, to: Bus = "effects") => {
     const c = init();
     const src = c.createBufferSource();
     src.buffer = noise;
@@ -94,12 +102,12 @@ export function attachAudio(engine: GameEngine, initial: AudioSettings) {
     f.Q.value = q;
     f.frequency.setValueAtTime(f0, c.currentTime);
     f.frequency.exponentialRampToValueAtTime(f1, c.currentTime + attack + decay);
-    src.connect(f).connect(envelope(c, peak, attack, decay));
+    src.connect(f).connect(envelope(c, to, peak, attack, decay));
     src.start(c.currentTime, Math.random() * 0.5);
     src.stop(c.currentTime + attack + decay + 0.05);
   };
 
-  const tone = (type: OscillatorType, f0: number, f1: number, peak: number, attack: number, decay: number, lowpass = 20000) => {
+  const tone = (type: OscillatorType, f0: number, f1: number, peak: number, attack: number, decay: number, lowpass = 20000, to: Bus = "effects") => {
     const c = init();
     const o = c.createOscillator();
     o.type = type;
@@ -107,7 +115,7 @@ export function attachAudio(engine: GameEngine, initial: AudioSettings) {
     o.frequency.exponentialRampToValueAtTime(f1, c.currentTime + attack + decay);
     const f = c.createBiquadFilter();
     f.frequency.value = lowpass;
-    o.connect(f).connect(envelope(c, peak, attack, decay));
+    o.connect(f).connect(envelope(c, to, peak, attack, decay));
     o.start();
     o.stop(c.currentTime + attack + decay + 0.05);
   };
@@ -117,8 +125,8 @@ export function attachAudio(engine: GameEngine, initial: AudioSettings) {
       case "key": {
         // Soft linear switch: a muted "thock" plus a short top click; wrong keys sound duller.
         const v = 0.9 + Math.random() * 0.2;
-        tone("sine", 210 * v, 120, 0.22, 0.002, 0.04);
-        hiss("bandpass", (e.correct ? 2600 : 1300) * v, 1500, 2, e.correct ? 0.18 : 0.12, 0.002, 0.03);
+        tone("sine", 210 * v, 120, 0.22, 0.002, 0.04, 20000, "typing");
+        hiss("bandpass", (e.correct ? 2600 : 1300) * v, 1500, 2, e.correct ? 0.18 : 0.12, 0.002, 0.03, "typing");
         break;
       }
       case "nitro":
@@ -165,12 +173,13 @@ export function attachAudio(engine: GameEngine, initial: AudioSettings) {
     const { status, player: p } = engine.state;
     const { rpm } = revs(p.speed / MPH);
     const nitro = p.nitroT > 0;
-    const on = settings.engine && !paused && status === "running";
+    const on = !paused && status === "running";
     const t = ctx.currentTime;
-    motor.saw.frequency.setTargetAtTime(70 + 230 * rpm, t, 0.05);
-    motor.sub.frequency.setTargetAtTime((70 + 230 * rpm) / 2, t, 0.05);
-    motor.filter.frequency.setTargetAtTime(500 + 2200 * rpm + (nitro ? 1600 : 0), t, 0.08);
-    motor.gain.gain.setTargetAtTime(on ? (nitro ? 0.15 : 0.08) * (0.6 + 0.4 * rpm) : 0, t, 0.08);
+    const f = 55 + 150 * rpm;
+    motor.hum.frequency.setTargetAtTime(f, t, 0.05);
+    motor.sub.frequency.setTargetAtTime(f / 2, t, 0.05);
+    motor.filter.frequency.setTargetAtTime(380 + 1100 * rpm + (nitro ? 900 : 0), t, 0.08);
+    motor.gain.gain.setTargetAtTime(on ? (nitro ? 0.2 : 0.13) * (0.6 + 0.4 * rpm) : 0, t, 0.08);
     rain?.gain.setTargetAtTime(settings.rain && !paused ? 0.07 : 0, t, 0.5);
   }, 50);
 
@@ -178,7 +187,9 @@ export function attachAudio(engine: GameEngine, initial: AudioSettings) {
   return {
     set(next: AudioSettings) {
       settings = next;
-      if (ctx) out.gain.setTargetAtTime(level(), ctx.currentTime, 0.03);
+      if (!ctx) return;
+      out.gain.setTargetAtTime(level(), ctx.currentTime, 0.03);
+      for (const k of ["engine", "weather", "typing", "effects"] as const) bus[k].gain.setTargetAtTime(next.mix[k], ctx.currentTime, 0.03);
     },
     pause(p: boolean) {
       paused = p;

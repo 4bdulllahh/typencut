@@ -4,10 +4,14 @@ import { CARS, PAINTS, type PaintId } from "./progress.ts";
 import type { Mode, PlayerModel, Weather } from "./types.ts";
 import { PACK_IDS, type PackId } from "./words.ts";
 
+/** Sound channels under the master volume. */
+export const MIX = ["engine", "weather", "typing", "effects"] as const;
+export type Mix = Record<(typeof MIX)[number], number>;
+
 export interface Settings {
   volume: number; // 0–1, master
   muted: boolean;
-  engine: boolean; // engine note on/off
+  mix: Mix; // 0–1 per channel; engine 0 = no engine note
   quality: "high" | "low"; // low = no shadows, 1× pixel density
   reduceMotion: boolean; // no camera shake, nitro zoom or edge blur
   touch: boolean; // on-screen steering buttons + vibration on crashes
@@ -24,7 +28,7 @@ const KEY = "typencut.settings";
 export const WEATHERS = ["random", "clear", "rain", "fog"] as const;
 
 export const defaultSettings = (reduceMotion = false, touch = false): Settings => ({
-  volume: 0.8, muted: false, engine: true, quality: "high", reduceMotion, touch, mode: "classic", pack: "driving", customWords: "", car: "gt3rs", paint: "white", weather: "random", steer: DEFAULT_STEER,
+  volume: 0.8, muted: false, mix: { engine: 0.5, weather: 0.7, typing: 0.8, effects: 0.8 }, quality: "high", reduceMotion, touch, mode: "classic", pack: "driving", customWords: "", car: "gt3rs", paint: "white", weather: "random", steer: DEFAULT_STEER,
 });
 
 /** localStorage is user-editable: each field is kept only if it has the right type and range. */
@@ -34,7 +38,10 @@ export function parseSettings(raw: string | null, base: Settings): Settings {
     const d = JSON.parse(raw ?? "null");
     if (typeof d?.volume === "number" && d.volume >= 0 && d.volume <= 1) s.volume = d.volume;
     if (d?.quality === "high" || d?.quality === "low") s.quality = d.quality;
-    for (const k of ["muted", "engine", "reduceMotion", "touch"] as const) if (typeof d?.[k] === "boolean") s[k] = d[k];
+    for (const k of ["muted", "reduceMotion", "touch"] as const) if (typeof d?.[k] === "boolean") s[k] = d[k];
+    s.mix = { ...s.mix };
+    for (const k of MIX) if (typeof d?.mix?.[k] === "number" && d.mix[k] >= 0 && d.mix[k] <= 1) s.mix[k] = d.mix[k];
+    if (d?.engine === false && d?.mix === undefined) s.mix.engine = 0; // the old engine on/off switch (v1.2–1.8)
     if (MODES.includes(d?.mode)) s.mode = d.mode;
     if (PACK_IDS.includes(d?.pack)) s.pack = d.pack;
     if (CARS.some((c) => c.id === d?.car)) s.car = d.car;

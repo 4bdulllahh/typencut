@@ -360,3 +360,19 @@ test("hearts: driving through one gives a life back, up to three; zen gets none"
   assert.ok(hearts("classic") > 3);
   assert.equal(hearts("zen"), 0);
 });
+
+test("nitro recharges for 5 s: a second nitro inside that is a plain move, a full draft waits", () => {
+  const s = running();
+  applyCommand(s, { type: "word", dir: 1, nitro: true });
+  assert.ok(s.player.nitroT > 0);
+  for (let i = 0; i < 60; i++) step(s, 1 / 60); // 1 s later: burn over, still recharging
+  const again = applyCommand(s, { type: "word", dir: -1, nitro: true }).map((e) => e.type);
+  assert.ok(again.includes("nitroDenied") && again.includes("laneChange") && !again.includes("nitro"));
+  s.player.draft = 1;
+  applyCommand(s, { type: "drive", dir: 0, nitro: false });
+  assert.equal(s.player.draft, 1); // kept for later
+  assert.ok(snapshot(s).nitroCharge > 0.15 && snapshot(s).nitroCharge < 0.25);
+  for (let i = 0; i < 4 * 60 + 5; i++) step(s, 1 / 60), (s.player.lives = 3), (s.player.invulnT = 1);
+  assert.equal(snapshot(s).nitroCharge, 1);
+  assert.ok(applyCommand(s, { type: "drive", dir: 0, nitro: false }).some((e) => e.type === "slipstream"));
+});
