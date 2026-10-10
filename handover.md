@@ -1,17 +1,19 @@
 # Typencut: handover (compact)
 
-_Updated 2026-10-10 · M1–M6 pushed, all milestones done · repo `C:\Users\Computer\Documents\GitHub\typencut`, remote https://github.com/4bdulllahh/typencut · full brief in `docs/spec.md`._
+_Updated 2026-10-10 · M1–M6 pushed, all milestones done · **live** https://typencut-two.vercel.app · v1.0.0 · repo `C:\Users\Computer\Documents\GitHub\typencut`, remote https://github.com/4bdulllahh/typencut · full brief in `docs/spec.md`._
 
 ## Resume here
 - **M1–M5** are on `origin/main` (M5 = `a6f7a0e`). Owner confirmed the audio sounds right.
 - **M6** pushed (typecheck + build clean, 13 tests pass, day/night headless runs with no console errors): `.github/workflows/ci.yml` (Node 24: `npm ci`, typecheck, test, build), README final + `docs/{day,night,over}.png`, player yaw `-p.vx * 0.018` (was 0.04, ~29° → ~13°), this file.
 - All milestones done. Check the first CI run on GitHub (it has never run).
+- After M6 (uncommitted until the owner approves): detailed README in the style of the owner's DocSanitize / Paperless-Invoices-Web READMEs (live link, badges, How-it-works sections, mermaid architecture, Limitations, Roadmap = milestones), screenshots moved to `docs/screenshots/*.webp` (regenerate from `scripts/shot.mjs` output, crop the 9:16 column), `LICENSE` (MIT) added, version bumped to 1.0.0.
 
 **First thing next session:** ask the owner what to build next (see open ideas below).
 
-Open ideas, none promised: mute toggle (`attachAudio` would need `setMuted`); hide the floating word while a popup is on screen (they can overlap); difficulty/crash-rate tuning from real play; ESLint (no lint script exists); `@react-three/drei` is unused now (spec names it, so it was kept); a LICENSE file (README and package.json say MIT).
+Open ideas, none promised: mute toggle (`attachAudio` would need `setMuted`); hide the floating word while a popup is on screen (they can overlap); difficulty/crash-rate tuning from real play; ESLint (no lint script exists); `@react-three/drei` is unused now (spec names it, so it was kept).
 
 ## Working with the owner
+- README style: follow the owner's DocSanitize / Paperless-Invoices-Web READMEs; keep every number in it true to the code, and keep its Roadmap in step with the milestone table.
 - Build in milestones; stop after each and ask to continue. On approval, commit the finished milestone and push to `origin/main` (commit messages end with a `Co-Authored-By` line). Keep README and this file current, and keep this file short.
 - Update **Resume here** and the milestone table as the last step of every milestone (and mid-milestone if tokens run low).
 
