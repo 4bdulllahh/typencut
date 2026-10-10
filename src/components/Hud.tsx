@@ -6,7 +6,22 @@ import type { GameEngine } from "@/game/engine";
 import type { Board } from "@/game/leaderboard";
 import type { Settings } from "@/game/settings";
 import type { Snapshot } from "@/game/sim";
-import type { GameEvent } from "@/game/types";
+import type { GameEvent, Mode } from "@/game/types";
+import { MIN_CUSTOM_WORDS, PACK_IDS, parseWordList, type PackId } from "@/game/words";
+
+export const MODE_INFO: Record<Mode, [name: string, blurb: string]> = {
+  classic: ["Classic", "Three lives, endless road"],
+  zen: ["Zen", "Crashes cost no lives; end the run from the menu"],
+  rush: ["Rush hour", "Traffic nearly twice as dense"],
+  timeAttack: ["Time attack", "Best score in 90 seconds"],
+  daily: ["Daily challenge", "Today's road, the same for everyone, with its own best"],
+};
+const PACK_LABELS: Record<PackId, string> = {
+  driving: "Driving", common: "Common English", programming: "Programming", spanish: "Spanish", french: "French", german: "German", custom: "Your own list",
+};
+const dayFmt = new Intl.DateTimeFormat(undefined, { month: "short", day: "numeric", timeZone: "UTC" });
+const dayLabel = (day: string) => dayFmt.format(new Date(`${day}T00:00:00Z`));
+const clock = (t: number) => `${Math.floor(Math.ceil(t) / 60)}:${String(Math.ceil(t) % 60).padStart(2, "0")}`;
 
 const Bar = ({ pct, className, thin = false }: { pct: number; className: string; thin?: boolean }) => (
   <div className={`overflow-hidden rounded-full bg-white/20 ${thin ? "mt-0.5 h-0.5" : "mt-1 h-1.5"}`}>
@@ -30,11 +45,15 @@ export function Dashboard({ snap }: { snap: Snapshot }) {
       </div>
       <div>
         <div className="flex items-baseline justify-between">
-          <span className="text-base tracking-wider" role="img" aria-label={`${snap.lives} of ${START_LIVES} lives`}>
-            {Array.from({ length: START_LIVES }, (_, i) => (
-              <span key={i} className={i < snap.lives ? "text-rose-400" : "opacity-25"}>♥</span>
-            ))}
-          </span>
+          {snap.mode === "zen" ? (
+            <span className="text-xs font-bold uppercase tracking-widest text-sky-200">zen</span>
+          ) : (
+            <span className="text-base tracking-wider" role="img" aria-label={`${snap.lives} of ${START_LIVES} lives`}>
+              {Array.from({ length: START_LIVES }, (_, i) => (
+                <span key={i} className={i < snap.lives ? "text-rose-400" : "opacity-25"}>♥</span>
+              ))}
+            </span>
+          )}
           <span className="text-lg font-extrabold">×{snap.multiplier.toFixed(1)}</span>
         </div>
         <Bar pct={(snap.multiplier - 1) / (MAX_MULTIPLIER - 1)} className="bg-amber-300" />
@@ -44,6 +63,11 @@ export function Dashboard({ snap }: { snap: Snapshot }) {
       <div className="text-right">
         <div className="text-xl font-extrabold leading-tight">{snap.score.toLocaleString()}</div>
         <div className="text-xs font-semibold opacity-80">{Math.round(snap.accuracy)}% accuracy</div>
+        {snap.timeLeft !== null && (
+          <div className={`text-sm font-extrabold ${snap.timeLeft < 10 ? "text-rose-300" : "text-amber-200"}`} aria-label={`${Math.ceil(snap.timeLeft)} seconds left`}>
+            {clock(snap.timeLeft)}
+          </div>
+        )}
       </div>
     </div>
   );
@@ -107,17 +131,21 @@ function Controls({ cut = "text-amber-300" }: { cut?: string }) {
   );
 }
 
-export function ReadyOverlay({ best }: { best: number }) {
+export function ReadyOverlay({ best, mode, pack, day }: { best: number; mode: Mode; pack: PackId; day: string }) {
   return (
     <div className="pointer-events-none absolute inset-x-4 top-[26%] rounded-2xl bg-black/45 p-5 text-center text-white shadow-xl backdrop-blur-md">
-      <h1 className="mb-3 text-3xl font-black italic tracking-tight">TYPENCUT</h1>
+      <h1 className="text-3xl font-black italic tracking-tight">TYPENCUT</h1>
+      <p className="mb-3 mt-1 text-xs font-semibold uppercase tracking-widest text-amber-200">
+        {MODE_INFO[mode][0]}
+        {mode === "daily" && ` · ${dayLabel(day)}`} · {PACK_LABELS[pack]} words
+      </p>
       <Controls />
       <p className="mt-4 text-sm font-semibold opacity-90">Start typing to go{best > 0 && ` · best ${best.toLocaleString()}`}</p>
     </div>
   );
 }
 
-export function GameOver({ snap, board, runDate, onRestart }: { snap: Snapshot; board: Board; runDate?: number; onRestart: () => void }) {
+export function GameOver({ snap, board, runDate, day, onRestart }: { snap: Snapshot; board: Board; runDate?: number; day: string; onRestart: () => void }) {
   const newBest = snap.score > 0 && snap.score >= board.best.score;
   const stats: [string, string][] = [
     ["Accuracy", `${Math.round(snap.accuracy)}%`],
@@ -128,7 +156,9 @@ export function GameOver({ snap, board, runDate, onRestart }: { snap: Snapshot; 
   return (
     <div className="absolute inset-0 grid place-items-center overflow-y-auto bg-black/50 p-4 backdrop-blur-sm">
       <div role="dialog" aria-modal="true" aria-labelledby="go-title" className="w-full max-w-sm rounded-2xl bg-white p-5 text-center text-stone-800 tabular-nums shadow-2xl dark:bg-slate-900 dark:text-slate-100">
-        <h2 id="go-title" className="text-sm font-semibold uppercase tracking-widest opacity-60">Run over</h2>
+        <h2 id="go-title" className="text-sm font-semibold uppercase tracking-widest opacity-60">
+          {snap.mode === "timeAttack" && snap.timeLeft === 0 ? "Time's up" : snap.mode === "zen" ? "Run ended" : "Run over"} · {MODE_INFO[snap.mode][0]}
+        </h2>
         <div className="mt-1 text-5xl font-black">{snap.score.toLocaleString()}</div>
         {newBest && <div className="mt-1 text-sm font-bold text-amber-500">New best!</div>}
         <dl className="mt-4 grid grid-cols-2 gap-2">
@@ -140,7 +170,7 @@ export function GameOver({ snap, board, runDate, onRestart }: { snap: Snapshot; 
           ))}
         </dl>
         <div className="mt-4 text-left xl:hidden">
-          <Leaderboard board={board} highlight={runDate} compact />
+          <Leaderboard board={board} highlight={runDate} mode={snap.mode} day={day} compact />
         </div>
         <button autoFocus onClick={onRestart} className="mt-5 w-full rounded-full bg-stone-900 py-3 font-semibold text-white hover:bg-stone-700 dark:bg-white dark:text-slate-900 dark:hover:bg-slate-200">
           Play again
@@ -153,7 +183,7 @@ export function GameOver({ snap, board, runDate, onRestart }: { snap: Snapshot; 
 const dateFmt = new Intl.DateTimeFormat(undefined, { month: "short", day: "numeric" });
 
 /** Top runs by score plus best-ever records, from localStorage. */
-export function Leaderboard({ board, highlight, compact = false }: { board: Board; highlight?: number; compact?: boolean }) {
+export function Leaderboard({ board, highlight, mode, day, compact = false }: { board: Board; highlight?: number; mode: Mode; day: string; compact?: boolean }) {
   const runs = compact ? board.runs.slice(0, 5) : board.runs;
   const records: [string, string][] = [
     ["Score", board.best.score.toLocaleString()],
@@ -163,7 +193,9 @@ export function Leaderboard({ board, highlight, compact = false }: { board: Boar
   ];
   return (
     <section className="text-sm tabular-nums">
-      <h2 className="mb-2 text-xs font-semibold uppercase tracking-widest opacity-60">Leaderboard</h2>
+      <h2 className="mb-2 text-xs font-semibold uppercase tracking-widest opacity-60">
+        {mode === "daily" ? `Daily challenge · ${dayLabel(day)}` : `Leaderboard · ${MODE_INFO[mode][0]}`}
+      </h2>
       {runs.length === 0 ? (
         <p className="opacity-60">No runs yet.</p>
       ) : (
@@ -198,7 +230,15 @@ export function Leaderboard({ board, highlight, compact = false }: { board: Boar
 type Toggle = "muted" | "engine" | "reduceMotion" | "touch";
 
 /** Slide-in panel on the left with the settings. The game pauses while it is open (Game.tsx); Escape or the backdrop closes it. */
-export function Menu({ open, onClose, settings, onSettings }: { open: boolean; onClose: () => void; settings: Settings; onSettings: (s: Settings) => void }) {
+export function Menu({ open, onClose, settings, onSettings, onEnd }: {
+  open: boolean;
+  onClose: () => void;
+  settings: Settings;
+  onSettings: (s: Settings) => void;
+  onEnd?: () => void; // only while a run is going
+}) {
+  const [draft, setDraft] = useState(settings.customWords);
+  const draftCount = parseWordList(draft).length;
   const first = useRef<HTMLButtonElement>(null);
   useEffect(() => {
     if (!open) return;
@@ -250,6 +290,59 @@ export function Menu({ open, onClose, settings, onSettings }: { open: boolean; o
         <ul className="-mx-3 space-y-1">
           {soon("Multiplayer", "Race friends live")}
         </ul>
+        {onEnd && (
+          <button onClick={onEnd} className="-mt-2 rounded-xl bg-black/5 px-3 py-2 text-left text-sm font-semibold hover:bg-black/10 dark:bg-white/10 dark:hover:bg-white/15">
+            End this run
+          </button>
+        )}
+        <fieldset className="text-sm">
+          <legend className="mb-1 text-xs font-semibold uppercase tracking-widest opacity-60">Mode</legend>
+          {(Object.keys(MODE_INFO) as Mode[]).map((m) => (
+            <label key={m} className="flex cursor-pointer items-start gap-2 py-1">
+              <input type="radio" name="mode" checked={settings.mode === m} onChange={() => set("mode", m)} className="mt-1 accent-amber-600" />
+              {label(MODE_INFO[m][0], MODE_INFO[m][1])}
+            </label>
+          ))}
+        </fieldset>
+        <section className="text-sm">
+          <label className="block">
+            <span className="mb-1 block text-xs font-semibold uppercase tracking-widest opacity-60">Words</span>
+            <select
+              value={settings.pack}
+              onChange={(e) => set("pack", e.target.value as PackId)}
+              className="w-full rounded-xl bg-black/5 px-3 py-2 font-semibold dark:bg-white/10"
+            >
+              {PACK_IDS.map((id) => (
+                <option key={id} value={id}>{PACK_LABELS[id]}</option>
+              ))}
+            </select>
+          </label>
+          {settings.pack === "custom" && (
+            <div className="mt-2">
+              <textarea
+                value={draft}
+                onChange={(e) => setDraft(e.target.value.slice(0, 5000))}
+                rows={4}
+                placeholder="Paste or type words, separated by spaces or commas"
+                aria-label="Your own words"
+                className="w-full rounded-xl bg-black/5 px-3 py-2 dark:bg-white/10"
+              />
+              <div className="mt-1 flex items-center justify-between gap-2">
+                <span className={`text-xs ${draftCount < MIN_CUSTOM_WORDS ? "text-rose-600 dark:text-rose-300" : "opacity-60"}`}>
+                  {draftCount < MIN_CUSTOM_WORDS ? `${draftCount} words: add at least ${MIN_CUSTOM_WORDS} (letters only)` : `${draftCount} words`}
+                </span>
+                <button
+                  onClick={() => set("customWords", draft)}
+                  disabled={draftCount < MIN_CUSTOM_WORDS || draft === settings.customWords}
+                  className="rounded-full bg-stone-900 px-3 py-1 text-xs font-semibold text-white disabled:opacity-40 dark:bg-white dark:text-slate-900"
+                >
+                  Use these words
+                </button>
+              </div>
+            </div>
+          )}
+          <p className="mt-2 text-xs opacity-60">Changing the mode or words starts a new run.</p>
+        </section>
         <section className="text-sm">
           <h2 className="mb-1 text-xs font-semibold uppercase tracking-widest opacity-60">Settings</h2>
           <label className="block py-1.5">

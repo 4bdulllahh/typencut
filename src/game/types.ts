@@ -3,6 +3,8 @@ export type NpcKind = "cruiser" | "merger";
 export type Dir = -1 | 1;
 export type PassGrade = "standard" | "dangerous" | "cleanCut";
 export type Status = "ready" | "running" | "over";
+/** daily = classic rules on a seed taken from the date. zen = crashes cost no lives. */
+export type Mode = "classic" | "zen" | "rush" | "timeAttack" | "daily";
 
 export interface Npc {
   id: number;
@@ -58,6 +60,7 @@ export interface Stats {
 
 export interface GameState {
   status: Status;
+  mode: Mode;
   seed: number;
   nextId: number;
   player: Player;
@@ -66,13 +69,15 @@ export interface GameState {
   word: string;
   nextWord: string;
   laneGap: number[]; // per lane: gap before its next car spawns
+  words: string[][]; // the word pack, in length buckets
 }
 
 export type Command =
   | { type: "key"; correct: boolean }
   | { type: "word"; dir: Dir | 0; nitro: boolean } // dir 0 = submitted with Enter: no steer, small boost
   | { type: "miss" }
-  | { type: "brake" };
+  | { type: "brake" }
+  | { type: "end" }; // finish the run now (the only way out of zen)
 
 export type GameEvent =
   | { type: "start" }

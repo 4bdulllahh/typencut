@@ -1,3 +1,5 @@
+import type { Mode } from "./types.ts";
+
 export interface Run {
   score: number;
   accuracy: number; // %
@@ -11,7 +13,12 @@ export interface Board {
   best: Records; // best value of each stat across every run, not just the top ones
 }
 
-const KEY = "typencut.board";
+/**
+ * One board per mode; classic keeps the original key so v1 boards carry over. The daily challenge
+ * gets a board per date. shortcut: old daily boards are never deleted (a few hundred bytes a day); prune if that ever matters.
+ */
+export const boardKey = (mode: Mode, date: string) =>
+  mode === "classic" ? "typencut.board" : mode === "daily" ? `typencut.board.daily.${date}` : `typencut.board.${mode}`;
 export const TOP_N = 10;
 const STATS = ["score", "accuracy", "maxSpeedMph", "cleanCuts"] as const;
 
@@ -38,18 +45,18 @@ export function parseBoard(raw: string | null): Board {
   return board;
 }
 
-export function loadBoard(): Board {
+export function loadBoard(key: string): Board {
   try {
-    return parseBoard(localStorage.getItem(KEY));
+    return parseBoard(localStorage.getItem(key));
   } catch {
     return emptyBoard();
   }
 }
 
-export function saveRun(run: Run): Board {
-  const board = addRun(loadBoard(), run);
+export function saveRun(run: Run, key: string): Board {
+  const board = addRun(loadBoard(key), run);
   try {
-    localStorage.setItem(KEY, JSON.stringify(board));
+    localStorage.setItem(key, JSON.stringify(board));
   } catch {}
   return board;
 }

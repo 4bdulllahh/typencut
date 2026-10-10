@@ -1,4 +1,4 @@
-import { applyCommand, createState, step } from "./sim.ts";
+import { applyCommand, createState, step, type RunOptions } from "./sim.ts";
 import type { Command, GameEvent, GameState } from "./types.ts";
 
 type Listener = (e: GameEvent) => void;
@@ -9,6 +9,7 @@ type Listener = (e: GameEvent) => void;
  */
 export class GameEngine {
   state: GameState = createState();
+  private opts: RunOptions = {};
   private listeners = new Set<Listener>();
   private raf = 0;
   private last = 0;
@@ -23,8 +24,10 @@ export class GameEngine {
     return () => void this.listeners.delete(fn);
   }
 
-  restart(seed?: number) {
-    this.state = createState(seed);
+  /** New run. Options (mode, words, a fixed seed) stick for later restarts until new ones are given. */
+  restart(opts: RunOptions = this.opts) {
+    this.opts = opts;
+    this.state = createState(opts.seed, opts);
     this.emit([{ type: "restart" }]);
   }
 

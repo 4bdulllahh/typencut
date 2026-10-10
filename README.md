@@ -4,7 +4,7 @@ Type to weave a Porsche 911 GT3 RS through highway traffic.
 
 A browser speed-typing game inspired by *Assetto Corsa: No Hesi* highway weaving, drawn in the flat-shaded, low-poly style of *Art of Rally*. Every word you type moves you: finish it with a comma to go one lane left, a full stop to go right, or Enter to hold your lane with a burst of speed. Shout it in ALL CAPS for nitro, and tap Enter twice to brake. Slip past black cruisers and lane-hopping red mergers, chain close passes into a 5× multiplier, and cut out from right behind a car for a 500-point CLEAN CUT. No account, no server and no downloads: every car, tree, sign and sound is generated in code.
 
-**Live:** https://typencut-two.vercel.app · **Version:** 1.3.0
+**Live:** https://typencut-two.vercel.app · **Version:** 1.4.0
 
 [![Deploy with Vercel](https://vercel.com/button)](https://vercel.com/new/clone?repository-url=https%3A%2F%2Fgithub.com%2F4bdulllahh%2Ftypencut&project-name=typencut&repository-name=typencut)
 [![CI](https://github.com/4bdulllahh/typencut/actions/workflows/ci.yml/badge.svg)](https://github.com/4bdulllahh/typencut/actions/workflows/ci.yml)
@@ -22,13 +22,16 @@ A browser speed-typing game inspired by *Assetto Corsa: No Hesi* highway weaving
 - **Slipstream.** Sit close behind a car in your lane and the draft meter under the speedometer fills, faster the closer you are. When it reads "nitro ready", your next word fires a free nitro, perfect for cutting out from behind that same car. Partial fills carry over between cars.
 - **Speed traps.** The roadside speed cameras carry a 150 mph sign. Blast past one at 150 or faster (cruising tops out at 140, so time a nitro) for a bonus of 200 points plus 10 for every mph over, times your multiplier, with a camera flash and a SPEED TRAP banner.
 - **Traffic without dead stretches.** Every lane is refilled on its own, so cars stay evenly spread across all five lanes: about eight in view on average and never an empty road.
+- **Five modes.** Classic (three lives, endless road), Zen (crashes cost no lives; end the run from the menu), Rush hour (traffic nearly twice as dense), Time attack (best score in 90 seconds, with a countdown on the dashboard) and a Daily challenge. Each mode keeps its own leaderboard.
+- **Daily challenge.** A run seeded from today's date (UTC), so everyone starts on the same road with the same words, under Classic rules. It keeps a separate best for each day.
+- **Word packs.** Driving, Common English, Programming, Spanish, French or German, or paste your own list. Every pack is sorted by word length, so the difficulty still ramps from short words to long ones.
 - **Gets harder as you go.** Your cruising speed climbs from 100 to 140 mph, traffic gets about 70% denser, and words grow from three letters to seven or more, with mixed casing (`DrIft`) that must be typed exactly.
 - **Cars you can recognise.** Every model has its own shaped body, built from its real side profile and plan taper: the 911's fastback and raised front wings, the Yaris's short hatch, the Civic's sloping fastback, the Malibu's long three-box sedan, the Rogue's tall SUV body with roof rails, the F-150's cab and open bed, and the sporty M3, C63 and A5. Each has glass where its windows are, mirrors, its own wheelbase and its own head- and taillight layout.
 - **A car that shows the damage.** The GT3 RS has a white body, carbon hood and roof, fender louvers, a swan-neck wing, dual centre exhausts and a red LED tail strip. After one crash it carries scuffs and trails light smoke; after two it is dented, with a popped hood, a hanging bumper and thick black smoke. Hard lane changes and braking leave skid marks on the asphalt.
 - **Day and night.** A warm pastel day with soft shadows, or a night drive with lit streetlights, headlight beams, a real spotlight from your car, and a soft red glow on the road behind each taillight, placed where that car's lamps really are (corner lamps on most cars, tall slim lamps on the F-150, one full-width strip on the GT3 RS) and stretching with speed. The toggle is top right and your choice is remembered.
 - **Synthesised sound.** An engine note that climbs through a seven-speed gearbox as you speed up, drops on every upshift and howls on nitro. A soft linear-switch key click (duller on a wrong letter), a turbo blow-off on nitro, a rising whoosh on an Enter boost, tyre screech on lane changes and braking, a horn when you pass close, and a thud when you crash. All generated live with the Web Audio API.
-- **Accuracy over speed.** You type when a gap opens, not as fast as you can, so the game tracks accuracy rather than words per minute. The digital dashboard shows speed, lives, multiplier, score and live accuracy. At game over you get score, accuracy, top speed, clean cuts and distance. Your top 10 runs and best-ever stats sit in a sidebar on wide screens and on the game-over card on smaller ones.
-- **Menu and settings.** A slide-in panel on the left pauses the game. Settings: volume, mute, engine sound on or off, graphics quality (Low drops shadows and renders at 1× for slower devices), reduce motion (no camera shake, nitro zoom or edge blur; on by default if your system asks for less motion), and on-screen controls. Your choices are remembered. Multiplayer has its place ready.
+- **Accuracy over speed.** You type when a gap opens, not as fast as you can, so the game tracks accuracy rather than words per minute. The digital dashboard shows speed, lives, multiplier, score and live accuracy. At game over you get score, accuracy, top speed, clean cuts and distance. Your top 10 runs and best-ever stats for the current mode sit in a sidebar on wide screens and on the game-over card on smaller ones.
+- **Menu and settings.** A slide-in panel on the left pauses the game. It picks the mode and word pack, ends the current run, and holds the settings: volume, mute, engine sound on or off, graphics quality (Low drops shadows and renders at 1× for slower devices), reduce motion (no camera shake, nitro zoom or edge blur; on by default if your system asks for less motion), and on-screen controls. Your choices are remembered. Multiplayer has its place ready.
 - **Phone controls.** Left, straight and right buttons above the dock, on by default on touch screens. They submit the word you've typed without closing the phone's keyboard, the middle one doubles as the brake (tap twice on an empty box), and crashes vibrate on phones that support it.
 - **One typeface, phone to desktop.** Everything uses the same system sans (Segoe UI on Windows, San Francisco on Apple devices), and the road stays in a 9:16 portrait column at any window size.
 
@@ -40,7 +43,7 @@ A browser speed-typing game inspired by *Assetto Corsa: No Hesi* highway weaving
 
 ## Privacy
 
-Typencut has no backend. The game runs entirely in your browser and makes no network requests after the page loads: no analytics, cookies, accounts or third-party fonts. It remembers three things, all in your browser's localStorage: your day/night choice (`typencut.theme`), your settings (`typencut.settings`) and your leaderboard (`typencut.board`). Clearing site data resets them.
+Typencut has no backend. The game runs entirely in your browser and makes no network requests after the page loads: no analytics, cookies, accounts or third-party fonts. It remembers three kinds of thing, all in your browser's localStorage: your day/night choice (`typencut.theme`), your settings, including your mode, word pack and your own word list (`typencut.settings`), and your leaderboards (`typencut.board` for Classic, `typencut.board.<mode>` for the others, `typencut.board.daily.<date>` for each daily challenge). Clearing site data resets them.
 
 ## Principles
 
@@ -70,7 +73,7 @@ Typencut has no backend. The game runs entirely in your browser and makes no net
 - **Enter twice** within 350 ms with the dock empty brakes. An Enter that submits a word never counts toward a brake.
 - **Accuracy** is correct keystrokes over all keystrokes, including the submitting key. There is no WPM: you wait for gaps in traffic, so typing speed says little about how well you drive.
 
-Words come from 221 driving words in five length buckets (3, 4, 5, 6 and 7+ letters). Until difficulty reaches 5% you only get three-letter words; after that a weighting window slides toward longer ones. Past 35% difficulty some words get mixed casing. A prompt is never all caps, because all caps means nitro.
+Words come from the chosen pack, sorted into five length buckets (3 or fewer, 4, 5, 6 and 7+ letters): Driving (221 words), Common English (167), Programming (129), Spanish (79), French (75) and German (70). The language packs use words without accents or special letters, so they can be typed on any keyboard. Your own list keeps words of 2 to 14 letters (A–Z only), lowercased and without repeats; it needs at least 10, or the Driving words are used instead. Until difficulty reaches 5% you only get the shortest words; after that a weighting window slides toward longer ones, skipping buckets a pack has no words for. Past 35% difficulty some words get mixed casing. A prompt is never all caps, because all caps means nitro.
 
 ## How the simulation works
 
@@ -80,6 +83,7 @@ Words come from 221 driving words in five length buckets (3, 4, 5, 6 and 7+ lett
 - **Lane changes** use a critically damped spring, which settles in about half a second without overshoot.
 - **Nitro** pulls speed toward 180 mph for one second. An **Enter boost** pulls it 12 mph above cruise for 0.8 seconds. **Braking** pulls it toward 40% of cruise speed for one second.
 - **Traffic** is spawned per lane, 200 m ahead (just past the fog). Each lane gets its next car once its last one has drifted a random 54 to 126 m behind that line, shrinking to 31 to 73 m at full difficulty. Spawning from one road-wide car count left empty stretches: far-left-lane cars drive almost as fast as you, so they stayed in view for a long time and used up the count, starving the other lanes. A test now fails if the view is ever left with fewer than three cars. Cars are removed 40 m behind or 460 m ahead. Every car follows the one in front: it matches its speed inside 25 m and brakes below it inside 6 m, so cars never drive through each other. Mergers reconsider every 2 to 6 seconds, only move into a clear lane, and never swerve into a player already alongside, since that crash would be unavoidable.
+- **Modes.** Zen skips losing a life on a crash (the rest of the crash still happens), Rush hour multiplies every lane gap by 0.55, Time attack ends the run after 90 seconds of running time, and an `end` command finishes any run from the menu. The daily seed is an FNV-1a hash of the UTC date. Because traffic spawns relative to the player, roads diverge once players drive differently; what's shared is the starting road and the random sequence.
 - **Combo timer.** Every pass sets a 6-second timer. When it runs out the combo drops by one (multiplier −0.2×) and the timer restarts at one second, so a stall drains the multiplier step by step rather than all at once.
 - **Slipstream.** While a car is ahead in your lane with less than 16 m between bumpers, the draft meter fills at up to 3 per second, scaled by how close you are (0 at 16 m, full rate at touching distance). Away from one it fades by 0.25 per second. Once full it stays full until a word spends it.
 - **Speed traps.** Cameras stand every 360 m from the 35 m mark (`SPEED_CAMERA` in `config.ts`, shared by the sim and the scene). Crossing one at 150 mph or more scores (200 + 10 × mph over 150) × multiplier. Speed traps add score but don't count as passes.
@@ -139,7 +143,7 @@ Points are multiplied by your multiplier when scored. The multiplier is 1 + 0.2 
 
 ## Leaderboard
 
-[`src/game/leaderboard.ts`](src/game/leaderboard.ts) keeps your top 10 runs by score and, separately, your best value for every stat (score, accuracy, top speed, clean cuts), so a record set in a low-scoring run still counts. Anyone can edit localStorage, so the stored board is validated on every load: any entry that isn't a complete set of finite numbers is dropped instead of breaking the page. Runs saved by v1.0 still load; their old WPM field is ignored. Both rules are tested.
+[`src/game/leaderboard.ts`](src/game/leaderboard.ts) keeps one board per mode (Classic keeps the original key, so v1 boards carry over) and one per day for the daily challenge. Each keeps your top 10 runs by score and, separately, your best value for every stat (score, accuracy, top speed, clean cuts), so a record set in a low-scoring run still counts. Anyone can edit localStorage, so the stored board is validated on every load: any entry that isn't a complete set of finite numbers is dropped instead of breaking the page. Runs saved by v1.0 still load; their old WPM field is ignored. Both rules are tested.
 
 ## Architecture
 
@@ -186,7 +190,7 @@ npm run dev        # http://localhost:3000
 | `npm run dev` | Development server with hot reload |
 | `npm run build` | Production build |
 | `npm start` | Serve the production build |
-| `npm test` | Simulation, input, word, leaderboard, settings and engine-sound tests (20, with `node --test`) |
+| `npm test` | Simulation, modes, word packs, input, leaderboard, settings and engine-sound tests (24, with `node --test`) |
 | `npm run typecheck` | Type check with `tsc --noEmit` |
 | `node scripts/shot.mjs <url> <outDir> [--night]` | Plays a run in headless Chrome (eight words including two nitros and one Enter submit, a brake, then idles until game over), saves six screenshots and prints any console errors. Set `CHROME` if Chrome isn't in its default Windows location |
 
@@ -203,7 +207,8 @@ CI runs the type check, tests and production build on every push and pull reques
 - **Multiplayer** in the menu is a placeholder for now.
 - **System font.** The typeface is your device's own sans, so it differs a little between Windows, macOS and Linux.
 - **Local leaderboard.** Runs are saved only in the browser you played in, without names. There is no online leaderboard.
-- **English words only**, from a fixed list of 221.
+- **Word packs** have no accented letters: the Spanish, French and German packs use words without accents or umlauts.
+- **The daily challenge** shares the starting road and the random sequence, not every car: traffic spawns relative to each player, so roads drift apart as people drive differently.
 - **Overlapping text.** The floating word can overlap score popups when several land at once.
 
 ## Roadmap
@@ -217,7 +222,7 @@ CI runs the type check, tests and production build on every push and pull reques
 - [x] **v1.1** Enter to hold your lane with a boost, recognisable lofted car bodies, per-car taillight glows, even traffic in every lane, accuracy instead of WPM, one typeface, left menu with pause
 - [x] **M7** Settings and feel: volume and mute, graphics quality, reduce motion, an engine note that rises with speed, on-screen phone controls (v1.2.0)
 - [x] **M8** Gameplay: slipstream meter, speed-trap bonuses at the roadside cameras, a combo timer (v1.3.0)
-- [ ] **M9** Modes and content: Zen, Rush hour and Time attack modes, word packs, a daily challenge
+- [x] **M9** Modes and content: Zen, Rush hour and Time attack modes, word packs, a daily challenge (v1.4.0)
 - [ ] **M10** Progression: achievements, unlockable paints and cars, a shareable result card
 - [ ] **M11** Weather: rain and fog
 

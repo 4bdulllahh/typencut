@@ -1,4 +1,4 @@
-import type { CarModel, NpcKind } from "./types.ts";
+import type { CarModel, Mode, NpcKind } from "./types.ts";
 
 export const LANES = 5;
 export const LANE_W = 3.6;
@@ -25,6 +25,9 @@ export const DRAFT_RANGE = 16; // m behind a car (bumper to bumper) where the sl
 export const SPEED_CAMERA = { period: 360, offset: 35, mph: 150 } as const;
 export const MULTIPLIER_STEP = 0.2;
 export const POINTS = { standard: 50, dangerous: 100, cleanCut: 500 } as const;
+export const MODES: Mode[] = ["classic", "zen", "rush", "timeAttack", "daily"];
+export const TIME_ATTACK_S = 90;
+export const RUSH_GAP = 0.55; // rush hour: lane gaps shrink to this fraction
 
 export const PLAYER_DIMS = { length: 4.57, width: 1.9 };
 

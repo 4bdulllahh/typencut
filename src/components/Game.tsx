@@ -1,11 +1,12 @@
 "use client";
 
-import { useCallback, useEffect, useRef, useState } from "react";
+import { useCallback, useEffect, useMemo, useRef, useState } from "react";
 import { attachAudio } from "@/game/audio";
 import { GameEngine } from "@/game/engine";
-import { loadBoard, saveRun } from "@/game/leaderboard";
+import { boardKey, loadBoard, saveRun } from "@/game/leaderboard";
 import { loadSettings, saveSettings } from "@/game/settings";
-import { snapshot } from "@/game/sim";
+import { seedFromDate, snapshot } from "@/game/sim";
+import { packWords } from "@/game/words";
 import { Dashboard, GameOver, Leaderboard, Menu, Popups, ReadyOverlay } from "./Hud";
 import { Scene } from "./scene/Scene";
 import { TypingDock } from "./TypingDock";
@@ -34,15 +35,22 @@ function EdgeFx({ speedMph, nitro, still }: { speedMph: number; nitro: boolean; 
   );
 }
 
+/** UTC date, so the daily challenge's road is the same everywhere on a given day. */
+const today = () => new Date().toISOString().slice(0, 10);
+
 export function Game() {
   const [engine] = useState(() => new GameEngine());
   const [snap, setSnap] = useState(() => snapshot(engine.state));
   const [night, setNight] = useState(() => readTheme() === "night");
-  const [board, setBoard] = useState(loadBoard);
   const [runDate, setRunDate] = useState<number>();
   const [menu, setMenu] = useState(false);
   const closeMenu = useCallback(() => setMenu(false), []);
   const [settings, setSettings] = useState(loadSettings);
+  const [day, setDay] = useState(today); // fixed when a mode is applied, so a run that crosses midnight keeps its board
+  const key = boardKey(settings.mode, day);
+  const keyRef = useRef(key);
+  const [board, setBoard] = useState(() => loadBoard(key));
+  const words = useMemo(() => packWords(settings.pack, settings.customWords), [settings.pack, settings.customWords]);
   const audio = useRef<ReturnType<typeof attachAudio>>(null);
   const vibrate = useRef(settings.touch);
 
@@ -68,6 +76,19 @@ export function Game() {
 
   useEffect(() => audio.current?.pause(menu), [menu]);
 
+  useEffect(() => {
+    keyRef.current = key;
+    setBoard(loadBoard(key));
+  }, [key]);
+
+  // A new mode or word pack starts a fresh run (the daily challenge on today's seed).
+  useEffect(() => {
+    const d = today();
+    setDay(d);
+    setRunDate(undefined);
+    engine.restart({ mode: settings.mode, words, seed: settings.mode === "daily" ? seedFromDate(d) : undefined });
+  }, [engine, settings.mode, words]);
+
   useEffect(
     () =>
       engine.on((e) => {
@@ -75,7 +96,7 @@ export function Game() {
         if (e.type !== "gameOver") return;
         const s = snapshot(engine.state);
         const date = Date.now();
-        setBoard(saveRun({ score: s.score, accuracy: s.accuracy, maxSpeedMph: s.maxSpeedMph, cleanCuts: s.cleanCuts, date }));
+        setBoard(saveRun({ score: s.score, accuracy: s.accuracy, maxSpeedMph: s.maxSpeedMph, cleanCuts: s.cleanCuts, date }, keyRef.current));
         setRunDate(date);
       }),
     [engine],
@@ -116,16 +137,22 @@ export function Game() {
           </div>
         </div>
         <Popups engine={engine} />
-        {snap.status === "ready" && <ReadyOverlay best={board.best.score} />}
+        {snap.status === "ready" && <ReadyOverlay best={board.best.score} mode={settings.mode} pack={settings.pack} day={day} />}
         <div className={`absolute inset-x-0 flex justify-center px-3 ${settings.touch ? "bottom-2" : "bottom-6"}`}>
           <TypingDock engine={engine} word={snap.word} nextWord={snap.nextWord} disabled={snap.status === "over" || menu} touch={settings.touch} />
         </div>
-        {snap.status === "over" && <GameOver snap={snap} board={board} runDate={runDate} onRestart={() => engine.restart()} />}
+        {snap.status === "over" && <GameOver snap={snap} board={board} runDate={runDate} day={day} onRestart={() => engine.restart()} />}
       </div>
       <aside className="hidden w-72 shrink-0 overflow-y-auto py-6 xl:block">
-        <Leaderboard board={board} highlight={runDate} />
+        <Leaderboard board={board} highlight={runDate} mode={settings.mode} day={day} />
       </aside>
-      <Menu open={menu} onClose={closeMenu} settings={settings} onSettings={setSettings} />
+      <Menu
+        open={menu}
+        onClose={closeMenu}
+        settings={settings}
+        onSettings={setSettings}
+        onEnd={snap.status === "running" ? () => (engine.send({ type: "end" }), setMenu(false)) : undefined}
+      />
     </main>
   );
 }

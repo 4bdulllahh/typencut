@@ -11,6 +11,10 @@ test("parseSettings keeps valid fields and drops the rest", () => {
   assert.deepEqual(s, { ...base, volume: 0.3, muted: true, quality: "low", touch: true });
   assert.equal(parseSettings(JSON.stringify({ volume: 7, quality: "ultra" }), base).volume, base.volume);
   assert.equal(parseSettings(JSON.stringify({ quality: "ultra" }), base).quality, "high");
+  const m = parseSettings(JSON.stringify({ mode: "zen", pack: "french", customWords: "a b c" }), base);
+  assert.deepEqual([m.mode, m.pack, m.customWords], ["zen", "french", "a b c"]);
+  const bad = parseSettings(JSON.stringify({ mode: "god", pack: "klingon", customWords: 5 }), base);
+  assert.deepEqual([bad.mode, bad.pack, bad.customWords], ["classic", "driving", ""]);
 });
 
 test("engine revs climb through each gear and drop on the upshift", () => {

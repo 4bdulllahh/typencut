@@ -2,9 +2,9 @@ import assert from "node:assert/strict";
 import { test } from "node:test";
 import { COMBO_TIME, LANES, MPH, POINTS, SPEED_CAMERA, laneX } from "./config.ts";
 import { isPrefix, matchWord } from "./input.ts";
-import { applyCommand, createState, rand, spawn, step } from "./sim.ts";
+import { applyCommand, createState, rand, seedFromDate, snapshot, spawn, step } from "./sim.ts";
 import type { GameState, Npc } from "./types.ts";
-import { WORDS, pickWord } from "./words.ts";
+import { PACKS, WORDS, bucketize, parseWordList, pickWord } from "./words.ts";
 
 /** A running state with an empty road. */
 function running(seed = 1): GameState {
@@ -19,6 +19,12 @@ function put(s: GameState, lane: number, ahead: number, mph = 60): Npc {
   Object.assign(n, { lane, targetLane: lane, x: laneX(lane), speed: mph * MPH, cruise: mph * MPH, kind: "cruiser" });
   return n;
 }
+
+/** A seeded random source, for tests that call word helpers directly. */
+const rng = (seed: number) => {
+  const st = createState(seed);
+  return () => rand(st);
+};
 
 const run = (s: GameState, seconds: number) => {
   const events = [];
@@ -235,4 +241,57 @@ test("speed traps pay out only at or above the camera's limit", () => {
   const trap = step(s, 0.1).find((e) => e.type === "speedTrap");
   assert.ok(trap && trap.type === "speedTrap" && trap.mph >= 165 && trap.points >= 350);
   assert.equal(s.stats.score, before + (trap.type === "speedTrap" ? trap.points : 0));
+});
+
+test("zen: crashes cost no lives; `end` finishes any run", () => {
+  const s = createState(1, { mode: "zen" });
+  s.npcs = [];
+  applyCommand(s, { type: "key", correct: true });
+  put(s, 2, 20, 30);
+  assert.ok(run(s, 3).some((e) => e.type === "collision"));
+  assert.equal(s.player.lives, 3);
+  assert.equal(s.status, "running");
+  assert.deepEqual(applyCommand(s, { type: "end" }), [{ type: "gameOver" }]);
+  assert.equal(s.status, "over");
+});
+
+test("time attack ends after 90 seconds; rush hour packs in more traffic", () => {
+  const t = createState(5, { mode: "timeAttack" });
+  applyCommand(t, { type: "key", correct: true });
+  let over = false;
+  for (let i = 0; i < 89 * 60; i++) step(t, 1 / 60), (t.player.lives = 3);
+  assert.equal(t.status, "running");
+  for (let i = 0; i < 2 * 60 && !over; i++) over = step(t, 1 / 60).some((e) => e.type === "gameOver");
+  assert.ok(over);
+  assert.equal(snapshot(t).status, "over");
+
+  const count = (mode: "classic" | "rush") => {
+    const s = createState(8, { mode });
+    applyCommand(s, { type: "key", correct: true });
+    let sum = 0;
+    for (let i = 0; i < 30 * 60; i++) {
+      step(s, 1 / 60);
+      s.player.lives = 3;
+      if (i % 60 === 0) sum += s.npcs.filter((n) => n.s - s.player.s > -15 && n.s - s.player.s < 125).length;
+    }
+    return sum;
+  };
+  assert.ok(count("rush") > count("classic") * 1.4);
+});
+
+test("word packs: custom lists are cleaned and bucketed; picks skip empty buckets", () => {
+  for (const pack of Object.values(PACKS)) assert.ok(pack.flat().every((w) => /^[a-z]+$/.test(w)) && pack.flat().length >= 60);
+  assert.deepEqual(parseWordList("Hello, world;  a  42go hello  Typing\nrace"), ["hello", "world", "typing", "race"]);
+  const buckets = bucketize(["supercalifragilistic".slice(0, 14), "keyboard", "type"]);
+  assert.deepEqual(buckets.map((b) => b.length), [0, 1, 0, 0, 2]);
+  const r = rng(4);
+  for (let i = 0; i < 50; i++) assert.ok(["type", "keyboard", "supercalifragi"].includes(pickWord(r, i / 50, "", buckets).toLowerCase()));
+  const s = createState(2, { words: bucketize(parseWordList("alpha bravo charlie delta echo foxtrot golf hotel india juliet")) });
+  assert.ok(["alpha", "bravo", "charlie", "delta", "echo", "foxtrot", "golf", "hotel", "india", "juliet"].includes(s.word.toLowerCase()));
+});
+
+test("the daily seed is stable for a date and differs between dates", () => {
+  assert.equal(seedFromDate("2026-10-10"), seedFromDate("2026-10-10"));
+  assert.notEqual(seedFromDate("2026-10-10"), seedFromDate("2026-10-11"));
+  assert.deepEqual(snapshot(createState(seedFromDate("2026-10-10"))).word, snapshot(createState(seedFromDate("2026-10-10"))).word);
 });

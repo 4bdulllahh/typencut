@@ -1,9 +1,9 @@
 import {
-  BOOST_MPH, BOOST_TIME, BRAKE_TIME, CLEAN_CUT_GAP, COMBO_TIME, DRAFT_RANGE, SPEED_CAMERA, CRUISE_MPH, CRUISERS, INVULN_TIME, LANES, MAX_MULTIPLIER, MERGERS, MODELS, MPH,
+  BOOST_MPH, BOOST_TIME, BRAKE_TIME, CLEAN_CUT_GAP, COMBO_TIME, DRAFT_RANGE, RUSH_GAP, SPEED_CAMERA, TIME_ATTACK_S, CRUISE_MPH, CRUISERS, INVULN_TIME, LANES, MAX_MULTIPLIER, MERGERS, MODELS, MPH,
   MULTIPLIER_STEP, NITRO_MPH, NITRO_TIME, PLAYER_DIMS, POINTS, START_LIVES, SURPRISE_CUT_CHANCE, laneX, toMph,
 } from "./config.ts";
-import type { Command, GameEvent, GameState, Npc, PassGrade } from "./types.ts";
-import { pickWord } from "./words.ts";
+import type { Command, GameEvent, GameState, Mode, Npc, PassGrade } from "./types.ts";
+import { WORDS, pickWord } from "./words.ts";
 
 const LAT_K = 90; // lane-change spring stiffness (critically damped, ~0.5 s settle)
 const LAT_C = 2 * Math.sqrt(LAT_K);
@@ -26,9 +26,19 @@ const approach = (v: number, target: number, step: number) =>
 export const progress = (s: GameState) => Math.min(1, s.player.s / 8000 + s.stats.score / 60000);
 export const cruiseSpeed = (p: number) => (CRUISE_MPH[0] + (CRUISE_MPH[1] - CRUISE_MPH[0]) * p) * MPH;
 
-export function createState(seed = Date.now()): GameState {
+export interface RunOptions {
+  seed?: number;
+  mode?: Mode;
+  words?: string[][]; // length buckets, see `bucketize`
+}
+
+/** FNV-1a of a date string such as "2026-10-10": the daily challenge's seed. */
+export const seedFromDate = (date: string) => [...date].reduce((h, c) => Math.imul(h ^ c.charCodeAt(0), 16777619), 2166136261) | 0;
+
+export function createState(seed = Date.now(), { mode = "classic", words = WORDS }: Omit<RunOptions, "seed"> = {}): GameState {
   const state: GameState = {
     status: "ready",
+    mode,
     seed: seed | 0,
     nextId: 1,
     player: {
@@ -43,9 +53,10 @@ export function createState(seed = Date.now()): GameState {
     word: "",
     nextWord: "",
     laneGap: [],
+    words,
   };
-  state.word = pickWord(() => rand(state), 0);
-  state.nextWord = pickWord(() => rand(state), 0, state.word);
+  state.word = pickWord(() => rand(state), 0, "", words);
+  state.nextWord = pickWord(() => rand(state), 0, state.word, words);
   // Pre-fill every lane, keeping the player's lane clear for the first stretch.
   for (let lane = 0; lane < LANES; lane++) {
     for (let s = 40 + rand(state) * laneGap(state); s < SPAWN_AT; s += laneGap(state)) spawn(state, s, lane, 2);
@@ -69,7 +80,10 @@ export function applyCommand(state: GameState, cmd: Command): GameEvent[] {
     return events;
   }
   if (state.status !== "running") return events;
-  if (cmd.type === "miss") {
+  if (cmd.type === "end") {
+    state.status = "over";
+    events.push({ type: "gameOver" });
+  } else if (cmd.type === "miss") {
     st.misses++;
     events.push({ type: "miss" });
   } else if (cmd.type === "brake") {
@@ -110,7 +124,7 @@ export function applyCommand(state: GameState, cmd: Command): GameEvent[] {
       events.push({ type: "nitro" });
     }
     state.word = state.nextWord;
-    state.nextWord = pickWord(() => rand(state), progress(state), state.word);
+    state.nextWord = pickWord(() => rand(state), progress(state), state.word, state.words);
     events.push({ type: "word", word: state.word });
   }
   return events;
@@ -122,6 +136,11 @@ export function step(state: GameState, dt: number): GameEvent[] {
   const { player: pl, stats: st } = state;
   const p = progress(state);
   st.elapsed += dt;
+  if (state.mode === "timeAttack" && st.elapsed >= TIME_ATTACK_S) {
+    state.status = "over";
+    events.push({ type: "gameOver" });
+    return events;
+  }
 
   // Player: speed
   pl.nitroT = Math.max(0, pl.nitroT - dt);
@@ -276,7 +295,7 @@ function collide(state: GameState, n: Npc, events: GameEvent[]) {
   const { player: pl, stats: st } = state;
   n.hit = true;
   n.speed += 3;
-  pl.lives--;
+  if (state.mode !== "zen") pl.lives--;
   pl.invulnT = INVULN_TIME;
   pl.speed *= 0.5;
   pl.nitroT = 0;
@@ -311,7 +330,7 @@ function scorePass(state: GameState, n: Npc, events: GameEvent[]) {
 }
 
 /** Road distance before the next car in a lane: wide early, tighter as difficulty rises. */
-const laneGap = (state: GameState) => (90 - 38 * progress(state)) * (0.6 + rand(state) * 0.8);
+const laneGap = (state: GameState) => (90 - 38 * progress(state)) * (0.6 + rand(state) * 0.8) * (state.mode === "rush" ? RUSH_GAP : 1);
 
 /** Adds one car at road distance `s` if there is room. `avoidLane` keeps a lane clear (start of a run). */
 export function spawn(state: GameState, s: number, lane = Math.floor(rand(state) * LANES), avoidLane = -1): Npc | null {
@@ -340,6 +359,8 @@ export function snapshot(s: GameState) {
   const { player: pl, stats: st } = s;
   return {
     status: s.status,
+    mode: s.mode,
+    timeLeft: s.mode === "timeAttack" ? Math.max(0, TIME_ATTACK_S - st.elapsed) : null,
     word: s.word,
     nextWord: s.nextWord,
     speedMph: toMph(pl.speed),

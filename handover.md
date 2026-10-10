@@ -1,17 +1,18 @@
 # Typencut: handover (compact)
 
-_Updated 2026-10-10 · M7 + M8 pushed · **live** https://typencut-two.vercel.app · repo `C:\Users\Computer\Documents\GitHub\typencut`, remote https://github.com/4bdulllahh/typencut · full brief in `docs/spec.md`._
+_Updated 2026-10-10 · M9 pushed, **M10 in progress** · **live** https://typencut-two.vercel.app · repo `C:\Users\Computer\Documents\GitHub\typencut`, remote https://github.com/4bdulllahh/typencut · full brief in `docs/spec.md`._
 
 ## Resume here
-- **v1.0, v1.1, M7** are on `origin/main` (`2773485`). Owner confirmed the audio sounds right (before the M7 engine note).
-- **M8** (gameplay) pushed: typecheck + build clean, 20 tests pass, a headless run that nitros through cameras saw the SPEED TRAP banner + flash day and night, regression shot run clean. Version 1.3.0.
-  - Sim: `COMBO_TIME` 6 s → `stats.comboT`, drains one combo step per second after (`MAX_COMBO` clamp); `player.draft` 0–1 fills within `DRAFT_RANGE` 16 m behind a car in lane (`draftGap`, rate 3 × closeness), fades 0.25/s, full = next correct word is a nitro (`slipstream` + `nitro` events; Enter + full draft = nitro, no boost); `SPEED_CAMERA` {period 360, offset 35, mph 150} in `config.ts` → `speedTrap` event, (200 + 10 × over) × multiplier. Events: `draftReady`, `slipstream`, `speedTrap`.
-  - HUD: draft bar under the speedometer ("nitro ready" when full), thin combo-timer bar under the multiplier (rose under 2 s), popups for SPEED TRAP (big), DRAFT READY, SLIPSTREAM, `.flash` camera flash; how-to lines for draft + traps. Audio: draft chirp, trap shutter + chime. World: round 150 limit sign on each camera (`limitSignTexture`).
-  - Never saw "nitro ready" in a headless run (the scripted driver closes too fast); covered by a unit test. Tuning knob if the owner finds it hard: fill rate 3 in `step()`.
+- **v1.0, v1.1, M7, M8, M9** are on `origin/main`.
+- **M9** (modes + content), pushed: typecheck + build clean, 24 tests pass, a headless run drove the real menu through Zen (badge, End this run, "Run ended · Zen" + its board), Time attack (1:28 countdown), Daily + Spanish ("DAILY CHALLENGE · OCT 10 · SPANISH WORDS", word "voz") and a custom list (word "echo"), no console errors. Version 1.4.0.
+  - Sim: `Mode` (classic, zen, rush, timeAttack, daily) + `state.words` buckets via `createState(seed, { mode, words })`; `engine.restart(opts)` keeps opts for Play again. Zen: no life lost on crash; `end` command → gameOver; time attack ends at `TIME_ATTACK_S` 90 (snapshot `timeLeft`); rush: lane gaps × `RUSH_GAP` 0.55; daily = classic rules on `seedFromDate(UTC date)` (FNV-1a).
+  - Words: `LISTS` (driving, common, programming, spanish, french, german; A–Z only) → `bucketize` (≤3, 4, 5, 6, 7+) → `PACKS`; `parseWordList` (2–14 letters, lowercased, deduped, ≥ `MIN_CUSTOM_WORDS` 10 else driving via `packWords`); `pickWord(..., buckets)` skips empty buckets.
+  - Settings gain `mode`, `pack`, `customWords` (validated). Leaderboards per mode via `boardKey(mode, day)` (classic keeps `typencut.board`).
+  - UI: Menu has End this run (while running), Mode radios, Words select + custom textarea ("Use these words"); ready card shows mode · pack; dashboard shows ZEN instead of hearts and the time-attack clock; game over / leaderboard titles name the mode (daily: date).
 
-**First thing next session:** continue or start **M9**.
+**First thing next session:** `git status`; M10 (progression) was started after M9 was pushed; check what of it exists.
 
-**Next:** M9 → M11 in the milestone table, one at a time, stopping after each. Not picked (don't build): police chase, ghost of best run, online leaderboard.
+**Next:** M10 → M11 in the milestone table, one at a time, stopping after each. Not picked (don't build): police chase, ghost of best run, online leaderboard.
 
 Open ideas, none promised: hide the floating word while a popup is on screen; ESLint (no lint script exists); `@react-three/drei` is unused (spec names it, so it was kept).
 
@@ -32,7 +33,7 @@ Open ideas, none promised: hide the floating word while a popup is on screen; ES
 | v1.1 | Owner feedback: Enter = straight + boost, menu, one font, lofted cars, per-lamp taillight glow, even traffic, accuracy not WPM | done |
 | M7 | Settings + feel: Settings panel in the menu (volume + mute, graphics quality: shadows/DPR, reduce motion → no shake/blur), synthesised engine note rising with speed (gear shifts, nitro howl), phone controls (on-screen left/straight/right buttons, vibration on crash) | done |
 | M8 | Gameplay: slipstream (close behind a car fills a draft meter → next word = free nitro), speed traps (pass a speed camera above ~150 mph = SPEED TRAP bonus + flash), combo timer (multiplier drains when you stop passing) | done |
-| M9 | Modes + content: Zen (no crashes), Rush hour (dense traffic), Time attack (90 s); word packs (driving, programming, common English, other languages, your own list); daily challenge (same seed for everyone per day, its own daily best) | todo |
+| M9 | Modes + content: Zen (no crashes), Rush hour (dense traffic), Time attack (90 s); word packs (driving, programming, common English, other languages, your own list); daily challenge (same seed for everyone per day, its own daily best) | done |
 | M10 | Progression: achievements (first clean cut, 200 mph, 10-pass streak, 5 km clean…) shown in the menu; unlocks by total score (GT3 RS paints, more player cars e.g. 911 Turbo S, M4); share card (image of the run's stats) | todo |
 | M11 | Weather: rain (wet-road reflections, spray behind cars) and fog, random or chosen in Settings | todo |
 
@@ -51,7 +52,7 @@ Next.js 16 + React 19 + TypeScript 5.9 (strict) · R3F 9 + drei 10 + three 0.186
 `npm run dev` · `npm run build` · `npm run typecheck` · `npm test` (node --test on `src/game/*.test.ts`) · `npx tsc --noEmit` · `node scripts/shot.mjs <url> <outDir> [--night]` (headless Chrome via CDP, no deps: plays 8 words incl. two nitros and one Enter submit, double-Enter brake, saves `01-ready`, `02-nitro` mid-swerve, `02-driving`, `03-braking`, `04-later`, then idles until the run ends for `05-over`, prints console errors; reads the word from the input's aria-label). Node 24. Windows 11 dev.
 
 ## Code map
-- `src/game/config.ts` constants, lane geometry, car dimensions · `types.ts` state/command/event types · `words.ts` word buckets + `pickWord` · `sim.ts` ★ `createState`, `applyCommand`, `step`, `snapshot`; traffic spawns per lane at 200 m ahead once the lane's last car is `laneGap` (`(90 − 38·progress) × 0.6–1.4` m) behind that line · `input.ts` `matchWord`, `isPrefix` · `engine.ts` loop + pub/sub.
+- `src/game/config.ts` constants, lane geometry, car dimensions · `types.ts` state/command/event types · `words.ts` packs + `bucketize`/`parseWordList`/`packWords` + `pickWord` · `sim.ts` ★ `createState`, `applyCommand`, `step`, `snapshot`; traffic spawns per lane at 200 m ahead once the lane's last car is `laneGap` (`(90 − 38·progress) × 0.6–1.4` m) behind that line · `input.ts` `matchWord`, `isPrefix` · `engine.ts` loop + pub/sub.
 - `src/app/` layout, page (server) → `components/GameLoader.tsx` (`next/dynamic`, `ssr:false`) → `Game.tsx` (engine owner, 10 Hz HUD snapshot + refresh on every event, 9:16 column).
 - `components/TypingDock.tsx` ★ the only keystroke → command code (invisible input over the capsule; refocuses on blur).
 - `components/scene/context.ts` `EngineCtx`/`useEngine`, `NightCtx`/`useNight` · `textures.ts` cached canvas textures (`glowTexture`, `softGlowTexture`, `signTexture`, `limitSignTexture`).

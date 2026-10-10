@@ -1,3 +1,7 @@
+import { MODES } from "./config.ts";
+import type { Mode } from "./types.ts";
+import { PACK_IDS, type PackId } from "./words.ts";
+
 export interface Settings {
   volume: number; // 0–1, master
   muted: boolean;
@@ -5,12 +9,15 @@ export interface Settings {
   quality: "high" | "low"; // low = no shadows, 1× pixel density
   reduceMotion: boolean; // no camera shake, nitro zoom or edge blur
   touch: boolean; // on-screen steering buttons + vibration on crashes
+  mode: Mode;
+  pack: PackId;
+  customWords: string; // the player's own list, as typed (see parseWordList)
 }
 
 const KEY = "typencut.settings";
 
 export const defaultSettings = (reduceMotion = false, touch = false): Settings => ({
-  volume: 0.8, muted: false, engine: true, quality: "high", reduceMotion, touch,
+  volume: 0.8, muted: false, engine: true, quality: "high", reduceMotion, touch, mode: "classic", pack: "driving", customWords: "",
 });
 
 /** localStorage is user-editable: each field is kept only if it has the right type and range. */
@@ -21,6 +28,9 @@ export function parseSettings(raw: string | null, base: Settings): Settings {
     if (typeof d?.volume === "number" && d.volume >= 0 && d.volume <= 1) s.volume = d.volume;
     if (d?.quality === "high" || d?.quality === "low") s.quality = d.quality;
     for (const k of ["muted", "engine", "reduceMotion", "touch"] as const) if (typeof d?.[k] === "boolean") s[k] = d[k];
+    if (MODES.includes(d?.mode)) s.mode = d.mode;
+    if (PACK_IDS.includes(d?.pack)) s.pack = d.pack;
+    if (typeof d?.customWords === "string" && d.customWords.length <= 5000) s.customWords = d.customWords;
   } catch {}
   return s;
 }
