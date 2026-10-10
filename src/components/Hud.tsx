@@ -4,6 +4,7 @@ import { useEffect, useRef, useState } from "react";
 import { MAX_MULTIPLIER, NITRO_MPH, START_LIVES } from "@/game/config";
 import type { GameEngine } from "@/game/engine";
 import type { Board } from "@/game/leaderboard";
+import type { Settings } from "@/game/settings";
 import type { Snapshot } from "@/game/sim";
 
 const Bar = ({ pct, className }: { pct: number; className: string }) => (
@@ -175,8 +176,10 @@ export function Leaderboard({ board, highlight, compact = false }: { board: Boar
   );
 }
 
-/** Slide-in panel on the left. The game pauses while it is open (Game.tsx); Escape or the backdrop closes it. */
-export function Menu({ open, onClose }: { open: boolean; onClose: () => void }) {
+type Toggle = "muted" | "engine" | "reduceMotion" | "touch";
+
+/** Slide-in panel on the left with the settings. The game pauses while it is open (Game.tsx); Escape or the backdrop closes it. */
+export function Menu({ open, onClose, settings, onSettings }: { open: boolean; onClose: () => void; settings: Settings; onSettings: (s: Settings) => void }) {
   const first = useRef<HTMLButtonElement>(null);
   useEffect(() => {
     if (!open) return;
@@ -185,6 +188,19 @@ export function Menu({ open, onClose }: { open: boolean; onClose: () => void }) 
     window.addEventListener("keydown", onKey);
     return () => window.removeEventListener("keydown", onKey);
   }, [open, onClose]);
+  const set = <K extends keyof Settings>(k: K, v: Settings[K]) => onSettings({ ...settings, [k]: v });
+  const label = (text: string, hint?: string) => (
+    <span>
+      <span className="block font-semibold">{text}</span>
+      {hint && <span className="block text-xs opacity-60">{hint}</span>}
+    </span>
+  );
+  const toggle = (k: Toggle, text: string, hint?: string) => (
+    <label className="flex cursor-pointer items-center justify-between gap-3 py-1.5">
+      {label(text, hint)}
+      <input type="checkbox" checked={settings[k]} onChange={(e) => set(k, e.target.checked)} className="h-5 w-5 shrink-0 accent-amber-600" />
+    </label>
+  );
   const soon = (label: string, hint: string) => (
     <li>
       <button disabled className="flex w-full items-center justify-between rounded-xl px-3 py-2.5 text-left opacity-60">
@@ -203,7 +219,7 @@ export function Menu({ open, onClose }: { open: boolean; onClose: () => void }) 
         id="game-menu"
         aria-label="Menu"
         inert={!open}
-        className={`absolute inset-y-0 left-0 flex w-72 max-w-[85vw] flex-col gap-5 bg-[#f4ead9] p-5 shadow-2xl transition-transform duration-200 dark:bg-[#0b1022] ${open ? "translate-x-0" : "-translate-x-full"}`}
+        className={`absolute inset-y-0 left-0 flex w-72 max-w-[85vw] flex-col gap-5 overflow-y-auto bg-[#f4ead9] p-5 shadow-2xl transition-transform duration-200 dark:bg-[#0b1022] ${open ? "translate-x-0" : "-translate-x-full"}`}
       >
         <div className="flex items-center justify-between">
           <span className="text-xl font-black italic tracking-tight">TYPENCUT</span>
@@ -214,8 +230,38 @@ export function Menu({ open, onClose }: { open: boolean; onClose: () => void }) 
         <p className="text-xs font-semibold uppercase tracking-widest opacity-60">Paused</p>
         <ul className="-mx-3 space-y-1">
           {soon("Multiplayer", "Race friends live")}
-          {soon("Settings", "Sound, graphics and controls")}
         </ul>
+        <section className="text-sm">
+          <h2 className="mb-1 text-xs font-semibold uppercase tracking-widest opacity-60">Settings</h2>
+          <label className="block py-1.5">
+            <span className="flex justify-between font-semibold">
+              Volume <span className="tabular-nums opacity-60">{settings.muted ? "muted" : `${Math.round(settings.volume * 100)}%`}</span>
+            </span>
+            <input
+              type="range" min={0} max={100} value={Math.round(settings.volume * 100)}
+              onChange={(e) => set("volume", Number(e.target.value) / 100)}
+              className="mt-1 w-full accent-amber-600"
+            />
+          </label>
+          {toggle("muted", "Mute")}
+          {toggle("engine", "Engine sound", "Revs rise with speed and drop on each gear change")}
+          <fieldset className="py-1.5">
+            <legend className="font-semibold">Graphics</legend>
+            <span className="block text-xs opacity-60">Low drops shadows and sharpness for slower devices</span>
+            <div className="mt-1.5 grid grid-cols-2 gap-1 rounded-xl bg-black/5 p-1 dark:bg-white/10">
+              {(["high", "low"] as const).map((q) => (
+                <label key={q} className="cursor-pointer">
+                  <input type="radio" name="quality" checked={settings.quality === q} onChange={() => set("quality", q)} className="peer sr-only" />
+                  <span className="block rounded-lg py-1 text-center font-semibold capitalize peer-checked:bg-white peer-checked:shadow peer-focus-visible:ring-2 peer-focus-visible:ring-amber-500 dark:peer-checked:bg-slate-700">
+                    {q}
+                  </span>
+                </label>
+              ))}
+            </div>
+          </fieldset>
+          {toggle("reduceMotion", "Reduce motion", "No camera shake, nitro zoom or edge blur")}
+          {toggle("touch", "On-screen controls", "Steering buttons, and vibration on crashes")}
+        </section>
         <section>
           <h2 className="mb-2 text-xs font-semibold uppercase tracking-widest opacity-60">How to play</h2>
           <div className="[&_kbd]:bg-black/10 dark:[&_kbd]:bg-white/15">

@@ -1,22 +1,60 @@
+import { MPH } from "./config.ts";
 import type { GameEngine } from "./engine.ts";
+import type { Settings } from "./settings.ts";
 import type { GameEvent } from "./types.ts";
 
-/** Synthesised sound effects driven by engine events. Browser only; returns a detach function. */
-export function attachAudio(engine: GameEngine) {
+/** Upshift points (mph) of a simulated 7-speed gearbox; cruising sits mid-band, nitro climbs a gear or two. */
+const GEARS = [0, 40, 62, 85, 108, 132, 158, 200];
+
+/** Gear (1–7) and revs (0.35 → 1 across each gear) for a speed, so the engine note climbs and drops on upshifts. */
+export function revs(mph: number) {
+  let g = 0;
+  while (g < GEARS.length - 2 && mph >= GEARS[g + 1]) g++;
+  const frac = Math.min(1, Math.max(0, (mph - GEARS[g]) / (GEARS[g + 1] - GEARS[g])));
+  return { gear: g + 1, rpm: 0.35 + 0.65 * frac };
+}
+
+type AudioSettings = Pick<Settings, "volume" | "muted" | "engine">;
+
+/**
+ * Synthesised sound driven by engine events, plus a continuous engine note that follows the player's speed.
+ * Browser only. `set` applies volume/mute/engine settings, `pause` silences the engine while the menu is open.
+ */
+export function attachAudio(engine: GameEngine, initial: AudioSettings) {
   let ctx: AudioContext | null = null;
   let out: GainNode;
   let noise: AudioBuffer;
+  let settings = initial;
+  let paused = false;
+  let motor: { saw: OscillatorNode; sub: OscillatorNode; filter: BiquadFilterNode; gain: GainNode } | null = null;
+  const level = () => (settings.muted ? 0 : settings.volume * 0.62);
 
   // Created on the first event, which is a keystroke, so the browser allows it.
   const init = () => {
     if (!ctx) {
       ctx = new AudioContext();
       out = ctx.createGain();
-      out.gain.value = 0.5;
+      out.gain.value = level();
       out.connect(ctx.destination);
       noise = ctx.createBuffer(1, ctx.sampleRate, ctx.sampleRate);
       const d = noise.getChannelData(0);
       for (let i = 0; i < d.length; i++) d[i] = Math.random() * 2 - 1;
+      // Engine: a sawtooth plus a square an octave down, through a resonant low-pass that opens with the revs.
+      const gain = ctx.createGain();
+      gain.gain.value = 0;
+      gain.connect(out);
+      const filter = ctx.createBiquadFilter();
+      filter.Q.value = 3;
+      filter.connect(gain);
+      const saw = ctx.createOscillator();
+      saw.type = "sawtooth";
+      const sub = ctx.createOscillator();
+      sub.type = "square";
+      saw.connect(filter);
+      sub.connect(filter);
+      saw.start();
+      sub.start();
+      motor = { saw, sub, filter, gain };
     }
     if (ctx.state === "suspended") void ctx.resume();
     return ctx;
@@ -95,9 +133,33 @@ export function attachAudio(engine: GameEngine) {
     }
   };
 
+  // 20 Hz is plenty: every change glides with setTargetAtTime, which also makes upshifts drop smoothly.
+  const drive = setInterval(() => {
+    if (!ctx || !motor) return;
+    const { status, player: p } = engine.state;
+    const { rpm } = revs(p.speed / MPH);
+    const nitro = p.nitroT > 0;
+    const on = settings.engine && !paused && status === "running";
+    const t = ctx.currentTime;
+    motor.saw.frequency.setTargetAtTime(70 + 230 * rpm, t, 0.05);
+    motor.sub.frequency.setTargetAtTime((70 + 230 * rpm) / 2, t, 0.05);
+    motor.filter.frequency.setTargetAtTime(500 + 2200 * rpm + (nitro ? 1600 : 0), t, 0.08);
+    motor.gain.gain.setTargetAtTime(on ? (nitro ? 0.15 : 0.08) * (0.6 + 0.4 * rpm) : 0, t, 0.08);
+  }, 50);
+
   const off = engine.on(play);
-  return () => {
-    off();
-    void ctx?.close();
+  return {
+    set(next: AudioSettings) {
+      settings = next;
+      if (ctx) out.gain.setTargetAtTime(level(), ctx.currentTime, 0.03);
+    },
+    pause(p: boolean) {
+      paused = p;
+    },
+    detach() {
+      off();
+      clearInterval(drive);
+      void ctx?.close();
+    },
   };
 }

@@ -5,21 +5,24 @@ import { useEffect, useMemo, useRef, useState } from "react";
 import { Vector3, type PerspectiveCamera } from "three";
 import { LANE_W } from "@/game/config";
 import type { GameEngine } from "@/game/engine";
+import type { Settings } from "@/game/settings";
 import { EngineCtx, NightCtx, useEngine } from "./context";
 import { SkidMarks, Smoke } from "./Fx";
 import { NpcCar, PlayerCar } from "./Vehicles";
 import { World } from "./World";
 
 /** Renders `engine.state` every frame. Never writes to it. */
-export function Scene({ engine, night }: { engine: GameEngine; night: boolean }) {
+export function Scene({ engine, night, quality, reduceMotion }: { engine: GameEngine; night: boolean; quality: Settings["quality"]; reduceMotion: boolean }) {
   const tag = useRef<HTMLDivElement>(null);
+  const high = quality === "high";
   return (
     <div className="absolute inset-0">
-      <Canvas shadows flat dpr={[1, 2]} camera={{ fov: FOV, near: 1, far: 400, position: [0, CAM_H, CAM_BACK] }}>
+      {/* Remounted on a quality change: shadow maps can't be switched on a live renderer. */}
+      <Canvas key={quality} shadows={high} flat dpr={high ? [1, 2] : 1} camera={{ fov: FOV, near: 1, far: 400, position: [0, CAM_H, CAM_BACK] }}>
         <EngineCtx.Provider value={engine}>
           <NightCtx.Provider value={night}>
             <Atmosphere night={night} />
-            <CameraRig />
+            <CameraRig still={reduceMotion} />
             <World />
             <SkidMarks />
             <PlayerCar />
@@ -72,7 +75,8 @@ const LOOK_AHEAD = CAM_H * Math.tan((20 * Math.PI) / 180) - CAM_BACK;
 const FOV = 42;
 const NITRO_FOV = 8;
 
-function CameraRig() {
+/** `still` (reduce motion) drops the shake and the nitro zoom. */
+function CameraRig({ still }: { still: boolean }) {
   const engine = useEngine();
   const shake = useRef(0);
   const boost = useRef(0);
@@ -87,8 +91,8 @@ function CameraRig() {
   useFrame(({ camera }, dt) => {
     const p = engine.state.player;
     const cam = camera as PerspectiveCamera;
-    boost.current += ((p.nitroT > 0 ? 1 : 0) - boost.current) * Math.min(1, dt * 5);
-    shake.current = Math.max(0, shake.current - dt * 2.2);
+    boost.current += ((p.nitroT > 0 && !still ? 1 : 0) - boost.current) * Math.min(1, dt * 5);
+    shake.current = still ? 0 : Math.max(0, shake.current - dt * 2.2);
     const a = shake.current + boost.current * 0.12;
     const j = () => (Math.random() - 0.5) * a;
     const x = p.x * 0.35;

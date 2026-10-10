@@ -40,6 +40,10 @@ kbd {
   0%, 70% { opacity: 1; }
   100% { opacity: 0; }
 }
+/* The OS setting, or the in-game Reduce motion switch (class on <html>). */
 @media (prefers-reduced-motion: reduce) {
   .pop { animation-name: pop-fade; }
+}
+.reduce-motion .pop {
+  animation-name: pop-fade;
 }
