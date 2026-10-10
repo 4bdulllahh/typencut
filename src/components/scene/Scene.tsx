@@ -2,11 +2,10 @@
 
 import { Canvas, useFrame } from "@react-three/fiber";
 import { useEffect, useRef, useState } from "react";
-import type { Mesh, PerspectiveCamera } from "three";
-import { PLAYER_DIMS } from "@/game/config";
+import type { PerspectiveCamera } from "three";
 import type { GameEngine } from "@/game/engine";
-import type { Npc } from "@/game/types";
 import { EngineCtx, NightCtx, useEngine } from "./context";
+import { NpcCar, PlayerCar } from "./Vehicles";
 import { World } from "./World";
 
 /** Renders `engine.state` every frame. Never writes to it. */
@@ -18,7 +17,7 @@ export function Scene({ engine, night }: { engine: GameEngine; night: boolean })
           <Atmosphere night={night} />
           <CameraRig />
           <World />
-          <Player />
+          <PlayerCar />
           <Traffic />
         </NightCtx.Provider>
       </EngineCtx.Provider>
@@ -91,24 +90,6 @@ function CameraRig() {
   return null;
 }
 
-function Player() {
-  const engine = useEngine();
-  const ref = useRef<Mesh>(null);
-  useFrame(() => {
-    const p = engine.state.player;
-    if (!ref.current) return;
-    ref.current.position.x = p.x;
-    ref.current.rotation.y = -p.vx * 0.04;
-    ref.current.visible = p.invulnT === 0 || Math.floor(p.invulnT * 10) % 2 === 0;
-  });
-  return (
-    <mesh ref={ref} position={[0, 0.6, 0]} castShadow>
-      <boxGeometry args={[PLAYER_DIMS.width, 1.2, PLAYER_DIMS.length]} />
-      <meshStandardMaterial color="#f5f5f2" flatShading />
-    </mesh>
-  );
-}
-
 /** Re-renders only when the set of cars changes; positions update in useFrame. */
 function Traffic() {
   const engine = useEngine();
@@ -118,32 +99,5 @@ function Traffic() {
     if (now.length !== ids.length || now.some((id, i) => id !== ids[i])) setIds(now);
   });
   useEffect(() => engine.on((e) => e.type === "restart" && setIds([])), [engine]);
-  return ids.map((id) => <NpcBox key={id} id={id} />);
-}
-
-function NpcBox({ id }: { id: number }) {
-  const engine = useEngine();
-  const body = useRef<Mesh>(null);
-  const signal = useRef<Mesh>(null);
-  const npc = useRef<Npc | undefined>(undefined);
-  npc.current ??= engine.state.npcs.find((n) => n.id === id);
-  useFrame(({ clock }) => {
-    const n = engine.state.npcs.find((o) => o.id === id);
-    if (!n || !body.current || !signal.current) return;
-    body.current.position.set(n.x, 0.65, -(n.s - engine.state.player.s));
-    signal.current.visible = n.signal !== 0 && clock.elapsedTime % 0.5 < 0.25;
-    signal.current.position.x = n.signal * (n.width / 2 + 0.1);
-  });
-  if (!npc.current) return null;
-  const { width, length, kind } = npc.current;
-  return (
-    <mesh ref={body} castShadow>
-      <boxGeometry args={[width, 1.3, length]} />
-      <meshStandardMaterial color={kind === "merger" ? "#c8323a" : "#1b1d22"} flatShading />
-      <mesh ref={signal} position={[0, 0.3, -length / 2]}>
-        <boxGeometry args={[0.3, 0.3, 0.3]} />
-        <meshBasicMaterial color="#ffb020" />
-      </mesh>
-    </mesh>
-  );
+  return ids.map((id) => <NpcCar key={id} id={id} />);
 }

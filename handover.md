@@ -1,18 +1,16 @@
 # Typencut: handover (compact)
 
-_Updated 2026-10-10 · M1 committed locally (`15ef1a1`, not pushed), M2 done + uncommitted · repo `C:\Users\Computer\Documents\GitHub\typencut`, remote https://github.com/4bdulllahh/typencut · full brief in `docs/spec.md`._
+_Updated 2026-10-10 · M1 + M2 pushed (`5fe3183`), M3 done + uncommitted · repo `C:\Users\Computer\Documents\GitHub\typencut`, remote https://github.com/4bdulllahh/typencut · full brief in `docs/spec.md`._
 
 ## Resume here
-State at end of session 2026-10-10 (owner stopped for the night):
-- **M1** committed locally as `15ef1a1` but **not pushed**: github.com:443 was unreachable all session. `origin/main` doesn't exist yet (`git status -sb` shows `[gone]`).
-- **M2** finished and verified (build clean, 11 tests pass, day/night headless shots with no console errors) but **uncommitted** in the working tree; the owner hasn't approved the commit yet. Files: `src/components/scene/{context.ts,textures.ts,World.tsx}`, changes to `Scene.tsx`, `Game.tsx`, `scripts/shot.mjs`, this file.
+- **M1, M2** are on `origin/main` (push works again).
+- **M3** finished and verified (tsc + build clean, 11 tests pass, day/night headless shots with no console errors) but **uncommitted**: new `src/components/scene/Vehicles.tsx`; `Scene.tsx` now renders `PlayerCar`/`NpcCar` instead of boxes; this file.
 
 **First thing next session:**
-1. `git status` to confirm the M2 files are still uncommitted, then ask the owner: "Commit M2 and start M3?"
-2. On yes: commit M2 (`feat: M2 world — …`), then `git push -u origin main` (sends M1 + M2). If the push still fails, carry on and retry at the end.
-3. Start **M3** (car models), see the notes below and the milestone table.
+1. `git status` to confirm M3 is still uncommitted, then ask the owner: "Commit M3 and start M4?"
+2. On yes: commit M3 (`feat: M3 vehicles — …`), `git push origin main`, start **M4**.
 
-M3 notes: replace the boxes in `Scene.tsx` (`Player`, `NpcBox`) with procedural low-poly models in a new `scene/Vehicles.tsx`. Keep their `useFrame` positioning, the invulnerability blink and the indicator blink. Footprints come from `MODELS` in `config.ts` (hitboxes match). Forward is −z; origin at ground centre. Also in M3: GT3 RS details (white body, black carbon hood + roof, front louvers, swan-neck wing, dual centre exhausts, full-width red LED strip, brake lights bright while `player.brakeT > 0`), damage looks by `player.lives` (scuffs at 2, dents at 1), night headlight beams (additive `glowTexture` planes plus a spotLight for the player), red taillight trails at night. Smoke, flames and skid marks are M4.
+M4 notes: nitro exhaust flames at the GT3's dual exhausts (car space `x = ±0.1, y = 0.4, z = L/2`; add them inside `PlayerCar`'s root group so they follow `p.x` and yaw), skid marks on lane changes (world-space, scroll with `-(s - player.s)` like `Repeat`), engine smoke when `lives < 3`, Web Audio synth in `src/game/audio.ts` driven by `engine.on` events (key click, blow-off on nitro, screech on lane change, horn, thud on collision).
 
 ## Working with the owner
 - Build in milestones; stop after each and ask to continue. On approval, commit the finished milestone and push to `origin/main` (commit messages end with a `Co-Authored-By` line). Keep README and this file current, and keep this file short.
@@ -21,9 +19,9 @@ M3 notes: replace the boxes in `Scene.tsx` (`Player`, `NpcBox`) with procedural 
 ## Milestones
 | # | Scope | Status |
 | --- | --- | --- |
-| M1 | Foundation: Next 16 scaffold, pure-TS sim (traffic AI, steering, nitro, brake, scoring, collisions, words), input matching, engine loop, Node tests, bare playable scene (boxes) + typing input | done (committed, not pushed) |
+| M1 | Foundation: Next 16 scaffold, pure-TS sim (traffic AI, steering, nitro, brake, scoring, collisions, words), input matching, engine loop, Node tests, bare playable scene (boxes) + typing input | done |
 | M2 | World: low-poly road (dashes, shoulders, barriers, gantries, speed cameras, streetlights, trees), camera rig (15–20° tilt, follow, FOV, shake), day/night lighting, vignette + edge blur | done |
-| M3 | Vehicles: procedural GT3 RS + 5 black cruisers + 3 red mergers, indicators, brake lights, night headlights/beams/taillight trails, player damage states | todo |
+| M3 | Vehicles: procedural GT3 RS + 5 black cruisers + 3 red mergers, indicators, brake lights, night headlights/beams/taillight trails, player damage states | done |
 | M4 | FX + audio: nitro exhaust flames, skid marks, engine smoke, Web Audio synth (key click, blow-off, screech, horn, thud) | todo |
 | M5 | HUD + meta: dashboard (speedo, combo bar, hearts, WPM), floating words over obstacles, CLEAN CUT text + rumble, leaderboard sidebar, ready overlay, game-over modal, theme toggle, responsive | todo |
 | M6 | Polish + ship: tuning pass, headless screenshots, vercel.json, CI, README final | todo |
@@ -47,8 +45,9 @@ Next.js 16 + React 19 + TypeScript 5.9 (strict) · R3F 9 + drei 10 + three 0.186
 - `src/app/` layout, page (server) → `components/GameLoader.tsx` (`next/dynamic`, `ssr:false`) → `Game.tsx` (engine owner, 10 Hz HUD snapshot + refresh on every event, 9:16 column).
 - `components/TypingDock.tsx` ★ the only keystroke → command code (invisible input over the capsule; refocuses on blur).
 - `components/scene/context.ts` `EngineCtx`/`useEngine`, `NightCtx`/`useNight` · `textures.ts` cached canvas textures (`glowTexture`, `signTexture`).
-- `components/scene/Scene.tsx` Canvas (`shadows`, `flat` = no tone mapping), `Atmosphere` (sky/fog/hemi/sun per mode; sun shadow box ±70 m around the player at the origin), `CameraRig` (90 m up, 10 m behind, 20° tilt, follows 35% of player x; shake on collision/nitro/clean cut; +8° FOV in nitro), Player box, Traffic (re-renders only when the id list changes; positions in `useFrame`). M3 replaces the boxes.
+- `components/scene/Scene.tsx` Canvas (`shadows`, `flat` = no tone mapping), `Atmosphere` (sky/fog/hemi/sun per mode; sun shadow box ±70 m around the player at the origin), `CameraRig` (90 m up, 10 m behind, 20° tilt, follows 35% of player x; shake on collision/nitro/clean cut; +8° FOV in nitro), Traffic (re-renders only when the id list changes; mounts one `NpcCar` per id).
 - `components/scene/World.tsx` ★ `Repeat` (copies children every `period` m with optional `offset`, window NEAR 25 m behind to FAR 140 m ahead; `place(g, k)` varies copy k via `hash`) · static strips (grass, asphalt, shoulders, edge lines yellow-left/white-right, jersey barriers) · repeated dashes 12 m, trees 6 m, streetlights 42 m (night: lit heads + additive pools), gantry 520 m (first at 48 m; signs tilted back 1 rad to read from above, they teach `,` `.` CAPS), speed camera 360 m.
+- `components/scene/Vehicles.tsx` ★ `STYLE` per model (body/cabin/roof heights, cabin span as a length fraction, wheel radius, `bed` for the F-150) → shared `Body` built from one unit `BOX` scaled per part; footprints from `MODELS`. `PlayerCar`: GT3 RS extras (carbon hood/roof, louvers, swan-neck wing, dual exhausts, LED strip = brake light while `brakeT > 0`), `scuffs` group at `lives <= 2`, `dents` at `lives <= 1`, invuln blink, yaw from `vx`, night spotLight. `NpcCar`: black cruiser / red merger, amber corner blinkers per side, yaw while sliding. `NightLights`: additive ground beam ahead + red trail behind, stretched by speed (`setTrail`).
 - `Game.tsx` also: theme (`typencut.theme` = day|night in localStorage, toggles `.dark` on `<html>`), `EdgeFx` (masked `backdrop-filter` blur scaled by speed + vignette).
 
 ## Traps already found
