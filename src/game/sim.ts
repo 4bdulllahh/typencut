@@ -1,12 +1,11 @@
 import {
-  BOOST_MPH, BOOST_TIME, HEART, BRAKE_TIME, CLEAN_CUT_GAP, COMBO_TIME, DRAFT_RANGE, RUSH_GAP, SPEED_CAMERA, TIME_ATTACK_S, CRUISE_MPH, CRUISERS, INVULN_TIME, LANES, MAX_MULTIPLIER, MERGERS, MODELS, MPH,
+  BOOST_MPH, BOOST_TIME, DRIVING, HEART, revs, BRAKE_TIME, CLEAN_CUT_GAP, COMBO_TIME, DRAFT_RANGE, RUSH_GAP, SPEED_CAMERA, TIME_ATTACK_S, CRUISE_MPH, CRUISERS, INVULN_TIME, LANES, MAX_MULTIPLIER, MERGERS, MODELS, MPH,
   MULTIPLIER_STEP, NITRO_COOLDOWN, NITRO_MPH, NITRO_TIME, PLAYER_DIMS, POINTS, START_LIVES, SURPRISE_CUT_CHANCE, laneX, toMph,
 } from "./config.ts";
 import type { Command, Dir, GameEvent, GameState, Mode, Npc, PassGrade, Weather } from "./types.ts";
 import { WORDS, pickWord } from "./words.ts";
 
 const LAT_K = 90; // lane-change spring stiffness (critically damped, ~0.5 s settle)
-const LAT_C = 2 * Math.sqrt(LAT_K);
 const SPAWN_AT = 200; // m ahead, just past the fog
 const DESPAWN = [-40, 460] as const;
 
@@ -30,6 +29,7 @@ export interface RunOptions {
   seed?: number;
   mode?: Mode;
   words?: string[][]; // length buckets, see `bucketize`
+  driving?: boolean; // driving controls instead of typing
 }
 
 /** FNV-1a of a date string such as "2026-10-10": the daily challenge's seed. */
@@ -41,15 +41,16 @@ export function rollWeather(seed: number): Weather {
   return r < 0.5 ? "clear" : r < 0.8 ? "rain" : "fog";
 }
 
-export function createState(seed = Date.now(), { mode = "classic", words = WORDS }: Omit<RunOptions, "seed"> = {}): GameState {
+export function createState(seed = Date.now(), { mode = "classic", words = WORDS, driving = false }: Omit<RunOptions, "seed"> = {}): GameState {
   const state: GameState = {
     status: "ready",
     mode,
+    driving,
     seed: seed | 0,
     nextId: 1,
     player: {
-      s: 0, x: laneX(2), vx: 0, lane: 2, prevLane: 2, laneAge: 99, speed: cruiseSpeed(0),
-      nitroT: 0, nitroCd: 0, brakeT: 0, boostT: 0, draft: 0, invulnT: 0, lives: START_LIVES, cutId: 0,
+      s: 0, x: laneX(2), vx: 0, lane: 2, prevLane: 2, laneAge: 99, speed: driving ? DRIVING.startMph * MPH : cruiseSpeed(0),
+      nitroT: 0, nitroCd: 0, throttle: false, braking: false, gear: revs(DRIVING.startMph).gear, shiftT: 0, brakeT: 0, boostT: 0, draft: 0, invulnT: 0, lives: START_LIVES, cutId: 0,
     },
     npcs: [],
     hearts: [],
@@ -77,7 +78,7 @@ export function applyCommand(state: GameState, cmd: Command): GameEvent[] {
   const events: GameEvent[] = [];
   if (state.status === "over") return events;
   const { player: pl, stats: st } = state;
-  if ((cmd.type === "key" || cmd.type === "drive") && state.status === "ready") {
+  if ((cmd.type === "key" || cmd.type === "drive" || (cmd.type === "pedal" && cmd.throttle)) && state.status === "ready") {
     state.status = "running";
     events.push({ type: "start" });
   }
@@ -85,6 +86,15 @@ export function applyCommand(state: GameState, cmd: Command): GameEvent[] {
     st.keys++;
     if (cmd.correct) st.correctKeys++;
     events.push({ type: "key", correct: cmd.correct });
+    return events;
+  }
+  if (cmd.type === "pedal") {
+    // Held state is kept even before the start, so a throttle pressed on the ready screen is already down.
+    if (cmd.throttle !== undefined) pl.throttle = cmd.throttle;
+    if (cmd.brake !== undefined) {
+      if (cmd.brake && !pl.braking && state.status === "running") events.push({ type: "brake" });
+      pl.braking = cmd.brake;
+    }
     return events;
   }
   if (state.status !== "running") return events;
@@ -133,6 +143,8 @@ function move(state: GameState, dir: Dir | 0, wantNitro: boolean, events: GameEv
       .filter((a) => a.gap > -1 && a.gap < CLEAN_CUT_GAP)
       .sort((a, b) => a.gap - b.gap)[0];
     pl.cutId = ahead ? ahead.n.id : 0;
+    // Driving: a lane change scrubs a little speed, more the faster you go.
+    if (state.driving) pl.speed = Math.max(DRIVING.minMph * MPH, pl.speed * (1 - DRIVING.scrub[0] - DRIVING.scrub[1] * (pl.speed / (DRIVING.topMph * MPH)) ** 2));
     pl.prevLane = pl.lane;
     pl.lane = to;
     pl.laneAge = 0;
@@ -165,13 +177,16 @@ export function step(state: GameState, dt: number): GameEvent[] {
   pl.boostT = Math.max(0, pl.boostT - dt);
   pl.invulnT = Math.max(0, pl.invulnT - dt);
   pl.laneAge += dt;
-  const cruise = cruiseSpeed(p);
-  let target = cruise;
-  let accel = pl.speed > cruise ? 12 : 5;
-  if (pl.brakeT > 0) [target, accel] = [cruise * 0.4, 22];
-  else if (pl.nitroT > 0) [target, accel] = [NITRO_MPH * MPH, 45];
-  else if (pl.boostT > 0) [target, accel] = [cruise + BOOST_MPH * MPH, 14];
-  pl.speed = approach(pl.speed, target, accel * dt);
+  if (state.driving) drive(state, dt);
+  else {
+    const cruise = cruiseSpeed(p);
+    let target = cruise;
+    let accel = pl.speed > cruise ? 12 : 5;
+    if (pl.brakeT > 0) [target, accel] = [cruise * 0.4, 22];
+    else if (pl.nitroT > 0) [target, accel] = [NITRO_MPH * MPH, 45];
+    else if (pl.boostT > 0) [target, accel] = [cruise + BOOST_MPH * MPH, 14];
+    pl.speed = approach(pl.speed, target, accel * dt);
+  }
   const camera = (s: number) => Math.floor((s - SPEED_CAMERA.offset) / SPEED_CAMERA.period);
   const before = camera(pl.s);
   pl.s += pl.speed * dt;
@@ -207,7 +222,9 @@ export function step(state: GameState, dt: number): GameEvent[] {
   st.maxSpeed = Math.max(st.maxSpeed, pl.speed);
 
   // Player: lateral spring (semi-implicit Euler)
-  pl.vx += (LAT_K * (laneX(pl.lane) - pl.x) - LAT_C * pl.vx) * dt;
+  // Driving: grip fades at high speed (understeer: lane changes come slower); braking loads the front and adds it back.
+  const k = LAT_K * grip(state) ** 2;
+  pl.vx += (k * (laneX(pl.lane) - pl.x) - 2 * Math.sqrt(k) * pl.vx) * dt;
   pl.x += pl.vx * dt;
 
   // Traffic
@@ -270,6 +287,32 @@ export function step(state: GameState, dt: number): GameEvent[] {
     if (last < pl.s + SPAWN_AT - state.laneGap[lane] && spawn(state, pl.s + SPAWN_AT, lane)) state.laneGap[lane] = laneGap(state);
   }
   return events;
+}
+
+/** Driving controls: throttle pulls through the gears (pausing on each upshift), the brake slows hard, no pedal coasts; never below minMph. */
+function drive(state: GameState, dt: number) {
+  const pl = state.player;
+  const min = DRIVING.minMph * MPH;
+  const top = DRIVING.topMph * MPH;
+  const { gear } = revs(toMph(pl.speed));
+  if (gear > pl.gear) pl.shiftT = DRIVING.shift;
+  pl.gear = gear;
+  pl.shiftT = Math.max(0, pl.shiftT - dt);
+  if (pl.nitroT > 0) pl.speed = approach(pl.speed, NITRO_MPH * MPH, 45 * dt);
+  else if (pl.braking) pl.speed = approach(pl.speed, min, DRIVING.brake * dt);
+  else if (pl.throttle && pl.speed < top) {
+    // Pull eases off over the last 8 mph so the car settles at top speed instead of bouncing off it.
+    if (pl.shiftT <= 0) pl.speed = Math.min(top, pl.speed + DRIVING.pull[gear - 1] * Math.min(1, (top - pl.speed) / (8 * MPH)) * dt);
+  } else pl.speed = approach(pl.speed, min, DRIVING.coast * dt);
+}
+
+/** Lane-change grip, 0.4–1: typing always has full grip. */
+function grip(state: GameState) {
+  if (!state.driving) return 1;
+  const { player: pl } = state;
+  const { fullMph, least, braking } = DRIVING.grip;
+  const g = 1 - (1 - least) * Math.min(1, Math.max(0, (toMph(pl.speed) - fullMph) / (DRIVING.topMph - fullMph)));
+  return Math.min(1, g + (pl.braking ? braking : 0));
 }
 
 const MAX_COMBO = Math.round((MAX_MULTIPLIER - 1) / MULTIPLIER_STEP); // passes that reach the top multiplier
@@ -336,7 +379,7 @@ function collide(state: GameState, n: Npc, events: GameEvent[]) {
   n.speed += 3;
   if (state.mode !== "zen") pl.lives--;
   pl.invulnT = INVULN_TIME;
-  pl.speed *= 0.5;
+  pl.speed = Math.max(state.driving ? DRIVING.minMph * MPH : 0, pl.speed * 0.5);
   pl.nitroT = 0;
   pl.cutId = 0;
   pl.vx += Math.sign(pl.x - n.x || 1) * 4;
@@ -402,6 +445,8 @@ export function snapshot(s: GameState) {
   return {
     status: s.status,
     mode: s.mode,
+    driving: s.driving,
+    gear: pl.gear,
     timeLeft: s.mode === "timeAttack" ? Math.max(0, TIME_ATTACK_S - st.elapsed) : null,
     word: s.word,
     nextWord: s.nextWord,

@@ -14,11 +14,14 @@ export interface Board {
 }
 
 /**
- * One board per mode; classic keeps the original key so v1 boards carry over. The daily challenge
- * gets a board per date. shortcut: old daily boards are never deleted (a few hundred bytes a day); prune if that ever matters.
+ * One board per mode and control style; classic keeps the original key so v1 boards carry over, and classic driving
+ * keeps the old Drive mode's. The daily challenge gets a board per date.
+ * shortcut: old daily boards are never deleted (a few hundred bytes a day); prune if that ever matters.
  */
-export const boardKey = (mode: Mode, date: string) =>
-  mode === "classic" ? "typencut.board" : mode === "daily" ? `typencut.board.daily.${date}` : `typencut.board.${mode}`;
+export function boardKey(mode: Mode, date: string, driving = false) {
+  const key = mode === "classic" ? "typencut.board" : mode === "daily" ? `typencut.board.daily.${date}` : `typencut.board.${mode}`;
+  return !driving ? key : mode === "classic" ? "typencut.board.drive" : `${key}.drive`;
+}
 export const TOP_N = 7;
 const STATS = ["score", "accuracy", "maxSpeedMph", "cleanCuts"] as const;
 

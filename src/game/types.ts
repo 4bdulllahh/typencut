@@ -4,8 +4,8 @@ export type NpcKind = "cruiser" | "merger";
 export type Dir = -1 | 1;
 export type PassGrade = "standard" | "dangerous" | "cleanCut";
 export type Status = "ready" | "running" | "over";
-/** daily = classic rules on a seed taken from the date. zen = crashes cost no lives. drive = classic rules, steered with WASD/arrows instead of typing. */
-export type Mode = "classic" | "zen" | "rush" | "timeAttack" | "daily" | "drive";
+/** daily = classic rules on a seed taken from the date. zen = crashes cost no lives. Every mode plays with typing or driving controls (GameState.driving). */
+export type Mode = "classic" | "zen" | "rush" | "timeAttack" | "daily";
 /** Looks and sound only: the simulation drives the same in every weather. */
 export type Weather = "clear" | "rain" | "fog";
 
@@ -47,6 +47,10 @@ export interface Player {
   speed: number;
   nitroT: number;
   nitroCd: number; // seconds until nitro can fire again
+  throttle: boolean; // driving controls: pedals held
+  braking: boolean;
+  gear: number; // driving: current gear (1–7)
+  shiftT: number; // driving: seconds left in an upshift (no pull)
   brakeT: number;
   boostT: number;
   draft: number; // slipstream meter 0–1; full = the next word fires a free nitro
@@ -78,6 +82,7 @@ export interface Stats {
 export interface GameState {
   status: Status;
   mode: Mode;
+  driving: boolean; // driving controls (pedals + lane keys) instead of typing
   seed: number;
   nextId: number;
   player: Player;
@@ -94,7 +99,8 @@ export interface GameState {
 export type Command =
   | { type: "key"; correct: boolean }
   | { type: "word"; dir: Dir | 0; nitro: boolean } // dir 0 = submitted with Enter: no steer, small boost
-  | { type: "drive"; dir: Dir | 0; nitro: boolean } // drive mode: a lane change or (dir 0) a boost, no word
+  | { type: "drive"; dir: Dir | 0; nitro: boolean } // driving controls: a lane change, or (dir 0) a nitro; no word
+  | { type: "pedal"; throttle?: boolean; brake?: boolean } // driving controls: pedals pressed or released
   | { type: "miss" }
   | { type: "brake" }
   | { type: "end" }; // finish the run now (the only way out of zen)

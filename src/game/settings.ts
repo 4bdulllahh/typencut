@@ -19,6 +19,7 @@ export interface Settings {
   reduceMotion: boolean; // no camera shake, nitro zoom or edge blur
   touch: boolean; // on-screen steering buttons + vibration on crashes
   mode: Mode;
+  controls: "typing" | "driving"; // how every mode is played
   pack: PackId;
   customWords: string; // the player's own list, as typed (see parseWordList)
   car: PlayerModel; // chosen in the garage; Game.tsx falls back to the GT3 RS if it is still locked
@@ -31,7 +32,7 @@ const KEY = "typencut.settings";
 export const WEATHERS = ["random", "clear", "rain", "fog"] as const;
 
 export const defaultSettings = (reduceMotion = false, touch = false): Settings => ({
-  volume: 0.8, muted: false, mix: { music: 0.6, engine: 0.5, weather: 0.7, typing: 0.8, effects: 0.8 }, music: "spotify", quality: "high", reduceMotion, touch, mode: "classic", pack: "driving", customWords: "", car: "gt3rs", paint: "white", weather: "random", steer: DEFAULT_STEER,
+  volume: 0.8, muted: false, mix: { music: 0.6, engine: 0.5, weather: 0.7, typing: 0.8, effects: 0.8 }, music: "spotify", quality: "high", reduceMotion, touch, mode: "classic", controls: "typing", pack: "driving", customWords: "", car: "gt3rs", paint: "white", weather: "random", steer: DEFAULT_STEER,
 });
 
 /** localStorage is user-editable: each field is kept only if it has the right type and range. */
@@ -46,6 +47,8 @@ export function parseSettings(raw: string | null, base: Settings): Settings {
     for (const k of MIX) if (typeof d?.mix?.[k] === "number" && d.mix[k] >= 0 && d.mix[k] <= 1) s.mix[k] = d.mix[k];
     if (d?.engine === false && d?.mix === undefined) s.mix.engine = 0; // the old engine on/off switch (v1.2–1.8)
     if (MODES.includes(d?.mode)) s.mode = d.mode;
+    if (d?.controls === "typing" || d?.controls === "driving") s.controls = d.controls;
+    else if (d?.mode === "drive") s.controls = "driving"; // v1.8–1.12 Drive mode = classic with driving controls
     if (PACK_IDS.includes(d?.pack)) s.pack = d.pack;
     if (CARS.some((c) => c.id === d?.car)) s.car = d.car;
     if (PAINTS.some((c) => c.id === d?.paint)) s.paint = d.paint;

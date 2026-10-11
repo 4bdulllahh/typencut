@@ -1,18 +1,7 @@
-import { MPH } from "./config.ts";
+import { MPH, revs } from "./config.ts";
 import type { GameEngine } from "./engine.ts";
 import type { Settings } from "./settings.ts";
 import type { GameEvent } from "./types.ts";
-
-/** Upshift points (mph) of a simulated 7-speed gearbox; cruising sits mid-band, nitro climbs a gear or two. */
-const GEARS = [0, 40, 62, 85, 108, 132, 158, 200];
-
-/** Gear (1–7) and revs (0.35 → 1 across each gear) for a speed, so the engine note climbs and drops on upshifts. */
-export function revs(mph: number) {
-  let g = 0;
-  while (g < GEARS.length - 2 && mph >= GEARS[g + 1]) g++;
-  const frac = Math.min(1, Math.max(0, (mph - GEARS[g]) / (GEARS[g + 1] - GEARS[g])));
-  return { gear: g + 1, rpm: 0.35 + 0.65 * frac };
-}
 
 type AudioSettings = Pick<Settings, "volume" | "muted" | "mix"> & { rain?: boolean };
 type Bus = "typing" | "effects";

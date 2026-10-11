@@ -1,6 +1,6 @@
 import assert from "node:assert/strict";
 import { test } from "node:test";
-import { TOP_N, addRun, emptyBoard, parseBoard, type Run } from "./leaderboard.ts";
+import { TOP_N, addRun, boardKey, emptyBoard, parseBoard, type Run } from "./leaderboard.ts";
 
 const run = (score: number, extra: Partial<Run> = {}): Run => ({ score, accuracy: 95, maxSpeedMph: 150, cleanCuts: 1, date: score, ...extra });
 
@@ -23,4 +23,11 @@ test("parseBoard drops malformed storage", () => {
   assert.equal(b.runs.length, 1);
   assert.equal(b.best.score, 5);
   assert.equal(b.best.accuracy, 0);
+});
+
+test("boards per mode and control style; old keys carry over", () => {
+  assert.equal(boardKey("classic", "2026-10-10"), "typencut.board");
+  assert.equal(boardKey("classic", "2026-10-10", true), "typencut.board.drive"); // the old Drive mode's board
+  assert.equal(boardKey("rush", "2026-10-10", true), "typencut.board.rush.drive");
+  assert.equal(boardKey("daily", "2026-10-10", true), "typencut.board.daily.2026-10-10.drive");
 });

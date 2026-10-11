@@ -15,7 +15,6 @@ import { shareRun } from "./shareCard";
 
 export const MODE_INFO: Record<Mode, [name: string, blurb: string]> = {
   classic: ["Classic", "Three lives, endless road"],
-  drive: ["Drive", "No typing: WASD or the arrow keys, three lives"],
   zen: ["Zen", "Crashes cost no lives; end the run from the menu"],
   rush: ["Rush hour", "Traffic nearly twice as dense"],
   timeAttack: ["Time attack", "Best score in 90 seconds"],
@@ -60,7 +59,7 @@ export function Dashboard({ snap }: { snap: Snapshot }) {
           <div className={`text-3xl font-extrabold leading-none ${snap.nitro ? "text-orange-300" : snap.brake ? "text-rose-300" : ""}`}>{Math.round(snap.speedMph)}</div>
           <NitroRing charge={snap.nitroCharge} />
         </div>
-        <div className="text-[10px] font-semibold uppercase tracking-widest opacity-70">mph {mode && `· ${mode}`}</div>
+        <div className="text-[10px] font-semibold uppercase tracking-widest opacity-70">mph {snap.driving && `· g${snap.gear}`} {mode && `· ${mode}`}</div>
         <Bar pct={snap.speedMph / NITRO_MPH} className={snap.nitro ? "bg-orange-400" : snap.brake ? "bg-rose-400" : "bg-white"} />
         <div className="mt-1 text-[9px] font-semibold uppercase tracking-widest opacity-70">draft</div>
         <Bar pct={snap.draft} className="bg-sky-300" />
@@ -84,7 +83,7 @@ export function Dashboard({ snap }: { snap: Snapshot }) {
       </div>
       <div className="text-right">
         <div className="text-xl font-extrabold leading-tight">{snap.score.toLocaleString()}</div>
-        <div className="text-xs font-semibold opacity-80">{snap.mode === "drive" ? `${(snap.distance / 1000).toFixed(1)} km` : `${Math.round(snap.accuracy)}% accuracy`}</div>
+        <div className="text-xs font-semibold opacity-80">{snap.driving ? `${(snap.distance / 1000).toFixed(1)} km` : `${Math.round(snap.accuracy)}% accuracy`}</div>
         {snap.timeLeft !== null && (
           <div className={`text-sm font-extrabold ${snap.timeLeft < 10 ? "text-rose-300" : "text-amber-200"}`} aria-label={`${Math.ceil(snap.timeLeft)} seconds left`}>
             {clock(snap.timeLeft)}
@@ -146,9 +145,10 @@ function Controls({ cut = "text-amber-300", steer, drive }: { cut?: string; stee
   if (drive)
     return (
       <ul className="space-y-1 text-sm">
-        <li><Key>A</Key> <Key>D</Key> or <Key>←</Key> <Key>→</Key> switch lanes</li>
-        <li><Key>W</Key> or <Key>↑</Key> for a burst of speed; tap it twice quickly for <b>nitro</b> (it recharges for 5 s, see the ring by the speed)</li>
-        <li><Key>S</Key> or <Key>↓</Key> brakes</li>
+        <li>Hold <Key>W</Key> or <Key>↑</Key> to accelerate through the gears; let go and you ease off (never below 45 mph)</li>
+        <li>Tap <Key>W</Key> twice quickly for <b>nitro</b> (it recharges for 5 s, see the ring by the speed)</li>
+        <li><Key>A</Key> <Key>D</Key> or <Key>←</Key> <Key>→</Key> switch lanes; each change costs a little speed, and near top speed the car understeers</li>
+        <li>Hold <Key>S</Key> or <Key>↓</Key> to brake: braking also puts weight on the front so the car turns quicker</li>
         <li>Sit close behind a car to fill the <b>draft</b> meter: a full meter recharges nitro</li>
         <li>Grab the floating <b className="text-rose-400">♥</b> hearts to win back a life</li>
         <li>Cut out from right behind a car for a <b className={cut}>CLEAN CUT</b>, which recharges nitro</li>
@@ -167,16 +167,16 @@ function Controls({ cut = "text-amber-300", steer, drive }: { cut?: string; stee
   );
 }
 
-export function ReadyOverlay({ best, mode, pack, day, weather, steer }: { best: number; mode: Mode; pack: PackId; day: string; weather: Weather; steer: SteerKeys }) {
+export function ReadyOverlay({ best, mode, driving, pack, day, weather, steer }: { best: number; mode: Mode; driving: boolean; pack: PackId; day: string; weather: Weather; steer: SteerKeys }) {
   return (
     <div className="pointer-events-none absolute inset-x-4 top-[26%] mx-auto max-w-md rounded-[24px] border border-white/10 bg-black/45 p-6 text-center text-white shadow-xl backdrop-blur-md">
       <h1 className="text-3xl font-black italic tracking-tight">TYPENCUT</h1>
       <p className="mb-3 mt-1 text-xs font-semibold uppercase tracking-widest text-amber-200">
         {MODE_INFO[mode][0]}
-        {mode === "daily" && ` · ${dayLabel(day)}`}{mode !== "drive" && ` · ${PACK_LABELS[pack]} words`}{weather !== "clear" && ` · ${weather}`}
+        {mode === "daily" && ` · ${dayLabel(day)}`}{driving ? " · driving" : ` · ${PACK_LABELS[pack]} words`}{weather !== "clear" && ` · ${weather}`}
       </p>
-      <Controls steer={steer} drive={mode === "drive"} />
-      <p className="mt-4 text-sm font-semibold opacity-90">{mode === "drive" ? "Press a drive key to go" : "Start typing to go"}{best > 0 && ` · best ${best.toLocaleString()}`}</p>
+      <Controls steer={steer} drive={driving} />
+      <p className="mt-4 text-sm font-semibold opacity-90">{driving ? "Hold W or ↑ to go" : "Start typing to go"}{best > 0 && ` · best ${best.toLocaleString()}`}</p>
     </div>
   );
 }
@@ -219,7 +219,7 @@ export function GameOver({ snap, board, runDate, day, news, onRestart }: {
   const title = snap.mode === "daily" ? `Daily challenge · ${dayLabel(day)}` : MODE_INFO[snap.mode][0];
   const newBest = snap.score > 0 && snap.score >= board.best.score;
   const stats: [string, string][] = [
-    snap.mode === "drive" ? ["Passes", snap.passes.toString()] : ["Accuracy", `${Math.round(snap.accuracy)}%`],
+    snap.driving ? ["Passes", snap.passes.toString()] : ["Accuracy", `${Math.round(snap.accuracy)}%`],
     ["Top speed", `${Math.round(snap.maxSpeedMph)} mph`],
     ["Clean cuts", snap.cleanCuts.toString()],
     ["Distance", `${(snap.distance / 1000).toFixed(1)} km`],
@@ -251,7 +251,7 @@ export function GameOver({ snap, board, runDate, day, news, onRestart }: {
           </ul>
         )}
         <div className="mt-4 text-left xl:hidden">
-          <Leaderboard board={board} highlight={runDate} mode={snap.mode} day={day} compact />
+          <Leaderboard board={board} highlight={runDate} mode={snap.mode} driving={snap.driving} day={day} compact />
         </div>
         <div className="mt-5 flex gap-2">
           <button onClick={() => shareRun(snap, title)} className="rounded-full bg-black/5 px-5 py-3 font-semibold hover:bg-black/10 dark:bg-white/10 dark:hover:bg-white/15">
@@ -269,9 +269,9 @@ export function GameOver({ snap, board, runDate, day, news, onRestart }: {
 const dateFmt = new Intl.DateTimeFormat(undefined, { month: "short", day: "numeric" });
 
 /** Top runs by score plus best-ever records, from localStorage. */
-export function Leaderboard({ board, highlight, mode, day, compact = false }: { board: Board; highlight?: number; mode: Mode; day: string; compact?: boolean }) {
+export function Leaderboard({ board, highlight, mode, driving, day, compact = false }: { board: Board; highlight?: number; mode: Mode; driving: boolean; day: string; compact?: boolean }) {
   const runs = compact ? board.runs.slice(0, 5) : board.runs;
-  const typing = mode !== "drive"; // drive mode has no typing, so no accuracy
+  const typing = !driving; // driving has no typing, so no accuracy
   const records: [string, string][] = [
     ["Score", board.best.score.toLocaleString()],
     ...(typing ? [["Accuracy", `${Math.round(board.best.accuracy)}%`] as [string, string]] : []),
@@ -281,7 +281,7 @@ export function Leaderboard({ board, highlight, mode, day, compact = false }: { 
   return (
     <section className="text-sm tabular-nums">
       <h2 className="mb-2 text-xs font-semibold uppercase tracking-widest opacity-60">
-        {mode === "daily" ? `Daily challenge · ${dayLabel(day)}` : `Leaderboard · ${MODE_INFO[mode][0]}`}
+        {mode === "daily" ? `Daily challenge · ${dayLabel(day)}` : `Leaderboard · ${MODE_INFO[mode][0]}`}{driving && " · driving"}
       </h2>
       {runs.length === 0 ? (
         <p className="opacity-60">No runs yet.</p>
@@ -415,6 +415,22 @@ export function Menu({ section, expanded, shifted, onHover, onClose, settings, o
         )}
         {shown === "play" && (<>
         <fieldset className="text-sm">
+          <legend className="mb-1 text-xs font-semibold uppercase tracking-widest opacity-60">Play by</legend>
+          <div className="grid grid-cols-2 gap-1 rounded-xl bg-black/5 p-1 dark:bg-white/10">
+            {(["typing", "driving"] as const).map((c) => (
+              <label key={c} className="cursor-pointer">
+                <input type="radio" name="controls" checked={settings.controls === c} onChange={() => set("controls", c)} className="peer sr-only" />
+                <span className="block rounded-lg py-1.5 text-center font-semibold capitalize peer-checked:bg-white peer-checked:shadow peer-focus-visible:ring-2 peer-focus-visible:ring-amber-500 dark:peer-checked:bg-slate-700">
+                  {c}
+                </span>
+              </label>
+            ))}
+          </div>
+          <span className="mt-1 block text-xs opacity-60">
+            {settings.controls === "typing" ? "Type each word to steer" : "No typing: hold W to accelerate, A/D to change lanes, S to brake"}. Works in every mode, with its own leaderboard.
+          </span>
+        </fieldset>
+        <fieldset className="text-sm">
           <legend className="mb-1 text-xs font-semibold uppercase tracking-widest opacity-60">Mode</legend>
           {(Object.keys(MODE_INFO) as Mode[]).map((m) => (
             <label key={m} className="flex cursor-pointer items-start gap-2 py-1">
@@ -424,6 +440,7 @@ export function Menu({ section, expanded, shifted, onHover, onClose, settings, o
           ))}
         </fieldset>
         <section className="text-sm">
+          {settings.controls === "typing" && (<>
           <fieldset>
             <legend className="mb-1 block text-xs font-semibold uppercase tracking-widest opacity-60">Words</legend>
             <div className="grid grid-cols-2 gap-1 rounded-xl bg-black/5 p-1 dark:bg-white/10">
@@ -461,7 +478,8 @@ export function Menu({ section, expanded, shifted, onHover, onClose, settings, o
               </div>
             </div>
           )}
-          <p className="mt-2 text-xs opacity-60">Changing the mode or words starts a new run.</p>
+          </>)}
+          <p className="mt-2 text-xs opacity-60">Changing the mode, controls or words starts a new run.</p>
         </section>
         </>)}
         {shown === "garage" && (
@@ -602,7 +620,7 @@ export function Menu({ section, expanded, shifted, onHover, onClose, settings, o
         )}
         {shown === "help" && (
           <div className="[&_kbd]:bg-black/10 dark:[&_kbd]:bg-white/15">
-            <Controls cut="text-amber-700 dark:text-amber-300" steer={settings.steer} drive={settings.mode === "drive"} />
+            <Controls cut="text-amber-700 dark:text-amber-300" steer={settings.steer} drive={settings.controls === "driving"} />
           </div>
         )}
         </div>

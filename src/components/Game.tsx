@@ -59,7 +59,8 @@ export function Game() {
   const sectionRef = useRef(section);
   const [settings, setSettings] = useState(loadSettings);
   const [day, setDay] = useState(today); // fixed when a mode is applied, so a run that crosses midnight keeps its board
-  const key = boardKey(settings.mode, day);
+  const driving = settings.controls === "driving";
+  const key = boardKey(settings.mode, day, driving);
   const keyRef = useRef(key);
   const [board, setBoard] = useState(() => loadBoard(key));
   const words = useMemo(() => packWords(settings.pack, settings.customWords), [settings.pack, settings.customWords]);
@@ -120,9 +121,9 @@ export function Game() {
     const d = today();
     setDay(d);
     setRunDate(undefined);
-    engine.restart({ mode: settings.mode, words, seed: settings.mode === "daily" ? seedFromDate(d) : undefined });
+    engine.restart({ mode: settings.mode, words, driving, seed: settings.mode === "daily" ? seedFromDate(d) : undefined });
     reroll();
-  }, [engine, settings.mode, words, reroll]);
+  }, [engine, settings.mode, words, driving, reroll]);
 
   useEffect(
     () =>
@@ -195,7 +196,7 @@ export function Game() {
           expanded={subOpen}
           shifted={railOpen}
           onHover={() => (setSubOpen(true), setRailOpen(false))}
-          board={<Leaderboard board={board} highlight={runDate} mode={settings.mode} day={day} />}
+          board={<Leaderboard board={board} highlight={runDate} mode={settings.mode} driving={driving} day={day} />}
           onClose={closeMenu}
           settings={settings}
           onSettings={setSettings}
@@ -206,7 +207,7 @@ export function Game() {
       {/* The road, with the leaderboard island to its right on wide screens. */}
       <div className="flex min-h-0 min-w-0 flex-1 justify-center gap-3 max-sm:flex-col">
       <div className="relative min-h-0 min-w-0 flex-1 overflow-hidden rounded-panel border border-line shadow-elev-1 sm:aspect-[3/4] sm:flex-initial">
-        <Scene engine={engine} drive={snap.mode === "drive"} steer={settings.steer} night={night} quality={settings.quality} reduceMotion={settings.reduceMotion} car={car} paint={paint} weather={weather} />
+        <Scene engine={engine} drive={snap.driving} steer={settings.steer} night={night} quality={settings.quality} reduceMotion={settings.reduceMotion} car={car} paint={paint} weather={weather} />
         <EdgeFx speedMph={snap.speedMph} nitro={snap.nitro} still={settings.reduceMotion} />
         <div className="pointer-events-none absolute inset-x-3 top-3 flex flex-col gap-2">
           <Dashboard snap={snap} />
@@ -217,9 +218,9 @@ export function Game() {
           )}
         </div>
         <Popups engine={engine} />
-        {snap.status === "ready" && <ReadyOverlay best={board.best.score} mode={settings.mode} pack={settings.pack} day={day} weather={weather} steer={settings.steer} />}
+        {snap.status === "ready" && <ReadyOverlay best={board.best.score} mode={settings.mode} driving={driving} pack={settings.pack} day={day} weather={weather} steer={settings.steer} />}
         <div className={`absolute inset-x-0 flex justify-center px-3 ${settings.touch ? "bottom-2" : "bottom-6"}`}>
-          {snap.mode === "drive" ? (
+          {snap.driving ? (
             <DriveDock engine={engine} disabled={snap.status === "over" || halted} touch={settings.touch} />
           ) : (
             <TypingDock engine={engine} word={snap.word} nextWord={snap.nextWord} disabled={snap.status === "over" || halted} touch={settings.touch} steer={settings.steer} />
@@ -231,7 +232,7 @@ export function Game() {
       {/* Right column: the leaderboard island (wide screens) over the now-playing pill. */}
       <div className="flex shrink-0 flex-col justify-end gap-3 xl:w-72">
         <aside className="hidden min-h-0 flex-1 overflow-y-auto rounded-panel border border-line bg-surface p-5 shadow-elev-1 xl:block">
-          <Leaderboard board={board} highlight={runDate} mode={settings.mode} day={day} />
+          <Leaderboard board={board} highlight={runDate} mode={settings.mode} driving={driving} day={day} />
         </aside>
         <Music engine={engine} settings={settings} />
       </div>

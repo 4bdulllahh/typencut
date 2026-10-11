@@ -1,6 +1,6 @@
 import assert from "node:assert/strict";
 import { test } from "node:test";
-import { COMBO_TIME, LANES, MPH, POINTS, SPEED_CAMERA, laneX } from "./config.ts";
+import { COMBO_TIME, DRIVING, LANES, MPH, POINTS, SPEED_CAMERA, laneX } from "./config.ts";
 import { isPrefix, matchWord } from "./input.ts";
 import { applyCommand, createState, rand, rollWeather, seedFromDate, snapshot, spawn, step } from "./sim.ts";
 import type { GameState, Npc } from "./types.ts";
@@ -321,17 +321,58 @@ test("weather rolls are stable per seed and come out roughly 50/30/20", () => {
   assert.ok(Math.abs(n.clear - 5000) < 300 && Math.abs(n.rain - 3000) < 300 && Math.abs(n.fog - 2000) < 300, JSON.stringify(n));
 });
 
-test("drive mode: a drive command starts the run, steers or boosts, and never touches the word", () => {
-  const s = createState(3, { mode: "drive" });
+test("driving controls: drive commands start the run, steer and fire nitro, and never touch the word", () => {
+  const s = createState(3, { mode: "rush", driving: true });
   s.npcs = [];
   const word = s.word;
   assert.deepEqual(applyCommand(s, { type: "drive", dir: -1, nitro: false }).map((e) => e.type), ["start", "laneChange"]);
   assert.equal(s.player.lane, 1);
-  assert.deepEqual(applyCommand(s, { type: "drive", dir: 0, nitro: false }).map((e) => e.type), ["boost"]);
-  assert.ok(s.player.boostT > 0);
   assert.deepEqual(applyCommand(s, { type: "drive", dir: 0, nitro: true }).map((e) => e.type), ["nitro"]);
   assert.equal(s.word, word);
   assert.equal(s.stats.words, 0);
+  assert.equal(snapshot(s).driving, true);
+});
+
+test("driving physics: geared throttle up to top speed, coast and brake down to 45 mph, scrub and understeer", () => {
+  const mph = (s: GameState) => s.player.speed / MPH;
+  const ride = (s: GameState, seconds: number) => {
+    for (let i = 0; i < seconds * 60; i++) step(s, 1 / 60), (s.npcs = []), (s.hearts = []);
+  };
+  const s = createState(4, { driving: true });
+  applyCommand(s, { type: "pedal", throttle: true });
+  assert.equal(s.status, "running", "the throttle starts the run");
+  ride(s, 2);
+  const early = mph(s);
+  assert.ok(early > 70 && early < 95, `gradual: ${early.toFixed(0)} mph after 2 s`);
+  ride(s, 28);
+  assert.ok(mph(s) > 165 && mph(s) <= DRIVING.topMph + 0.01, `top speed: ${mph(s).toFixed(1)}`);
+  assert.equal(s.player.gear, 7);
+
+  // Understeer: at top speed a lane change takes longer than at low speed; braking makes it quicker again.
+  let scrubbed = 0; // speed kept by the last lane change, as a share
+  const settle = (s: GameState) => {
+    const v = s.player.speed;
+    applyCommand(s, { type: "drive", dir: 1, nitro: false });
+    scrubbed = s.player.speed / v;
+    let t = 0;
+    while (Math.abs(s.player.x - laneX(s.player.lane)) > 0.2 && t < 5) step(s, 1 / 60), (s.npcs = []), (t += 1 / 60);
+    return t;
+  };
+  const fast = settle(s);
+  assert.ok(scrubbed > 0.95 && scrubbed < 0.96, `a lane change at top speed scrubs ~4.5%: kept ${scrubbed.toFixed(3)}`);
+  applyCommand(s, { type: "pedal", throttle: false, brake: true });
+  const braking = settle(s);
+  assert.ok(braking < fast, `braking turns quicker: ${braking.toFixed(2)} vs ${fast.toFixed(2)} s`);
+  ride(s, 15);
+  assert.ok(Math.abs(mph(s) - DRIVING.minMph) < 0.5, "the brake stops at the 45 mph minimum");
+  applyCommand(s, { type: "pedal", brake: false });
+  const slow = createState(5, { driving: true });
+  applyCommand(slow, { type: "drive", dir: 0, nitro: false });
+  ride(slow, 1);
+  const lowSettle = settle(slow);
+  assert.ok(lowSettle < fast, `full grip at low speed: ${lowSettle.toFixed(2)} vs ${fast.toFixed(2)} s`);
+  ride(slow, 30); // no pedals: coasts down to the minimum
+  assert.ok(Math.abs(mph(slow) - DRIVING.minMph) < 0.5);
 });
 
 test("hearts: driving through one gives a life back, up to three; zen gets none", () => {

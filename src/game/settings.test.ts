@@ -1,6 +1,6 @@
 import assert from "node:assert/strict";
 import { test } from "node:test";
-import { revs } from "./audio.ts";
+import { revs } from "./config.ts";
 import { DEFAULT_STEER, bindable, steerDir } from "./input.ts";
 import { defaultSettings, parseSettings } from "./settings.ts";
 
@@ -28,6 +28,10 @@ test("parseSettings keeps valid fields and drops the rest", () => {
   assert.equal(base.mix.engine, defaultSettings().mix.engine); // parsing never mutates the defaults
   assert.equal(parseSettings(JSON.stringify({ music: "dnb" }), base).music, "dnb");
   assert.equal(parseSettings(JSON.stringify({ music: "radio" }), base).music, "spotify");
+  const old = parseSettings(JSON.stringify({ mode: "drive" }), base); // the old Drive mode
+  assert.deepEqual([old.mode, old.controls], ["classic", "driving"]);
+  assert.equal(parseSettings(JSON.stringify({ mode: "rush", controls: "driving" }), base).controls, "driving");
+  assert.equal(parseSettings(JSON.stringify({ controls: "flying" }), base).controls, "typing");
 });
 
 test("engine revs climb through each gear and drop on the upshift", () => {

@@ -115,8 +115,8 @@ export function TypingDock({ engine, word, nextWord, disabled, touch, steer }: {
   );
 }
 
-// Acting on press and cancelling the default keeps focus (and a phone's keyboard) where it is.
-function Pad({ label, text, act, disabled }: { label: string; text: string; act: (time: number) => void; disabled: boolean }) {
+// Acting on press and cancelling the default keeps focus (and a phone's keyboard) where it is. `release` makes it a held pedal.
+function Pad({ label, text, act, release, disabled }: { label: string; text: string; act: (time: number) => void; release?: () => void; disabled: boolean }) {
   return (
     <button
       type="button"
@@ -127,6 +127,9 @@ function Pad({ label, text, act, disabled }: { label: string; text: string; act:
         e.preventDefault();
         act(e.timeStamp);
       }}
+      onPointerUp={release}
+      onPointerLeave={release}
+      onPointerCancel={release}
       onMouseDown={(e) => e.preventDefault()}
       className="h-10 min-w-16 touch-manipulation select-none rounded-2xl bg-white/85 px-4 text-lg font-bold shadow-lg ring-1 ring-black/5 backdrop-blur active:scale-95 dark:bg-slate-900/80 dark:ring-white/10"
     >
@@ -136,47 +139,69 @@ function Pad({ label, text, act, disabled }: { label: string; text: string; act:
 }
 
 /**
- * Drive mode: no words. WASD or the arrows, read from the whole window. W/↑ = a short boost (held = kept topped up),
- * a second tap within DOUBLE_TAP_MS = nitro, S/↓ = brake.
+ * Driving controls, read from the whole window: W/↑ and S/↓ are pedals (held), A/D or ←/→ change lanes, and a second
+ * W/↑ press within DOUBLE_TAP_MS fires nitro. Pedals let go when the dock is disabled (menu, pause) or the window blurs.
  */
 export function DriveDock({ engine, disabled, touch }: { engine: GameEngine; disabled: boolean; touch: boolean }) {
   const lastUp = useRef(0);
-  const up = (time: number, repeat = false) => {
-    const nitro = !repeat && time - lastUp.current < DOUBLE_TAP_MS;
-    if (!repeat) lastUp.current = nitro ? 0 : time;
-    engine.send({ type: "drive", dir: 0, nitro });
+  const held = useRef(new Map<string, "up" | "down">()); // what holds each pedal down, so W and ↑ together release cleanly
+  const press = (id: string, k: "up" | "down", time: number) => {
+    held.current.set(id, k);
+    if (k === "down") return engine.send({ type: "pedal", brake: true });
+    const nitro = time - lastUp.current < DOUBLE_TAP_MS;
+    lastUp.current = nitro ? 0 : time;
+    engine.send({ type: "pedal", throttle: true });
+    if (nitro) engine.send({ type: "drive", dir: 0, nitro: true });
   };
-  const act = { left: () => engine.send({ type: "drive", dir: -1, nitro: false }), right: () => engine.send({ type: "drive", dir: 1, nitro: false }), down: () => engine.send({ type: "brake" }) };
+  const release = (id: string) => {
+    const k = held.current.get(id);
+    held.current.delete(id);
+    if (k && ![...held.current.values()].includes(k)) engine.send({ type: "pedal", ...(k === "up" ? { throttle: false } : { brake: false }) });
+  };
+  const steer = (dir: -1 | 1) => engine.send({ type: "drive", dir, nitro: false });
 
   useEffect(() => {
     if (disabled) return;
-    const onKey = (e: KeyboardEvent) => {
+    const releaseAll = () => {
+      held.current.clear();
+      engine.send({ type: "pedal", throttle: false, brake: false });
+    };
+    const onDown = (e: KeyboardEvent) => {
       const k = DRIVE_KEYS[e.code];
       if (!k || e.ctrlKey || e.metaKey || e.altKey || (e.target as HTMLElement).closest?.("input, textarea, select")) return;
       e.preventDefault();
-      if (k === "up") up(e.timeStamp, e.repeat);
-      else if (!e.repeat || k === "down") act[k]();
+      if (e.repeat) return;
+      if (k === "left" || k === "right") steer(k === "left" ? -1 : 1);
+      else press(e.code, k, e.timeStamp);
     };
-    window.addEventListener("keydown", onKey);
-    return () => window.removeEventListener("keydown", onKey);
-  });
+    const onUp = (e: KeyboardEvent) => release(e.code);
+    window.addEventListener("keydown", onDown);
+    window.addEventListener("keyup", onUp);
+    window.addEventListener("blur", releaseAll);
+    return () => {
+      window.removeEventListener("keydown", onDown);
+      window.removeEventListener("keyup", onUp);
+      window.removeEventListener("blur", releaseAll);
+      releaseAll();
+    };
+  }, [engine, disabled]); // the helpers only touch refs and the engine
 
   return (
     <div className="flex flex-col items-center gap-1.5">
       {touch && (
         <div className="flex gap-2">
-          <Pad label="Steer left" text="‹" act={act.left} disabled={disabled} />
-          <Pad label="Speed up, or tap twice for nitro" text="↑" act={(t) => up(t)} disabled={disabled} />
-          <Pad label="Brake" text="↓" act={act.down} disabled={disabled} />
-          <Pad label="Steer right" text="›" act={act.right} disabled={disabled} />
+          <Pad label="Steer left" text="‹" act={() => steer(-1)} disabled={disabled} />
+          <Pad label="Accelerate (hold), or tap twice for nitro" text="↑" act={(t) => press("pad", "up", t)} release={() => release("pad")} disabled={disabled} />
+          <Pad label="Brake (hold)" text="↓" act={(t) => press("pad-down", "down", t)} release={() => release("pad-down")} disabled={disabled} />
+          <Pad label="Steer right" text="›" act={() => steer(1)} disabled={disabled} />
         </div>
       )}
-      <div className="flex items-center gap-2 rounded-full bg-white/85 px-4 py-2.5 text-xs font-semibold shadow-xl ring-1 ring-black/5 backdrop-blur dark:bg-slate-900/80 dark:ring-white/10 [&_kbd]:rounded-md [&_kbd]:bg-black/5 [&_kbd]:px-1.5 [&_kbd]:py-0.5 dark:[&_kbd]:bg-white/10">
+      <div className="flex items-center gap-2 rounded-full bg-white/85 px-4 py-2.5 text-xs font-semibold shadow-xl ring-1 ring-black/5 backdrop-blur dark:bg-slate-900/80 dark:ring-white/10">
+        <span>hold <kbd>W</kbd> gas · <kbd>W</kbd><kbd>W</kbd> nitro</span>
+        <span className="opacity-30">·</span>
         <span><kbd>A</kbd> <kbd>D</kbd> lanes</span>
         <span className="opacity-30">·</span>
-        <span><kbd>W</kbd> boost · <kbd>W</kbd><kbd>W</kbd> nitro</span>
-        <span className="opacity-30">·</span>
-        <span><kbd>S</kbd> brake</span>
+        <span>hold <kbd>S</kbd> brake</span>
       </div>
     </div>
   );
