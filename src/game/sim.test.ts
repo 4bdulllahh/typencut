@@ -2,7 +2,7 @@ import assert from "node:assert/strict";
 import { test } from "node:test";
 import { COMBO_TIME, DRIVING, LANES, MPH, POINTS, SPEED_CAMERA, laneX } from "./config.ts";
 import { isPrefix, matchWord } from "./input.ts";
-import { applyCommand, createState, rand, rollWeather, seedFromDate, snapshot, spawn, step } from "./sim.ts";
+import { applyCommand, createState, rand, rollWeather, seedFromDate, WEATHER_ODDS, snapshot, spawn, step } from "./sim.ts";
 import type { GameState, Npc } from "./types.ts";
 import { PACKS, WORDS, bucketize, parseWordList, pickWord } from "./words.ts";
 
@@ -314,11 +314,15 @@ test("run counters: best combo and the longest crash-free stretch", () => {
   assert.equal(s.stats.maxCombo, 1); // the crash reset the combo, not the best
 });
 
-test("weather rolls are stable per seed and come out roughly 50/30/20", () => {
+test("weather rolls are stable per seed and follow WEATHER_ODDS", () => {
   assert.equal(rollWeather(seedFromDate("2026-10-10")), rollWeather(seedFromDate("2026-10-10")));
-  const n = { clear: 0, rain: 0, fog: 0 };
-  for (let seed = 0; seed < 10000; seed++) n[rollWeather(seed * 7919 + Date.UTC(2026, 0, 1))]++;
-  assert.ok(Math.abs(n.clear - 5000) < 300 && Math.abs(n.rain - 3000) < 300 && Math.abs(n.fog - 2000) < 300, JSON.stringify(n));
+  assert.ok(Math.abs(WEATHER_ODDS.reduce((a, [, p]) => a + p, 0) - 1) < 1e-9);
+  const n: Record<string, number> = {};
+  for (let seed = 0; seed < 10000; seed++) {
+    const w = rollWeather(seed * 7919 + Date.UTC(2026, 0, 1));
+    n[w] = (n[w] ?? 0) + 1;
+  }
+  for (const [w, p] of WEATHER_ODDS) assert.ok(Math.abs(n[w] - p * 10000) < 300, JSON.stringify(n));
 });
 
 test("driving controls: drive commands start the run, steer and fire nitro, and never touch the word", () => {

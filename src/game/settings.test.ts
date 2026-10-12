@@ -21,7 +21,8 @@ test("parseSettings keeps valid fields and drops the rest", () => {
   const badCar = parseSettings(JSON.stringify({ car: "yaris", paint: "gold" }), base); // npc models are not player cars
   assert.deepEqual([badCar.car, badCar.paint], ["gr86", "white"]);
   assert.equal(parseSettings(JSON.stringify({ weather: "fog" }), base).weather, "fog");
-  assert.equal(parseSettings(JSON.stringify({ weather: "snow" }), base).weather, "random");
+  assert.equal(parseSettings(JSON.stringify({ weather: "snow" }), base).weather, "snow");
+  assert.equal(parseSettings(JSON.stringify({ weather: "hail" }), base).weather, "random");
   const mix = parseSettings(JSON.stringify({ mix: { engine: 0.2, weather: 3, typing: "loud", effects: 0 } }), base).mix;
   assert.deepEqual(mix, { ...base.mix, engine: 0.2, effects: 0 });
   assert.equal(parseSettings(JSON.stringify({ engine: false }), base).mix.engine, 0); // old engine switch carries over

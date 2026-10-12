@@ -31,7 +31,7 @@ export interface Settings {
 }
 
 const KEY = "typencut.settings";
-export const WEATHERS = ["random", "clear", "rain", "fog"] as const;
+export const WEATHERS = ["random", "clear", "rain", "fog", "snow", "sandstorm", "wind"] as const;
 
 export const defaultSettings = (reduceMotion = false, touch = false): Settings => ({
   volume: 0.8, muted: false, mix: { music: 0.1, engine: 0.5, weather: 0.7, typing: 0.8, effects: 0.8 }, music: "dnb", track: 0, quality: "high", reduceMotion, touch, mode: "classic", controls: "typing", pack: "driving", customWords: "", car: "gr86", paint: "white", weather: "random", steer: DEFAULT_STEER,

@@ -1,9 +1,12 @@
 import { MPH, revs } from "./config.ts";
 import type { GameEngine } from "./engine.ts";
 import type { Settings } from "./settings.ts";
-import type { GameEvent } from "./types.ts";
+import type { GameEvent, Weather } from "./types.ts";
 
-type AudioSettings = Pick<Settings, "volume" | "muted" | "mix"> & { rain?: boolean };
+type AudioSettings = Pick<Settings, "volume" | "muted" | "mix"> & { weather?: Weather };
+
+/** Weather loops: rain hiss and wind howl level per weather. */
+const WEATHER_SOUND: Partial<Record<Weather, [rain: number, wind: number]>> = { rain: [0.07, 0], snow: [0, 0.05], sandstorm: [0, 0.16], wind: [0, 0.11] };
 type Bus = "typing" | "effects";
 
 /**
@@ -19,6 +22,7 @@ export function attachAudio(engine: GameEngine, initial: AudioSettings) {
   let paused = false;
   let motor: { hum: OscillatorNode; sub: OscillatorNode; filter: BiquadFilterNode; gain: GainNode } | null = null;
   let rain: GainNode | null = null;
+  let wind: { gain: GainNode; band: BiquadFilterNode } | null = null;
   const level = () => (settings.muted ? 0 : settings.volume * 0.62);
 
   // Created on the first event, which is a keystroke, so the browser allows it.
@@ -66,6 +70,17 @@ export function attachAudio(engine: GameEngine, initial: AudioSettings) {
       band.Q.value = 0.5;
       patter.connect(band).connect(rain);
       patter.start();
+      // Wind: low band-passed noise whose pitch and level gust slowly (see the 50 ms update).
+      const gust = ctx.createBufferSource();
+      gust.buffer = noise;
+      gust.loop = true;
+      gust.playbackRate.value = 0.5;
+      wind = { gain: ctx.createGain(), band: ctx.createBiquadFilter() };
+      wind.gain.gain.value = 0;
+      wind.band.type = "bandpass";
+      wind.band.Q.value = 1.6;
+      gust.connect(wind.band).connect(wind.gain).connect(bus.weather);
+      gust.start();
     }
     if (ctx.state === "suspended") void ctx.resume();
     return ctx;
@@ -169,7 +184,11 @@ export function attachAudio(engine: GameEngine, initial: AudioSettings) {
     motor.sub.frequency.setTargetAtTime(f / 2, t, 0.05);
     motor.filter.frequency.setTargetAtTime(380 + 1100 * rpm + (nitro ? 900 : 0), t, 0.08);
     motor.gain.gain.setTargetAtTime(on ? (nitro ? 0.2 : 0.13) * (0.6 + 0.4 * rpm) : 0, t, 0.08);
-    rain?.gain.setTargetAtTime(settings.rain && !paused ? 0.07 : 0, t, 0.5);
+    const [hiss, howl] = (!paused && settings.weather && WEATHER_SOUND[settings.weather]) || [0, 0];
+    rain?.gain.setTargetAtTime(hiss, t, 0.5);
+    const g = Math.sin(t * 0.7) * 0.5 + Math.sin(t * 1.9) * 0.3; // gusts
+    wind?.gain.gain.setTargetAtTime(howl * (0.75 + 0.35 * g), t, 0.4);
+    wind?.band.frequency.setTargetAtTime(380 + 160 * g, t, 0.4);
   }, 50);
 
   const off = engine.on(play);

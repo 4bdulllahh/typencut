@@ -35,10 +35,14 @@ export interface RunOptions {
 /** FNV-1a of a date string such as "2026-10-10": the daily challenge's seed. */
 export const seedFromDate = (date: string) => [...date].reduce((h, c) => Math.imul(h ^ c.charCodeAt(0), 16777619), 2166136261) | 0;
 
-/** A run's weather when the setting is "random": half clear, 30% rain, 20% fog, picked from the run's seed. */
+/** Chances of each weather when the setting is "random" (they sum to 1). */
+export const WEATHER_ODDS: [Weather, number][] = [["clear", 0.35], ["rain", 0.2], ["fog", 0.12], ["snow", 0.12], ["sandstorm", 0.09], ["wind", 0.12]];
+
+/** A run's weather when the setting is "random", picked from the run's seed by WEATHER_ODDS. */
 export function rollWeather(seed: number): Weather {
-  const r = (Math.imul(seed ^ 0x9e3779b9, 2654435761) >>> 0) / 4294967296;
-  return r < 0.5 ? "clear" : r < 0.8 ? "rain" : "fog";
+  let r = (Math.imul(seed ^ 0x9e3779b9, 2654435761) >>> 0) / 4294967296;
+  for (const [w, p] of WEATHER_ODDS) if ((r -= p) < 0) return w;
+  return "clear";
 }
 
 export function createState(seed = Date.now(), { mode = "classic", words = WORDS, driving = false }: Omit<RunOptions, "seed"> = {}): GameState {

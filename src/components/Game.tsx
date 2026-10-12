@@ -87,7 +87,7 @@ export function Game() {
   }, [night]);
 
   useEffect(() => {
-    const a = attachAudio(engine, settings); // later changes arrive through `set` below
+    const a = attachAudio(engine, { ...settings, weather }); // later changes arrive through `set` below
     audio.current = a;
     return a.detach;
   }, [engine]);
@@ -98,7 +98,7 @@ export function Game() {
     document.documentElement.classList.toggle("reduce-motion", settings.reduceMotion);
   }, [settings]);
 
-  useEffect(() => audio.current?.set({ ...settings, rain: weather === "rain" }), [settings, weather]);
+  useEffect(() => audio.current?.set({ ...settings, weather }), [settings, weather]);
   useEffect(() => audio.current?.pause(halted), [halted]);
 
   // Esc pauses a running run and Esc again continues; with a sub pill open, Esc only closes that (Menu's own listener).

@@ -3,7 +3,7 @@
 import { useFrame } from "@react-three/fiber";
 import { useEffect, useMemo, useRef } from "react";
 import {
-  AdditiveBlending, BoxGeometry, ExtrudeGeometry, IcosahedronGeometry, MeshBasicMaterial, MeshStandardMaterial, Object3D, PlaneGeometry, Shape,
+  AdditiveBlending, BoxGeometry, ExtrudeGeometry, IcosahedronGeometry, MeshBasicMaterial, MeshStandardMaterial, Object3D, PlaneGeometry, Shape, Vector3,
   type Group, type InstancedMesh, type Mesh,
 } from "three";
 import { MODELS } from "@/game/config";
@@ -100,37 +100,55 @@ export function Smoke() {
   ));
 }
 
-const DROP = new BoxGeometry(0.035, 0.035, 1);
-const RAIN_N = 700;
-const RAIN_TOP = 45;
-const FALL = 26; // m/s
-const RAIN_MAT = new MeshBasicMaterial({ color: "#c9d6e6", transparent: true, opacity: 0.45, depthWrite: false });
+const PARTICLE = new BoxGeometry(1, 1, 1);
+/**
+ * Weather particles in a box around the player: `fall` and `wind` (m/s, across the road) plus the road rushing past
+ * at the player's speed. Streaks are stretched along that motion (`blur` s of it); `tumble` spins flat bits (leaves) instead.
+ */
+const PARTICLES = {
+  rain: { n: 700, color: "#c9d6e6", opacity: 0.45, size: 0.035, fall: 26, wind: 0, blur: 0.03, top: 45 },
+  snow: { n: 900, color: "#ffffff", opacity: 0.9, size: 0.22, fall: 4, wind: 2, blur: 0.005, top: 40 },
+  sandstorm: { n: 1100, color: "#d9b27c", opacity: 0.5, size: 0.09, fall: 0.5, wind: 22, blur: 0.03, top: 14 },
+  wind: { n: 320, color: "#6f8f3e", opacity: 1, size: 0.5, fall: 1.5, wind: 14, blur: 0, top: 10, tumble: true },
+} as const;
+export type ParticleKind = keyof typeof PARTICLES;
+const SPAN = 34; // m across
 
-/** Rain streaks in a box around the player, stretched along their motion relative to the car (falling, and rushing past). */
-export function Rain() {
+export function Particles({ kind }: { kind: ParticleKind }) {
   const engine = useEngine();
   const ref = useRef<InstancedMesh>(null);
+  const cfg: { n: number; color: string; opacity: number; size: number; fall: number; wind: number; blur: number; top: number; tumble?: boolean } = PARTICLES[kind];
+  const mat = useMemo(() => new MeshBasicMaterial({ color: cfg.color, transparent: cfg.opacity < 1, opacity: cfg.opacity, depthWrite: false }), [cfg]);
   const r = Math.random;
-  const drops = useMemo(() => Array.from({ length: RAIN_N }, () => ({ x: (r() - 0.5) * 34, y: r() * RAIN_TOP, z: -150 + r() * 170 })), [r]);
+  const bits = useMemo(() => Array.from({ length: cfg.n }, () => ({ x: (r() - 0.5) * SPAN, y: r() * cfg.top, z: -150 + r() * 170, spin: r() * 6 })), [cfg, r]);
   const tmp = useMemo(() => new Object3D(), []);
+  const ahead = useMemo(() => new Vector3(), []);
   useFrame((_, dt) => {
     const mesh = ref.current;
     if (!mesh) return;
     const v = engine.state.status === "running" ? engine.state.player.speed : 0;
-    const len = Math.hypot(FALL, v) * 0.03; // ~30 ms of motion blur
-    drops.forEach((d, i) => {
-      d.y -= FALL * dt;
+    const len = Math.max(cfg.size, Math.hypot(cfg.fall, v, cfg.wind) * cfg.blur);
+    bits.forEach((d, i) => {
+      d.y -= cfg.fall * dt;
       d.z += v * dt;
-      if (d.y < 0 || d.z > 20) [d.x, d.y, d.z] = [(r() - 0.5) * 34, RAIN_TOP * (0.6 + r() * 0.4), -150 + r() * 150];
+      d.x += (cfg.wind + (kind === "snow" ? Math.sin(d.spin + d.y) : 0)) * dt;
+      if (d.x > SPAN / 2) d.x -= SPAN; // blown across: wrap to the other side
+      if (d.y < 0 || d.z > 20) [d.x, d.y, d.z] = [(r() - 0.5) * SPAN, cfg.top * (kind === "rain" ? 0.6 + r() * 0.4 : r()), -150 + r() * 150];
       tmp.position.set(d.x, d.y, d.z);
-      tmp.rotation.set(Math.atan2(FALL, v), 0, 0); // long axis along the drop's velocity (0, -FALL, v)
-      tmp.scale.set(1, 1, len);
+      if (cfg.tumble) {
+        d.spin += dt * 6;
+        tmp.rotation.set(d.spin, d.spin * 0.7, 0);
+        tmp.scale.set(cfg.size, cfg.size * 0.1, cfg.size * 0.7);
+      } else {
+        tmp.lookAt(ahead.set(d.x + cfg.wind, d.y - cfg.fall, d.z + v)); // long axis along the bit's motion
+        tmp.scale.set(cfg.size, cfg.size, len);
+      }
       tmp.updateMatrix();
       mesh.setMatrixAt(i, tmp.matrix);
     });
     mesh.instanceMatrix.needsUpdate = true;
   });
-  return <instancedMesh ref={ref} args={[DROP, RAIN_MAT, RAIN_N]} frustumCulled={false} />;
+  return <instancedMesh ref={ref} args={[PARTICLE, mat, cfg.n]} frustumCulled={false} />;
 }
 
 const SPRAY_N = 360;

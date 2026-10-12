@@ -9,7 +9,7 @@ import { keyLabel, type SteerKeys } from "@/game/input";
 import type { Settings } from "@/game/settings";
 import type { PlayerModel, Weather } from "@/game/types";
 import { EngineCtx, NightCtx, WeatherCtx, useEngine } from "./context";
-import { Hearts, Rain, SkidMarks, Smoke, Spray } from "./Fx";
+import { Hearts, Particles, SkidMarks, Smoke, Spray } from "./Fx";
 import { NpcCar, PlayerCar } from "./Vehicles";
 import { World } from "./World";
 
@@ -45,12 +45,8 @@ export function Scene({ engine, drive, steer, night, quality, reduceMotion, car,
               <Smoke />
               <Traffic />
               <Hearts />
-              {weather === "rain" && (
-                <>
-                  <Rain />
-                  <Spray />
-                </>
-              )}
+              {weather !== "clear" && weather !== "fog" && <Particles key={weather} kind={weather} />}
+              {weather === "rain" && <Spray />}
               {!drive && <WordTag el={tag} />}
             </WeatherCtx.Provider>
           </NightCtx.Provider>
@@ -75,11 +71,17 @@ const LOOKS: Record<"day" | "night", Record<Weather, { sky: string; fog: [number
     clear: { sky: "#f2d5bd", fog: [105, 175], hemi: ["#fff2e0", "#b4bc98", 1.7], sun: ["#ffe6c4", 2.1] },
     rain: { sky: "#a9b0b8", fog: [100, 165], hemi: ["#dfe5ec", "#8d9488", 2.3], sun: ["#e6ecf2", 0.9] },
     fog: { sky: "#d9d5ce", fog: [76, 138], hemi: ["#f2efe8", "#b8b9a8", 2.5], sun: ["#fff4e6", 0.7] },
+    snow: { sky: "#e3e8ee", fog: [90, 160], hemi: ["#ffffff", "#c8ccd2", 1.8], sun: ["#f4f6ff", 1.2] },
+    sandstorm: { sky: "#d9b98a", fog: [62, 125], hemi: ["#f5dcb4", "#b08f60", 2.2], sun: ["#ffd9a0", 1.0] },
+    wind: { sky: "#e8dcc8", fog: [105, 175], hemi: ["#fff2e0", "#b4bc98", 1.8], sun: ["#fff0d8", 1.9] },
   },
   night: {
     clear: { sky: "#0a0f22", fog: [105, 175], hemi: ["#3a4d86", "#07080f", 0.8], sun: ["#9db0ff", 0.7] },
     rain: { sky: "#0a0d18", fog: [100, 160], hemi: ["#33405f", "#06070c", 0.7], sun: ["#9db0ff", 0.35] },
     fog: { sky: "#1c2232", fog: [76, 135], hemi: ["#46506e", "#0b0d14", 0.9], sun: ["#9db0ff", 0.3] },
+    snow: { sky: "#141a2a", fog: [95, 165], hemi: ["#5a6a96", "#1a1e2a", 0.9], sun: ["#b8c8ff", 0.6] },
+    sandstorm: { sky: "#20180f", fog: [62, 122], hemi: ["#6a5236", "#0d0904", 0.8], sun: ["#ffcf90", 0.3] },
+    wind: { sky: "#0a0f22", fog: [105, 175], hemi: ["#3a4d86", "#07080f", 0.8], sun: ["#9db0ff", 0.7] },
   },
 };
 

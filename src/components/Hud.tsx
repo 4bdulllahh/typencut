@@ -319,7 +319,7 @@ type Toggle = "muted" | "reduceMotion" | "touch";
 const MIX_LABELS: Record<(typeof MIX)[number], [string, string]> = {
   music: ["Music", "The soundtrack"],
   engine: ["Engine", "Your car's engine note"],
-  weather: ["Weather", "Rain"],
+  weather: ["Weather", "Rain and wind"],
   typing: ["Typing", "Key clicks"],
   effects: ["Effects", "Nitro, boosts, tyres, horns, crashes, pickups"],
 };
@@ -619,7 +619,7 @@ export function Menu({ section, expanded, shifted, onHover, onClose, settings, o
           </fieldset>
           <fieldset className="py-1.5">
             <legend className="font-semibold">Weather</legend>
-            <span className="block text-xs opacity-60">Random picks clear, rain or fog for each run</span>
+            <span className="block text-xs opacity-60">Random picks a new one for each run. Looks and sound only: the car drives the same</span>
             <div className="mt-1.5 grid grid-cols-4 gap-1 rounded-xl bg-black/5 p-1 dark:bg-white/10">
               {WEATHERS.map((w) => (
                 <label key={w} className="cursor-pointer">
