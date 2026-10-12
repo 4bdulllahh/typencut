@@ -333,7 +333,7 @@ test("driving controls: drive commands start the run, steer and fire nitro, and 
   assert.equal(snapshot(s).driving, true);
 });
 
-test("driving physics: geared throttle up to top speed, coast and brake down to 45 mph, scrub and understeer", () => {
+test("driving physics: quick geared throttle to top speed, strong brake and coast down to 45 mph, arcade lane changes", () => {
   const mph = (s: GameState) => s.player.speed / MPH;
   const ride = (s: GameState, seconds: number) => {
     for (let i = 0; i < seconds * 60; i++) step(s, 1 / 60), (s.npcs = []), (s.hearts = []);
@@ -343,36 +343,31 @@ test("driving physics: geared throttle up to top speed, coast and brake down to 
   assert.equal(s.status, "running", "the throttle starts the run");
   ride(s, 2);
   const early = mph(s);
-  assert.ok(early > 70 && early < 95, `gradual: ${early.toFixed(0)} mph after 2 s`);
-  ride(s, 28);
-  assert.ok(mph(s) > 165 && mph(s) <= DRIVING.topMph + 0.01, `top speed: ${mph(s).toFixed(1)}`);
+  assert.ok(early > 90 && early < 120, `quick but geared: ${early.toFixed(0)} mph after 2 s`);
+  ride(s, 7);
+  assert.ok(mph(s) > 165 && mph(s) <= DRIVING.topMph + 0.01, `top speed within 9 s: ${mph(s).toFixed(1)}`);
   assert.equal(s.player.gear, 7);
 
-  // Understeer: at top speed a lane change takes longer than at low speed; braking makes it quicker again.
-  let scrubbed = 0; // speed kept by the last lane change, as a share
+  // Arcade: a lane change costs no speed and takes the same time at any speed.
   const settle = (s: GameState) => {
     const v = s.player.speed;
     applyCommand(s, { type: "drive", dir: 1, nitro: false });
-    scrubbed = s.player.speed / v;
+    assert.equal(s.player.speed, v, "no speed lost");
     let t = 0;
     while (Math.abs(s.player.x - laneX(s.player.lane)) > 0.2 && t < 5) step(s, 1 / 60), (s.npcs = []), (t += 1 / 60);
     return t;
   };
   const fast = settle(s);
-  assert.ok(scrubbed > 0.95 && scrubbed < 0.96, `a lane change at top speed scrubs ~4.5%: kept ${scrubbed.toFixed(3)}`);
   applyCommand(s, { type: "pedal", throttle: false, brake: true });
-  const braking = settle(s);
-  assert.ok(braking < fast, `braking turns quicker: ${braking.toFixed(2)} vs ${fast.toFixed(2)} s`);
-  ride(s, 15);
-  assert.ok(Math.abs(mph(s) - DRIVING.minMph) < 0.5, "the brake stops at the 45 mph minimum");
+  ride(s, 2);
+  assert.ok(Math.abs(mph(s) - DRIVING.minMph) < 0.5, `the brake stops at 45 mph within 2 s: ${mph(s).toFixed(1)}`);
   applyCommand(s, { type: "pedal", brake: false });
-  const slow = createState(5, { driving: true });
-  applyCommand(slow, { type: "drive", dir: 0, nitro: false });
-  ride(slow, 1);
-  const lowSettle = settle(slow);
-  assert.ok(lowSettle < fast, `full grip at low speed: ${lowSettle.toFixed(2)} vs ${fast.toFixed(2)} s`);
-  ride(slow, 30); // no pedals: coasts down to the minimum
-  assert.ok(Math.abs(mph(slow) - DRIVING.minMph) < 0.5);
+  const slow = settle(s);
+  assert.ok(Math.abs(slow - fast) < 0.05, `same lane change at 45 and 170 mph: ${slow.toFixed(2)} vs ${fast.toFixed(2)} s`);
+  const coast = createState(5, { driving: true });
+  applyCommand(coast, { type: "drive", dir: 0, nitro: false });
+  ride(coast, 30); // no pedals: coasts down to the minimum
+  assert.ok(Math.abs(mph(coast) - DRIVING.minMph) < 0.5);
 });
 
 test("hearts: driving through one gives a life back, up to three; zen gets none", () => {
@@ -404,15 +399,15 @@ test("hearts: driving through one gives a life back, up to three; zen gets none"
   assert.equal(hearts("zen"), 0);
 });
 
-test("nitro recharges for 5 s: a second nitro inside that is a plain move; a clean cut recharges it", () => {
+test("nitro recharges for 3.5 s: a second nitro inside that is a plain move; a clean cut recharges it", () => {
   const s = running();
   applyCommand(s, { type: "word", dir: 1, nitro: true });
   assert.ok(s.player.nitroT > 0);
   for (let i = 0; i < 60; i++) step(s, 1 / 60); // 1 s later: burn over, still recharging
   const again = applyCommand(s, { type: "word", dir: -1, nitro: true }).map((e) => e.type);
   assert.ok(again.includes("nitroDenied") && again.includes("laneChange") && !again.includes("nitro"));
-  assert.ok(snapshot(s).nitroCharge > 0.15 && snapshot(s).nitroCharge < 0.25);
-  for (let i = 0; i < 4 * 60 + 5; i++) step(s, 1 / 60), (s.player.lives = 3), (s.player.invulnT = 1);
+  assert.ok(snapshot(s).nitroCharge > 0.25 && snapshot(s).nitroCharge < 0.32);
+  for (let i = 0; i < 2.5 * 60 + 5; i++) step(s, 1 / 60), (s.player.lives = 3), (s.player.invulnT = 1);
   assert.equal(snapshot(s).nitroCharge, 1);
 
   applyCommand(s, { type: "word", dir: 1, nitro: true });

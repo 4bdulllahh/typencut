@@ -26,8 +26,14 @@ test("parseSettings keeps valid fields and drops the rest", () => {
   assert.deepEqual(mix, { ...base.mix, engine: 0.2, effects: 0 });
   assert.equal(parseSettings(JSON.stringify({ engine: false }), base).mix.engine, 0); // old engine switch carries over
   assert.equal(base.mix.engine, defaultSettings().mix.engine); // parsing never mutates the defaults
-  assert.equal(parseSettings(JSON.stringify({ music: "dnb" }), base).music, "dnb");
-  assert.equal(parseSettings(JSON.stringify({ music: "radio" }), base).music, "spotify");
+  assert.equal(parseSettings(JSON.stringify({ music: "off" }), base).music, "off");
+  assert.equal(parseSettings(JSON.stringify({ music: "radio" }), base).music, "dnb");
+  assert.equal(base.mix.music, 0.1, "new players start the music at 10%");
+  const spotify = parseSettings(JSON.stringify({ music: "spotify", mix: { music: 0.6 } }), base); // Spotify was removed in v1.14
+  assert.deepEqual([spotify.music, spotify.mix.music], ["dnb", 0.1]);
+  assert.equal(parseSettings(JSON.stringify({ music: "dnb", mix: { music: 0.6 } }), base).mix.music, 0.6);
+  assert.equal(parseSettings(JSON.stringify({ track: 14 }), base).track, 14);
+  assert.equal(parseSettings(JSON.stringify({ track: 15 }), base).track, 0);
   const old = parseSettings(JSON.stringify({ mode: "drive" }), base); // the old Drive mode
   assert.deepEqual([old.mode, old.controls], ["classic", "driving"]);
   assert.equal(parseSettings(JSON.stringify({ mode: "rush", controls: "driving" }), base).controls, "driving");

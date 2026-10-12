@@ -3,6 +3,7 @@
 import { useEffect, useRef, useState } from "react";
 import type { GameEngine } from "@/game/engine";
 import type { Dir } from "@/game/types";
+import { DRIVING } from "@/game/config";
 import { DOUBLE_TAP_MS, DRIVE_KEYS, isPrefix, keyLabel, matchWord, steerDir, type SteerKeys } from "@/game/input";
 
 /**
@@ -139,8 +140,8 @@ function Pad({ label, text, act, release, disabled }: { label: string; text: str
 }
 
 /**
- * Driving controls, read from the whole window: W/↑ and S/↓ are pedals (held), A/D or ←/→ change lanes, and a second
- * W/↑ press within DOUBLE_TAP_MS fires nitro. Pedals let go when the dock is disabled (menu, pause) or the window blurs.
+ * Driving controls, read from the whole window: W/↑ and S/↓ are pedals (held), A/D or ←/→ change lanes (held: one more
+ * lane every DRIVING.repeat s), and a second W/↑ press within DOUBLE_TAP_MS fires nitro. Pedals let go when the dock is disabled (menu, pause) or the window blurs.
  */
 export function DriveDock({ engine, disabled, touch }: { engine: GameEngine; disabled: boolean; touch: boolean }) {
   const lastUp = useRef(0);
@@ -159,11 +160,22 @@ export function DriveDock({ engine, disabled, touch }: { engine: GameEngine; dis
     if (k && ![...held.current.values()].includes(k)) engine.send({ type: "pedal", ...(k === "up" ? { throttle: false } : { brake: false }) });
   };
   const steer = (dir: -1 | 1) => engine.send({ type: "drive", dir, nitro: false });
+  const steering = useRef(new Map<string, number>()); // held steering key or pad → its repeat timer
+  const steerDown = (id: string, dir: -1 | 1) => {
+    if (steering.current.has(id)) return;
+    steer(dir);
+    steering.current.set(id, window.setInterval(() => steer(dir), DRIVING.repeat * 1000));
+  };
+  const steerUp = (id: string) => {
+    clearInterval(steering.current.get(id));
+    steering.current.delete(id);
+  };
 
   useEffect(() => {
     if (disabled) return;
     const releaseAll = () => {
       held.current.clear();
+      for (const id of [...steering.current.keys()]) steerUp(id);
       engine.send({ type: "pedal", throttle: false, brake: false });
     };
     const onDown = (e: KeyboardEvent) => {
@@ -171,10 +183,10 @@ export function DriveDock({ engine, disabled, touch }: { engine: GameEngine; dis
       if (!k || e.ctrlKey || e.metaKey || e.altKey || (e.target as HTMLElement).closest?.("input, textarea, select")) return;
       e.preventDefault();
       if (e.repeat) return;
-      if (k === "left" || k === "right") steer(k === "left" ? -1 : 1);
+      if (k === "left" || k === "right") steerDown(e.code, k === "left" ? -1 : 1);
       else press(e.code, k, e.timeStamp);
     };
-    const onUp = (e: KeyboardEvent) => release(e.code);
+    const onUp = (e: KeyboardEvent) => (release(e.code), steerUp(e.code));
     window.addEventListener("keydown", onDown);
     window.addEventListener("keyup", onUp);
     window.addEventListener("blur", releaseAll);
@@ -190,10 +202,10 @@ export function DriveDock({ engine, disabled, touch }: { engine: GameEngine; dis
     <div className="flex flex-col items-center gap-1.5">
       {touch && (
         <div className="flex gap-2">
-          <Pad label="Steer left" text="‹" act={() => steer(-1)} disabled={disabled} />
+          <Pad label="Steer left (hold for more lanes)" text="‹" act={() => steerDown("pad-left", -1)} release={() => steerUp("pad-left")} disabled={disabled} />
           <Pad label="Accelerate (hold), or tap twice for nitro" text="↑" act={(t) => press("pad", "up", t)} release={() => release("pad")} disabled={disabled} />
           <Pad label="Brake (hold)" text="↓" act={(t) => press("pad-down", "down", t)} release={() => release("pad-down")} disabled={disabled} />
-          <Pad label="Steer right" text="›" act={() => steer(1)} disabled={disabled} />
+          <Pad label="Steer right (hold for more lanes)" text="›" act={() => steerDown("pad-right", 1)} release={() => steerUp("pad-right")} disabled={disabled} />
         </div>
       )}
       <div className="flex items-center gap-2 rounded-full bg-white/85 px-4 py-2.5 text-xs font-semibold shadow-xl ring-1 ring-black/5 backdrop-blur dark:bg-slate-900/80 dark:ring-white/10">

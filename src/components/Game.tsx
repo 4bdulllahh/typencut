@@ -57,6 +57,7 @@ export function Game() {
   const halted = menu || paused; // either one stops the game
   const closeMenu = useCallback(() => setSection(null), []);
   const sectionRef = useRef(section);
+  const pills = useRef<HTMLDivElement>(null);
   const [settings, setSettings] = useState(loadSettings);
   const [day, setDay] = useState(today); // fixed when a mode is applied, so a run that crosses midnight keeps its board
   const driving = settings.controls === "driving";
@@ -110,6 +111,14 @@ export function Game() {
     const off = engine.on((e) => (e.type === "gameOver" || e.type === "restart") && setPaused(false));
     return () => (window.removeEventListener("keydown", onKey), off());
   }, [engine]);
+
+  // Done with the menu: a click or tap anywhere outside the two pills closes it, and the game carries on.
+  useEffect(() => {
+    if (!menu) return;
+    const onDown = (e: PointerEvent) => !pills.current?.contains(e.target as Node) && closeMenu();
+    document.addEventListener("pointerdown", onDown);
+    return () => document.removeEventListener("pointerdown", onDown);
+  }, [menu, closeMenu]);
 
   useEffect(() => {
     keyRef.current = key;
@@ -181,7 +190,7 @@ export function Game() {
   return (
     <main className="relative flex h-dvh flex-col gap-3 p-3 sm:flex-row">
       {/* Far left: the menu pill and, once a section is open, the sub pill beside it. */}
-      <div className="flex shrink-0 gap-3">
+      <div ref={pills} className="flex shrink-0 gap-3">
         <Rail
           open={section}
           onOpen={openSection}
@@ -234,7 +243,7 @@ export function Game() {
         <aside className="hidden min-h-0 flex-1 overflow-y-auto rounded-panel border border-line bg-surface p-5 shadow-elev-1 xl:block">
           <Leaderboard board={board} highlight={runDate} mode={settings.mode} driving={driving} day={day} />
         </aside>
-        <Music engine={engine} settings={settings} />
+        <Music engine={engine} settings={settings} onTrack={(track) => setSettings((s) => ({ ...s, track }))} />
       </div>
       </div>
     </main>

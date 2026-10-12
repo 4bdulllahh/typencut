@@ -143,8 +143,6 @@ function move(state: GameState, dir: Dir | 0, wantNitro: boolean, events: GameEv
       .filter((a) => a.gap > -1 && a.gap < CLEAN_CUT_GAP)
       .sort((a, b) => a.gap - b.gap)[0];
     pl.cutId = ahead ? ahead.n.id : 0;
-    // Driving: a lane change scrubs a little speed, more the faster you go.
-    if (state.driving) pl.speed = Math.max(DRIVING.minMph * MPH, pl.speed * (1 - DRIVING.scrub[0] - DRIVING.scrub[1] * (pl.speed / (DRIVING.topMph * MPH)) ** 2));
     pl.prevLane = pl.lane;
     pl.lane = to;
     pl.laneAge = 0;
@@ -222,9 +220,7 @@ export function step(state: GameState, dt: number): GameEvent[] {
   st.maxSpeed = Math.max(st.maxSpeed, pl.speed);
 
   // Player: lateral spring (semi-implicit Euler)
-  // Driving: grip fades at high speed (understeer: lane changes come slower); braking loads the front and adds it back.
-  const k = LAT_K * grip(state) ** 2;
-  pl.vx += (k * (laneX(pl.lane) - pl.x) - 2 * Math.sqrt(k) * pl.vx) * dt;
+  pl.vx += (LAT_K * (laneX(pl.lane) - pl.x) - 2 * Math.sqrt(LAT_K) * pl.vx) * dt;
   pl.x += pl.vx * dt;
 
   // Traffic
@@ -304,15 +300,6 @@ function drive(state: GameState, dt: number) {
     // Pull eases off over the last 8 mph so the car settles at top speed instead of bouncing off it.
     if (pl.shiftT <= 0) pl.speed = Math.min(top, pl.speed + DRIVING.pull[gear - 1] * Math.min(1, (top - pl.speed) / (8 * MPH)) * dt);
   } else pl.speed = approach(pl.speed, min, DRIVING.coast * dt);
-}
-
-/** Lane-change grip, 0.4–1: typing always has full grip. */
-function grip(state: GameState) {
-  if (!state.driving) return 1;
-  const { player: pl } = state;
-  const { fullMph, least, braking } = DRIVING.grip;
-  const g = 1 - (1 - least) * Math.min(1, Math.max(0, (toMph(pl.speed) - fullMph) / (DRIVING.topMph - fullMph)));
-  return Math.min(1, g + (pl.braking ? braking : 0));
 }
 
 const MAX_COMBO = Math.round((MAX_MULTIPLIER - 1) / MULTIPLIER_STEP); // passes that reach the top multiplier

@@ -1,4 +1,5 @@
 import { MODES } from "./config.ts";
+import { DNB_TRACKS } from "./music.ts";
 import { DEFAULT_STEER, bindable, type KeyBind, type SteerKeys } from "./input.ts";
 import { CARS, PAINTS, type PaintId } from "./progress.ts";
 import type { Mode, PlayerModel, Weather } from "./types.ts";
@@ -6,15 +7,16 @@ import { PACK_IDS, type PackId } from "./words.ts";
 
 /** Sound channels under the master volume. */
 export const MIX = ["music", "engine", "weather", "typing", "effects"] as const;
-/** Soundtrack source: the owner's Spotify playlist, the drum & bass generated in code (music.ts), or none. */
-export const MUSIC = ["spotify", "dnb", "off"] as const;
+/** Soundtrack: the drum & bass generated in code (music.ts), or none. */
+export const MUSIC = ["dnb", "off"] as const;
 export type Mix = Record<(typeof MIX)[number], number>;
 
 export interface Settings {
   volume: number; // 0–1, master
   muted: boolean;
-  mix: Mix; // 0–1 per channel; engine 0 = no engine note; music sets the generated track (Spotify plays at device volume)
+  mix: Mix; // 0–1 per channel; engine 0 = no engine note
   music: (typeof MUSIC)[number];
+  track: number; // index into DNB_TRACKS
   quality: "high" | "low"; // low = no shadows, 1× pixel density
   reduceMotion: boolean; // no camera shake, nitro zoom or edge blur
   touch: boolean; // on-screen steering buttons + vibration on crashes
@@ -32,7 +34,7 @@ const KEY = "typencut.settings";
 export const WEATHERS = ["random", "clear", "rain", "fog"] as const;
 
 export const defaultSettings = (reduceMotion = false, touch = false): Settings => ({
-  volume: 0.8, muted: false, mix: { music: 0.6, engine: 0.5, weather: 0.7, typing: 0.8, effects: 0.8 }, music: "spotify", quality: "high", reduceMotion, touch, mode: "classic", controls: "typing", pack: "driving", customWords: "", car: "gt3rs", paint: "white", weather: "random", steer: DEFAULT_STEER,
+  volume: 0.8, muted: false, mix: { music: 0.1, engine: 0.5, weather: 0.7, typing: 0.8, effects: 0.8 }, music: "dnb", track: 0, quality: "high", reduceMotion, touch, mode: "classic", controls: "typing", pack: "driving", customWords: "", car: "gt3rs", paint: "white", weather: "random", steer: DEFAULT_STEER,
 });
 
 /** localStorage is user-editable: each field is kept only if it has the right type and range. */
@@ -54,6 +56,8 @@ export function parseSettings(raw: string | null, base: Settings): Settings {
     if (PAINTS.some((c) => c.id === d?.paint)) s.paint = d.paint;
     if (WEATHERS.includes(d?.weather)) s.weather = d.weather;
     if (MUSIC.includes(d?.music)) s.music = d.music;
+    if (d?.music === "spotify") s.mix.music = base.mix.music; // v1.11–1.13: the slider did nothing for Spotify, so start from the default
+    if (Number.isInteger(d?.track) && d.track >= 0 && d.track < DNB_TRACKS.length) s.track = d.track;
     if (typeof d?.customWords === "string" && d.customWords.length <= 5000) s.customWords = d.customWords;
     const { left, right } = d?.steer ?? {};
     if (isBind(left) && isBind(right) && left.code !== right.code) s.steer = { left: { code: left.code, key: left.key }, right: { code: right.code, key: right.key } };

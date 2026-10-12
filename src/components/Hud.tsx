@@ -4,6 +4,7 @@ import { useEffect, useRef, useState } from "react";
 import { COMBO_TIME, MAX_MULTIPLIER, NITRO_MPH, START_LIVES } from "@/game/config";
 import type { GameEngine } from "@/game/engine";
 import type { Board } from "@/game/leaderboard";
+import { DNB_TRACKS } from "@/game/music";
 import { ACHIEVEMENTS, CARS, PAINTS, type Progress } from "@/game/progress";
 import { DEFAULT_STEER, bindable, keyLabel, type SteerKeys } from "@/game/input";
 import { MIX, MUSIC, WEATHERS, type Settings } from "@/game/settings";
@@ -146,9 +147,9 @@ function Controls({ cut = "text-amber-300", steer, drive }: { cut?: string; stee
     return (
       <ul className="space-y-1 text-sm">
         <li>Hold <Key>W</Key> or <Key>↑</Key> to accelerate through the gears; let go and you ease off (never below 45 mph)</li>
-        <li>Tap <Key>W</Key> twice quickly for <b>nitro</b> (it recharges for 5 s, see the ring by the speed)</li>
-        <li><Key>A</Key> <Key>D</Key> or <Key>←</Key> <Key>→</Key> switch lanes; each change costs a little speed, and near top speed the car understeers</li>
-        <li>Hold <Key>S</Key> or <Key>↓</Key> to brake: braking also puts weight on the front so the car turns quicker</li>
+        <li>Tap <Key>W</Key> twice quickly for <b>nitro</b> (it recharges for 3.5 s, see the ring by the speed)</li>
+        <li><Key>A</Key> <Key>D</Key> or <Key>←</Key> <Key>→</Key> switch lanes: tap for one lane, hold to keep moving over</li>
+        <li>Hold <Key>S</Key> or <Key>↓</Key> to brake hard</li>
         <li>Sit close behind a car to fill the <b>draft</b> meter: a full meter recharges nitro</li>
         <li>Grab the floating <b className="text-rose-400">♥</b> hearts to win back a life</li>
         <li>Cut out from right behind a car for a <b className={cut}>CLEAN CUT</b>, which recharges nitro</li>
@@ -160,7 +161,7 @@ function Controls({ cut = "text-amber-300", steer, drive }: { cut?: string; stee
       <li><Key>Enter</Key> keeps your lane with a small speed boost</li>
       <li>Sit close behind a car to fill the <b>draft</b> meter: a full meter recharges nitro</li>
       <li>Pass a speed camera at <b>150+ mph</b> for a speed-trap bonus, and keep passing or your multiplier drains</li>
-      <li><b>ALL CAPS</b> fires nitro, which then recharges for 5 s (the ring by the speed) · <Key>Enter</Key> twice on an empty box brakes</li>
+      <li><b>ALL CAPS</b> fires nitro, which then recharges for 3.5 s (the ring by the speed) · <Key>Enter</Key> twice on an empty box brakes</li>
       <li>Grab the floating <b className="text-rose-400">♥</b> hearts to win back a life</li>
       <li>Cut out from right behind a car for a <b className={cut}>CLEAN CUT</b>, which recharges nitro</li>
     </ul>
@@ -316,7 +317,7 @@ export function Leaderboard({ board, highlight, mode, driving, day, compact = fa
 
 type Toggle = "muted" | "reduceMotion" | "touch";
 const MIX_LABELS: Record<(typeof MIX)[number], [string, string]> = {
-  music: ["Music", "The in-game track (Spotify plays at your device volume; 0 pauses it)"],
+  music: ["Music", "The soundtrack"],
   engine: ["Engine", "Your car's engine note"],
   weather: ["Weather", "Rain"],
   typing: ["Typing", "Key clicks"],
@@ -573,17 +574,29 @@ export function Menu({ section, expanded, shifted, onHover, onClose, settings, o
           {toggle("muted", "Mute")}
           <fieldset className="py-1.5">
             <legend className="font-semibold">Music</legend>
-            <span className="block text-xs opacity-60">Spotify plays full songs if you are logged in to Spotify in this browser, 30-second previews otherwise</span>
-            <div className="mt-1.5 grid grid-cols-3 gap-1 rounded-xl bg-black/5 p-1 dark:bg-white/10">
+            <span className="block text-xs opacity-60">Drum &amp; bass made in code: pick a track, or turn it off</span>
+            <div className="mt-1.5 grid grid-cols-2 gap-1 rounded-xl bg-black/5 p-1 dark:bg-white/10">
               {MUSIC.map((m) => (
                 <label key={m} className="cursor-pointer">
                   <input type="radio" name="music" checked={settings.music === m} onChange={() => set("music", m)} className="peer sr-only" />
                   <span className="block rounded-lg py-1 text-center text-xs font-semibold peer-checked:bg-white peer-checked:shadow peer-focus-visible:ring-2 peer-focus-visible:ring-amber-500 dark:peer-checked:bg-slate-700">
-                    {{ spotify: "Spotify", dnb: "In-game", off: "Off" }[m]}
+                    {{ dnb: "On", off: "Off" }[m]}
                   </span>
                 </label>
               ))}
             </div>
+            {settings.music === "dnb" && (
+              <div className="mt-1 grid grid-cols-2 gap-1 rounded-xl bg-black/5 p-1 dark:bg-white/10" role="radiogroup" aria-label="Track">
+                {DNB_TRACKS.map((t, i) => (
+                  <label key={t.name} className="cursor-pointer">
+                    <input type="radio" name="track" checked={settings.track === i} onChange={() => set("track", i)} className="peer sr-only" />
+                    <span className="block truncate rounded-lg px-2 py-1 text-xs font-semibold peer-checked:bg-white peer-checked:shadow peer-focus-visible:ring-2 peer-focus-visible:ring-amber-500 dark:peer-checked:bg-slate-700">
+                      <span className="tabular-nums opacity-50">{i + 1}</span> {t.name}
+                    </span>
+                  </label>
+                ))}
+              </div>
+            )}
           </fieldset>
           <fieldset className="py-1.5">
             <legend className="font-semibold">Graphics</legend>

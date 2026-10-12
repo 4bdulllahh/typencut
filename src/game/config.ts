@@ -10,7 +10,7 @@ export const toMph = (ms: number) => ms / MPH;
 
 export const START_LIVES = 3;
 export const NITRO_TIME = 1;
-export const NITRO_COOLDOWN = 5; // s from one nitro firing until the next is allowed
+export const NITRO_COOLDOWN = 3.5; // s from one nitro firing until the next is allowed
 export const BRAKE_TIME = 1;
 export const INVULN_TIME = 2;
 export const CRUISE_MPH = [100, 140] as const; // player cruise at progress 0 → 1
@@ -43,16 +43,16 @@ export function revs(mph: number) {
 }
 
 /**
- * Driving controls (any mode): the player holds the throttle and brake instead of cruising.
+ * Driving controls (any mode): the player holds the throttle and brake instead of cruising. Arcade handling: lane
+ * changes take the same time at any speed and cost no speed.
  * `pull` is the throttle's acceleration in each gear (m/s²), `shift` the pause on each upshift (s).
  */
 export const DRIVING = {
   minMph: 45, topMph: 170, startMph: 60,
-  pull: [7, 6, 5, 4, 3.2, 2.5, 1.9], shift: 0.25,
+  pull: [13, 12, 11, 10, 9, 8, 7], shift: 0.15, // arcade: 60 → 170 mph in about 7 s
   coast: 2, // m/s² engine braking with no pedal, down to minMph
-  brake: 14, // m/s² holding the brake
-  scrub: [0.015, 0.03], // a lane change loses this share of speed: base + extra × (speed / top)²
-  grip: { fullMph: 90, least: 0.4, braking: 0.35 }, // lane-change grip falls from 1 above fullMph to `least` at top speed; braking adds back
+  brake: 32, // m/s² holding the brake: top speed to the minimum in under 2 s
+  repeat: 0.25, // s between lane changes while a steering key is held
 } as const;
 
 export const PLAYER_DIMS = { length: 4.57, width: 1.9 };

@@ -1,6 +1,6 @@
 /**
- * The generated soundtrack: drum & bass synthesised live (two-step breaks, a sub bass line, a soft pad), one 4-bar
- * loop per track. Browser only, with its own AudioContext so it can run with or without the game's sound effects.
+ * The generated soundtrack: drum & bass synthesised live (two-step breaks, a sub bass line, a soft pad, sometimes a
+ * plucked lead), one 4-bar loop per track. Browser only, with its own AudioContext so it can run with or without the game's sound effects.
  */
 
 /** Steps are 16ths in a bar of 16. `prog` moves the root per bar; `minor` marks each bar's chord quality. */
@@ -15,6 +15,7 @@ export interface DnbTrack {
   ghost: number[]; // quiet snare hits
   bass: [step: number, len: number, octave: number][];
   reese: boolean; // detuned, filtered saws under the sub
+  lead?: [step: number, semis: number][]; // a plucked melody over the bar's root, two octaves up
 }
 
 export const DNB_TRACKS: DnbTrack[] = [
@@ -22,6 +23,17 @@ export const DNB_TRACKS: DnbTrack[] = [
   { name: "Overpass", bpm: 172, root: 38, prog: [0, 0, -2, -4], minor: [true, true, false, false], kick: [0, 6, 10], snare: [4, 12], ghost: [9], bass: [[0, 4, 0], [6, 2, 0], [10, 6, 0]], reese: true },
   { name: "Slipstream", bpm: 176, root: 43, prog: [0, 5, 3, -2], minor: [true, true, false, false], kick: [0, 10, 11], snare: [4, 12], ghost: [2, 7, 14], bass: [[0, 3, 0], [3, 3, 1], [10, 4, 0]], reese: false },
   { name: "Redline", bpm: 174, root: 36, prog: [0, -4, -2, -5], minor: [true, false, false, false], kick: [0, 3, 10], snare: [4, 12], ghost: [6, 15], bass: [[0, 2, 0], [3, 5, 0], [10, 2, 0], [12, 4, 1]], reese: true },
+  { name: "Apex", bpm: 174, root: 40, prog: [0, 3, 5, 3], minor: [true, false, true, false], kick: [0, 10], snare: [4, 12], ghost: [7, 14], bass: [[0, 8, 0], [10, 6, 0]], reese: false, lead: [[0, 7], [3, 10], [6, 12], [10, 15], [12, 12]] },
+  { name: "Hard Shoulder", bpm: 175, root: 37, prog: [0, 0, 1, -2], minor: [true, true, true, true], kick: [0, 7, 10], snare: [4, 12], ghost: [15], bass: [[0, 2, 0], [2, 2, 1], [7, 3, 0], [10, 6, 0]], reese: true },
+  { name: "Tailwind", bpm: 170, root: 42, prog: [0, -5, -3, -1], minor: [false, true, false, false], kick: [0, 10], snare: [4, 12], ghost: [2, 9], bass: [[0, 6, 0], [8, 2, 1], [10, 6, 0]], reese: false, lead: [[0, 4], [2, 7], [4, 11], [8, 7], [11, 4], [14, 2]] },
+  { name: "Cat's Eyes", bpm: 172, root: 39, prog: [0, -2, -4, -2], minor: [true, false, false, false], kick: [0, 6, 10], snare: [4, 12], ghost: [3, 11], bass: [[0, 4, 0], [6, 4, 0], [11, 5, 0]], reese: false, lead: [[0, 12], [6, 10], [10, 7], [14, 3]] },
+  { name: "Tunnel Vision", bpm: 176, root: 35, prog: [0, 0, 0, 3], minor: [true, true, true, false], kick: [0, 10, 13], snare: [4, 12], ghost: [6, 9, 15], bass: [[0, 3, 0], [4, 2, 1], [10, 3, 0], [13, 3, 0]], reese: true },
+  { name: "Afterburn", bpm: 178, root: 38, prog: [0, -3, -5, -7], minor: [true, false, false, false], kick: [0, 2, 10], snare: [4, 12], ghost: [7], bass: [[0, 2, 0], [2, 4, 0], [10, 2, 1], [12, 4, 0]], reese: true, lead: [[0, 0], [1, 12], [8, 0], [9, 12]] },
+  { name: "Rev Limiter", bpm: 174, root: 36, prog: [0, 1, 0, -2], minor: [true, true, true, false], kick: [0, 3, 6, 10], snare: [4, 12], ghost: [14], bass: [[0, 3, 0], [3, 3, 0], [6, 4, 0], [10, 6, 0]], reese: true },
+  { name: "Gantry Lights", bpm: 172, root: 44, prog: [0, -4, -7, -5], minor: [false, false, true, false], kick: [0, 10], snare: [4, 12], ghost: [7, 15], bass: [[0, 6, 0], [10, 6, 0]], reese: false, lead: [[0, 7], [2, 4], [4, 7], [6, 12], [8, 11], [10, 7], [12, 4], [14, 2]] },
+  { name: "Cruise Control", bpm: 168, root: 41, prog: [0, 5, -2, 3], minor: [true, false, false, false], kick: [0, 10], snare: [4, 12], ghost: [9], bass: [[0, 10, 0], [10, 6, 0]], reese: false, lead: [[0, 3], [8, 7], [12, 10]] },
+  { name: "Midnight Merge", bpm: 174, root: 37, prog: [0, 3, -2, -4], minor: [true, false, true, false], kick: [0, 6, 10], snare: [4, 12], ghost: [2, 14], bass: [[0, 4, 0], [6, 2, 1], [10, 4, 0], [14, 2, 0]], reese: true, lead: [[0, 15], [4, 12], [8, 10], [12, 7]] },
+  { name: "Green Wave", bpm: 176, root: 43, prog: [0, -2, -4, -5], minor: [false, false, false, false], kick: [0, 10, 11], snare: [4, 12], ghost: [7, 15], bass: [[0, 6, 0], [7, 3, 1], [10, 6, 0]], reese: false, lead: [[0, 4], [3, 7], [6, 9], [8, 12], [11, 9], [14, 7]] },
 ];
 
 const hz = (midi: number) => 440 * 2 ** ((midi - 69) / 12);
@@ -110,6 +122,14 @@ export function createDnb() {
         osc(c, t, "sawtooth", f * 2 * 1.006, len * dt, flt);
         osc(c, t, "sawtooth", f * 2 * 0.994, len * dt, flt);
       }
+    }
+    for (const [at, semis] of track.lead ?? []) {
+      if (at !== i) continue;
+      const flt = c.createBiquadFilter();
+      flt.type = "lowpass";
+      flt.frequency.value = 2200;
+      flt.connect(env(c, t, 0.07, 0.004, 3 * dt));
+      osc(c, t, "square", hz(root + 24 + semis), 3 * dt, flt);
     }
     if (i === 0) {
       // A soft pad chord for the whole bar.
