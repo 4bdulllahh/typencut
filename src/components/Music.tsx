@@ -78,7 +78,7 @@ export function Music({ engine, settings, onTrack }: { engine: GameEngine; setti
   return (
     <div className="relative flex shrink-0 items-center gap-1 rounded-full border border-line bg-surface py-1 pl-4 pr-1 shadow-elev-1 sm:w-72">
       <span className="relative min-w-0 flex-1 leading-tight" aria-live="polite">
-        <span className="block truncate text-[10px] font-semibold uppercase tracking-widest text-fg-subtle">
+        <span className="block truncate text-[0.625rem] font-semibold uppercase tracking-widest text-fg-subtle">
           {playing ? "Now playing" : "Paused"} · {index + 1}/{DNB_TRACKS.length}
         </span>
         <span className="block truncate text-sm font-semibold" title={`${track.name} · ${track.bpm} BPM`}>

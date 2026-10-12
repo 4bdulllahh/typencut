@@ -4,7 +4,7 @@
 
 /* Soft rounded panels after the owner's Paperless app, in typencut's own sand/navy + amber colours. */
 @theme {
-  --radius-panel: 28px;
+  --radius-panel: 1.75rem;
 }
 :root {
   --canvas: #ebdfc9;
@@ -41,6 +41,16 @@
   --shadow-elev-2: var(--elev-2);
 }
 
+/*
+ * Laptops look like a big monitor: on desktop-sized screens with a mouse, the root font size (and with it every rem
+ * size in the layout) shrinks with the viewport, from 16px at 1920 x 960 down to 10px, so the pills, leaderboard and
+ * HUD keep the same share of the screen instead of crowding the road. Phones and tablets keep their own layout.
+ */
+@media (min-width: 640px) and (pointer: fine) {
+  html {
+    font-size: clamp(10px, min(100vw / 120, 100vh / 60), 16px);
+  }
+}
 html,
 body {
   height: 100%;

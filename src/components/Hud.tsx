@@ -39,7 +39,7 @@ function NitroRing({ charge }: { charge: number }) {
   const ready = charge >= 1;
   const C = 2 * Math.PI * 7;
   return (
-    <svg viewBox="0 0 18 18" className="size-[18px] shrink-0 -rotate-90" role="img" aria-label={ready ? "Nitro ready" : `Nitro recharging, ${Math.round(charge * 100)}%`}>
+    <svg viewBox="0 0 18 18" className="size-[1.125rem] shrink-0 -rotate-90" role="img" aria-label={ready ? "Nitro ready" : `Nitro recharging, ${Math.round(charge * 100)}%`}>
       <circle cx="9" cy="9" r="7" fill="none" strokeWidth="2.5" className="stroke-white/20" />
       <circle
         cx="9" cy="9" r="7" fill="none" strokeWidth="2.5" strokeLinecap="round" strokeDasharray={C} strokeDashoffset={C * (1 - Math.max(0, Math.min(1, charge)))}
@@ -54,15 +54,15 @@ function NitroRing({ charge }: { charge: number }) {
 export function Dashboard({ snap }: { snap: Snapshot }) {
   const mode = snap.nitro ? "nitro" : snap.brake ? "brake" : "";
   return (
-    <div className="grid grid-cols-[auto_1fr_auto] gap-4 rounded-[22px] border border-white/10 bg-black/40 px-4 py-2.5 text-white tabular-nums shadow-lg backdrop-blur-md">
+    <div className="grid grid-cols-[auto_1fr_auto] gap-4 rounded-[1.375rem] border border-white/10 bg-black/40 px-4 py-2.5 text-white tabular-nums shadow-lg backdrop-blur-md">
       <div className="w-24">
         <div className="flex items-center gap-2">
           <div className={`text-3xl font-extrabold leading-none ${snap.nitro ? "text-orange-300" : snap.brake ? "text-rose-300" : ""}`}>{Math.round(snap.speedMph)}</div>
           <NitroRing charge={snap.nitroCharge} />
         </div>
-        <div className="text-[10px] font-semibold uppercase tracking-widest opacity-70">mph {snap.driving && `· g${snap.gear}`} {mode && `· ${mode}`}</div>
+        <div className="text-[0.625rem] font-semibold uppercase tracking-widest opacity-70">mph {snap.driving && `· g${snap.gear}`} {mode && `· ${mode}`}</div>
         <Bar pct={snap.speedMph / NITRO_MPH} className={snap.nitro ? "bg-orange-400" : snap.brake ? "bg-rose-400" : "bg-white"} />
-        <div className="mt-1 text-[9px] font-semibold uppercase tracking-widest opacity-70">draft</div>
+        <div className="mt-1 text-[0.5625rem] font-semibold uppercase tracking-widest opacity-70">draft</div>
         <Bar pct={snap.draft} className="bg-sky-300" />
       </div>
       <div>
@@ -80,7 +80,7 @@ export function Dashboard({ snap }: { snap: Snapshot }) {
         </div>
         <Bar pct={(snap.multiplier - 1) / (MAX_MULTIPLIER - 1)} className="bg-amber-300" />
         <Bar thin pct={snap.comboT / COMBO_TIME} className={snap.comboT < 2 ? "bg-rose-300" : "bg-white/80"} />
-        <div className="mt-0.5 text-[10px] font-semibold uppercase tracking-widest opacity-70">combo {snap.combo}</div>
+        <div className="mt-0.5 text-[0.625rem] font-semibold uppercase tracking-widest opacity-70">combo {snap.combo}</div>
       </div>
       <div className="text-right">
         <div className="text-xl font-extrabold leading-tight">{snap.score.toLocaleString()}</div>
@@ -127,10 +127,10 @@ export function Popups({ engine }: { engine: GameEngine }) {
       {/* Remounting by key replays the flash; it is outside the dock, so no input loses focus. */}
       {flash > 0 && <div key={flash} className="flash pointer-events-none absolute inset-0 bg-white" />}
       {/* Small, top right under the dashboard, so the road stays clear. */}
-      <div className="pointer-events-none absolute right-4 top-[136px] flex flex-col items-end gap-0.5" aria-live="polite">
+      <div className="pointer-events-none absolute right-4 top-[8.5rem] flex flex-col items-end gap-0.5" aria-live="polite">
         {items.map((p) => (
           <div key={p.id} className={`pop text-center font-black italic text-white drop-shadow-[0_2px_6px_rgba(0,0,0,0.5)] ${p.big ? "text-amber-300" : ""}`}>
-            {p.sub && <div className={p.big ? "text-xl tracking-tight" : "text-[10px] uppercase tracking-widest"}>{p.sub}</div>}
+            {p.sub && <div className={p.big ? "text-xl tracking-tight" : "text-[0.625rem] uppercase tracking-widest"}>{p.sub}</div>}
             <div className={p.big ? "text-lg" : "text-base"}>{p.text}</div>
           </div>
         ))}
@@ -142,7 +142,19 @@ export function Popups({ engine }: { engine: GameEngine }) {
 const Key = ({ children }: { children: React.ReactNode }) => <kbd className="rounded bg-white/15 px-1.5 font-semibold">{children}</kbd>;
 
 /** The controls, shared by the start card (on dark glass) and the menu (on the page colour). */
-function Controls({ cut = "text-amber-300", steer, drive }: { cut?: string; steer: SteerKeys; drive: boolean }) {
+function Controls({ cut = "text-amber-300", steer, drive, touch = false }: { cut?: string; steer: SteerKeys; drive: boolean; touch?: boolean }) {
+  if (drive && touch)
+    return (
+      <ul className="space-y-1 text-sm">
+        <li><b>Swipe up</b> to accelerate through the gears; it stays on until you swipe down (never below 45 mph)</li>
+        <li><b>Swipe left or right</b> to switch lanes; keep your finger down to keep moving over</li>
+        <li><b>Swipe down</b> to brake hard, for as long as your finger stays down</li>
+        <li><b>Double tap</b> for <b>nitro</b> (it recharges for 3.5 s, see the ring by the speed)</li>
+        <li>Sit close behind a car to fill the <b>draft</b> meter: a full meter recharges nitro</li>
+        <li>Grab the floating <b className="text-rose-400">♥</b> hearts to win back a life</li>
+        <li>Cut out from right behind a car for a <b className={cut}>CLEAN CUT</b>, which recharges nitro</li>
+      </ul>
+    );
   if (drive)
     return (
       <ul className="space-y-1 text-sm">
@@ -168,16 +180,16 @@ function Controls({ cut = "text-amber-300", steer, drive }: { cut?: string; stee
   );
 }
 
-export function ReadyOverlay({ best, mode, driving, pack, day, weather, steer }: { best: number; mode: Mode; driving: boolean; pack: PackId; day: string; weather: Weather; steer: SteerKeys }) {
+export function ReadyOverlay({ best, mode, driving, pack, day, weather, steer, touch }: { best: number; mode: Mode; driving: boolean; pack: PackId; day: string; weather: Weather; steer: SteerKeys; touch: boolean }) {
   return (
-    <div className="pointer-events-none absolute inset-x-4 top-[26%] mx-auto max-w-md rounded-[24px] border border-white/10 bg-black/45 p-6 text-center text-white shadow-xl backdrop-blur-md">
+    <div className="pointer-events-none absolute inset-x-4 top-[26%] mx-auto max-w-md rounded-[1.5rem] border border-white/10 bg-black/45 p-6 text-center text-white shadow-xl backdrop-blur-md">
       <h1 className="text-3xl font-black italic tracking-tight">TYPENCUT</h1>
       <p className="mb-3 mt-1 text-xs font-semibold uppercase tracking-widest text-amber-200">
         {MODE_INFO[mode][0]}
         {mode === "daily" && ` · ${dayLabel(day)}`}{driving ? " · driving" : ` · ${PACK_LABELS[pack]} words`}{weather !== "clear" && ` · ${weather}`}
       </p>
-      <Controls steer={steer} drive={driving} />
-      <p className="mt-4 text-sm font-semibold opacity-90">{driving ? "Hold W or ↑ to go" : "Start typing to go"}{best > 0 && ` · best ${best.toLocaleString()}`}</p>
+      <Controls steer={steer} drive={driving} touch={touch} />
+      <p className="mt-4 text-sm font-semibold opacity-90">{driving ? (touch ? "Swipe up to go" : "Hold W or ↑ to go") : "Start typing to go"}{best > 0 && ` · best ${best.toLocaleString()}`}</p>
     </div>
   );
 }
@@ -236,7 +248,7 @@ export function GameOver({ snap, board, runDate, day, news, onRestart }: {
         <dl className="mt-4 grid grid-cols-2 gap-2">
           {stats.map(([k, v]) => (
             <div key={k} className="rounded-xl bg-black/5 py-2 dark:bg-white/5">
-              <dt className="text-[10px] font-semibold uppercase tracking-widest opacity-60">{k}</dt>
+              <dt className="text-[0.625rem] font-semibold uppercase tracking-widest opacity-60">{k}</dt>
               <dd className="text-lg font-extrabold">{v}</dd>
             </div>
           ))}
@@ -374,13 +386,13 @@ export function Menu({ section, expanded, shifted, onHover, onClose, settings, o
           <span className="block font-semibold">{label}</span>
           <span className="block text-xs opacity-80">{hint}</span>
         </span>
-        <span className="rounded-full bg-black/10 px-2 py-0.5 text-[10px] font-semibold uppercase tracking-widest dark:bg-white/10">Soon</span>
+        <span className="rounded-full bg-black/10 px-2 py-0.5 text-[0.625rem] font-semibold uppercase tracking-widest dark:bg-white/10">Soon</span>
       </button>
     </li>
   );
   if (!shown) return null;
   return (
-    <div className={`z-40 shrink-0 max-sm:absolute max-sm:inset-x-3 max-sm:bottom-3 max-sm:top-[94px] sm:relative sm:w-14 sm:transition-transform sm:duration-200 ${shifted ? "sm:translate-x-[156px]" : ""}`} onMouseEnter={onHover} onFocus={(e) => e.target.matches(":focus-visible") && onHover()}>
+    <div className={`z-40 shrink-0 max-sm:absolute max-sm:inset-x-3 max-sm:bottom-3 max-sm:top-[5.875rem] sm:relative sm:w-14 sm:transition-transform sm:duration-200 ${shifted ? "sm:translate-x-[9.75rem]" : ""}`} onMouseEnter={onHover} onFocus={(e) => e.target.matches(":focus-visible") && onHover()}>
       <section
         id="game-menu"
         aria-label={title}
@@ -633,12 +645,12 @@ export function Menu({ section, expanded, shifted, onHover, onClose, settings, o
           </fieldset>
           <SteerPicker steer={settings.steer} onChange={(v) => set("steer", v)} />
           {toggle("reduceMotion", "Reduce motion", "No camera shake, nitro zoom or edge blur")}
-          {toggle("touch", "On-screen controls", "Steering buttons, and vibration on crashes")}
+          {toggle("touch", "Touch controls", "Steering buttons when typing, swipes when driving, and vibration on crashes")}
         </section>
         )}
         {shown === "help" && (
           <div className="[&_kbd]:bg-black/10 dark:[&_kbd]:bg-white/15">
-            <Controls cut="text-amber-700 dark:text-amber-300" steer={settings.steer} drive={settings.controls === "driving"} />
+            <Controls cut="text-amber-700 dark:text-amber-300" steer={settings.steer} drive={settings.controls === "driving"} touch={settings.touch} />
           </div>
         )}
         </div>
@@ -680,7 +692,7 @@ function SteerPicker({ steer, onChange }: { steer: SteerKeys; onChange: (s: Stee
             aria-label={`${side === "left" ? "Left" : "Right"}: ${keyLabel(steer[side].key)}. ${wait === side ? "Press the new key" : "Click to change"}`}
             className={`rounded-xl border px-3 py-2 text-left ${wait === side ? "border-amber-500 bg-accent-soft" : "border-line bg-surface-muted hover:border-amber-500/60"}`}
           >
-            <span className="block text-[10px] font-semibold uppercase tracking-widest opacity-60">{side === "left" ? "‹ Left" : "Right ›"}</span>
+            <span className="block text-[0.625rem] font-semibold uppercase tracking-widest opacity-60">{side === "left" ? "‹ Left" : "Right ›"}</span>
             <span className="block text-base font-bold">{wait === side ? "Press a key…" : keyLabel(steer[side].key)}</span>
           </button>
         ))}

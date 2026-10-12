@@ -116,8 +116,8 @@ export function TypingDock({ engine, word, nextWord, disabled, touch, steer }: {
   );
 }
 
-// Acting on press and cancelling the default keeps focus (and a phone's keyboard) where it is. `release` makes it a held pedal.
-function Pad({ label, text, act, release, disabled }: { label: string; text: string; act: (time: number) => void; release?: () => void; disabled: boolean }) {
+// Acting on press and cancelling the default keeps focus (and a phone's keyboard) where it is.
+function Pad({ label, text, act, disabled }: { label: string; text: string; act: (time: number) => void; disabled: boolean }) {
   return (
     <button
       type="button"
@@ -128,9 +128,6 @@ function Pad({ label, text, act, release, disabled }: { label: string; text: str
         e.preventDefault();
         act(e.timeStamp);
       }}
-      onPointerUp={release}
-      onPointerLeave={release}
-      onPointerCancel={release}
       onMouseDown={(e) => e.preventDefault()}
       className="h-10 min-w-16 touch-manipulation select-none rounded-2xl bg-white/85 px-4 text-lg font-bold shadow-lg ring-1 ring-black/5 backdrop-blur active:scale-95 dark:bg-slate-900/80 dark:ring-white/10"
     >
@@ -142,8 +139,9 @@ function Pad({ label, text, act, release, disabled }: { label: string; text: str
 /**
  * Driving controls, read from the whole window: W/↑ and S/↓ are pedals (held), A/D or ←/→ change lanes (held: one more
  * lane every DRIVING.repeat s), and a second W/↑ press within DOUBLE_TAP_MS fires nitro. Pedals let go when the dock is disabled (menu, pause) or the window blurs.
+ * On touch screens the road itself takes swipes instead of buttons (see the swipe effect below).
  */
-export function DriveDock({ engine, disabled, touch }: { engine: GameEngine; disabled: boolean; touch: boolean }) {
+export function DriveDock({ engine, disabled, touch, area }: { engine: GameEngine; disabled: boolean; touch: boolean; area: React.RefObject<HTMLElement | null> }) {
   const lastUp = useRef(0);
   const held = useRef(new Map<string, "up" | "down">()); // what holds each pedal down, so W and ↑ together release cleanly
   const press = (id: string, k: "up" | "down", time: number) => {
@@ -198,16 +196,70 @@ export function DriveDock({ engine, disabled, touch }: { engine: GameEngine; dis
     };
   }, [engine, disabled]); // the helpers only touch refs and the engine
 
+  // Swipes on the road (phones and tablets): left/right change lanes (keep the finger down to keep going), up holds the
+  // throttle on until a swipe down, down brakes until the finger lifts, and a double tap fires nitro.
+  useEffect(() => {
+    const el = area.current;
+    if (disabled || !touch || !el) return;
+    const SWIPE = 28; // px of travel before a touch counts as a swipe
+    let start: { x: number; y: number; t: number; id: number } | null = null;
+    let swiped = false;
+    let lastTap = 0;
+    const onDown = (e: PointerEvent) => {
+      if (e.pointerType === "mouse" || start || (e.target as HTMLElement).closest("button, a, input")) return;
+      start = { x: e.clientX, y: e.clientY, t: e.timeStamp, id: e.pointerId };
+      swiped = false;
+    };
+    const onMove = (e: PointerEvent) => {
+      if (!start || e.pointerId !== start.id || swiped) return;
+      const [dx, dy] = [e.clientX - start.x, e.clientY - start.y];
+      if (Math.hypot(dx, dy) < SWIPE) return;
+      swiped = true;
+      if (Math.abs(dx) > Math.abs(dy)) steerDown("swipe", dx < 0 ? -1 : 1);
+      else if (dy < 0) press("swipe-up", "up", e.timeStamp);
+      else {
+        release("swipe-up");
+        press("swipe-down", "down", e.timeStamp);
+      }
+    };
+    const onUp = (e: PointerEvent) => {
+      if (!start || e.pointerId !== start.id) return;
+      if (!swiped && e.timeStamp - start.t < 300) {
+        const nitro = e.timeStamp - lastTap < DOUBLE_TAP_MS;
+        lastTap = nitro ? 0 : e.timeStamp;
+        if (nitro) engine.send({ type: "drive", dir: 0, nitro: true });
+      }
+      steerUp("swipe");
+      release("swipe-down");
+      start = null;
+    };
+    el.addEventListener("pointerdown", onDown);
+    window.addEventListener("pointermove", onMove);
+    window.addEventListener("pointerup", onUp);
+    window.addEventListener("pointercancel", onUp);
+    return () => {
+      el.removeEventListener("pointerdown", onDown);
+      window.removeEventListener("pointermove", onMove);
+      window.removeEventListener("pointerup", onUp);
+      window.removeEventListener("pointercancel", onUp);
+      steerUp("swipe");
+    };
+  }, [engine, disabled, touch, area]); // the helpers only touch refs and the engine
+
+  if (touch)
+    return (
+      <div className="flex flex-wrap items-center justify-center gap-x-2 rounded-full bg-white/85 px-4 py-2 text-xs font-semibold shadow-xl ring-1 ring-black/5 backdrop-blur dark:bg-slate-900/80 dark:ring-white/10">
+        <span>swipe ← → lanes</span>
+        <span className="opacity-30">·</span>
+        <span>↑ gas</span>
+        <span className="opacity-30">·</span>
+        <span>↓ brake</span>
+        <span className="opacity-30">·</span>
+        <span>double tap nitro</span>
+      </div>
+    );
   return (
     <div className="flex flex-col items-center gap-1.5">
-      {touch && (
-        <div className="flex gap-2">
-          <Pad label="Steer left (hold for more lanes)" text="‹" act={() => steerDown("pad-left", -1)} release={() => steerUp("pad-left")} disabled={disabled} />
-          <Pad label="Accelerate (hold), or tap twice for nitro" text="↑" act={(t) => press("pad", "up", t)} release={() => release("pad")} disabled={disabled} />
-          <Pad label="Brake (hold)" text="↓" act={(t) => press("pad-down", "down", t)} release={() => release("pad-down")} disabled={disabled} />
-          <Pad label="Steer right (hold for more lanes)" text="›" act={() => steerDown("pad-right", 1)} release={() => steerUp("pad-right")} disabled={disabled} />
-        </div>
-      )}
       <div className="flex items-center gap-2 rounded-full bg-white/85 px-4 py-2.5 text-xs font-semibold shadow-xl ring-1 ring-black/5 backdrop-blur dark:bg-slate-900/80 dark:ring-white/10">
         <span>hold <kbd>W</kbd> gas · <kbd>W</kbd><kbd>W</kbd> nitro</span>
         <span className="opacity-30">·</span>
