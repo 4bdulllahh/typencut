@@ -5,7 +5,7 @@ import { COMBO_TIME, MAX_MULTIPLIER, NITRO_MPH, START_LIVES } from "@/game/confi
 import type { GameEngine } from "@/game/engine";
 import type { Board } from "@/game/leaderboard";
 import { DNB_TRACKS } from "@/game/music";
-import { ACHIEVEMENTS, CARS, PAINTS, type Progress } from "@/game/progress";
+import { ACHIEVEMENTS, CARS, PAINTS, carUnlocked, type Progress } from "@/game/progress";
 import { DEFAULT_STEER, bindable, keyLabel, type SteerKeys } from "@/game/input";
 import { MIX, MUSIC, WEATHERS, type Settings } from "@/game/settings";
 import type { Snapshot } from "@/game/sim";
@@ -488,16 +488,21 @@ export function Menu({ section, expanded, shifted, onHover, onClose, settings, o
           <h2 className="mb-1 flex justify-between text-xs font-semibold uppercase tracking-widest opacity-60">
             Garage <span className="normal-case tracking-normal tabular-nums">{progress.total.toLocaleString()} lifetime pts</span>
           </h2>
-          {CARS.map((c) => (
-            <label key={c.id} className={`flex items-center gap-2 py-1 ${progress.total < c.cost ? "opacity-50" : "cursor-pointer"}`}>
-              <input
-                type="radio" name="car" checked={settings.car === c.id} disabled={progress.total < c.cost}
-                onChange={() => set("car", c.id)} className="accent-amber-600"
-              />
-              <span className="flex-1 font-semibold">{c.name}</span>
-              {progress.total < c.cost && <span className="text-xs tabular-nums">🔒 {c.cost.toLocaleString()}</span>}
-            </label>
-          ))}
+          {CARS.map((c, i, all) => {
+            const current = all.find((o) => o.id === settings.car && carUnlocked(o, progress))?.id ?? all[0].id; // as Game.tsx drives it
+            const locked = !carUnlocked(c, progress);
+            const needs = ACHIEVEMENTS.find((a) => a.id === c.needs);
+            return (
+              <div key={c.id}>
+                {needs && !CARS[i - 1].needs && <h3 className="mb-0.5 mt-2 text-xs font-semibold uppercase tracking-widest opacity-60">Hypercars</h3>}
+                <label className={`flex items-center gap-2 py-1 ${locked ? "opacity-50" : "cursor-pointer"}`}>
+                  <input type="radio" name="car" checked={current === c.id} disabled={locked} onChange={() => set("car", c.id)} className="accent-amber-600" />
+                  <span className="flex-1 font-semibold">{c.name}</span>
+                  {locked && <span className="text-xs tabular-nums">🔒 {needs ? needs.name : c.cost.toLocaleString()}</span>}
+                </label>
+              </div>
+            );
+          })}
           <div className="mt-2 flex flex-wrap gap-2" role="group" aria-label="Paint">
             {PAINTS.map((p) => {
               const locked = progress.total < p.cost;
@@ -517,7 +522,7 @@ export function Menu({ section, expanded, shifted, onHover, onClose, settings, o
               );
             })}
           </div>
-          <p className="mt-2 text-xs opacity-60">Every finished run adds its score to your lifetime points.</p>
+          <p className="mt-2 text-xs opacity-60">Every finished run adds its score to your lifetime points. Hypercars unlock with their achievement. Every car drives the same.</p>
         </section>
         )}
         {shown === "achievements" && (

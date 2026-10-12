@@ -1,4 +1,4 @@
-export type PlayerModel = "gt3rs" | "turbos" | "m4";
+export type PlayerModel = "gr86" | "typer" | "m4" | "gtr" | "c8" | "turbos" | "gt3rs" | "p1" | "jesko" | "chiron";
 export type CarModel = PlayerModel | "yaris" | "civic" | "malibu" | "rogue" | "f150" | "m3" | "c63" | "a5";
 export type NpcKind = "cruiser" | "merger";
 export type Dir = -1 | 1;

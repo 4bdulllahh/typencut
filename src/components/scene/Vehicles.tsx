@@ -82,6 +82,41 @@ const STYLE: Record<CarModel, Style> = {
     stations: [[0, 0.82, 0.52], [0.04, 0.94, 0.68], [0.15, 0.99, 0.78], [0.33, 1, 0.86, undefined, 0.03], [0.36, 1, 0.88, 0.9], [0.5, 0.99, 0.9, 1.38], [0.67, 0.99, 0.92, 1.36], [0.83, 0.99, 0.95, 0.99], [0.94, 0.98, 0.95], [1, 0.9, 0.78]],
     ride: 0.12, gb: 0.84, gt: 0.68, wheel: 0.35, axles: [0.17, 0.8], head: [0.7, 0.42], tail: [0.76, 0.4, 0.12], roofAccent: true,
   },
+  // GR86: long hood, cabin set back, short ducktail deck
+  gr86: {
+    stations: [[0, 0.8, 0.5], [0.04, 0.93, 0.64, undefined, 0.05], [0.15, 0.98, 0.72, undefined, 0.08], [0.36, 0.97, 0.78, undefined, 0.03], [0.4, 0.96, 0.8, 0.82], [0.55, 0.95, 0.84, 1.3], [0.7, 0.97, 0.86, 1.28], [0.84, 1, 0.9, 0.98], [0.94, 0.99, 0.9], [1, 0.92, 0.78]],
+    ride: 0.12, gb: 0.8, gt: 0.64, wheel: 0.32, axles: [0.18, 0.79], head: [0.72, 0.36], tail: [0.74, 0.42, 0.12],
+  },
+  // FL5 Civic Type R: tall five-door hatch with a big wing
+  typer: {
+    stations: [[0, 0.82, 0.52], [0.04, 0.94, 0.68], [0.15, 0.99, 0.8], [0.3, 1, 0.86, undefined, 0.02], [0.33, 1, 0.88, 0.9], [0.48, 1, 0.9, 1.4], [0.7, 0.99, 0.92, 1.38], [0.88, 0.98, 0.95, 1.08], [0.96, 0.97, 0.95, 0.98], [1, 0.9, 0.82]],
+    ride: 0.12, gb: 0.86, gt: 0.7, wheel: 0.34, axles: [0.17, 0.8], head: [0.7, 0.42], tail: [0.8, 0.34, 0.14],
+  },
+  // R35 GT-R: chunky coupe, high tail
+  gtr: {
+    stations: [[0, 0.82, 0.54], [0.04, 0.94, 0.7], [0.15, 0.99, 0.8, undefined, 0.03], [0.32, 1, 0.86], [0.35, 1, 0.88, 0.9], [0.5, 0.99, 0.9, 1.37], [0.66, 0.99, 0.92, 1.33], [0.82, 1, 0.96, 1.0], [0.94, 0.99, 0.96], [1, 0.92, 0.82]],
+    ride: 0.12, gb: 0.84, gt: 0.66, wheel: 0.36, axles: [0.18, 0.8], head: [0.72, 0.4], tail: [0.66, 0.24, 0.16],
+  },
+  // C8 Corvette: mid-engine, short nose, cabin forward, long glass engine deck
+  c8: {
+    stations: [[0, 0.8, 0.46], [0.04, 0.93, 0.58, undefined, 0.04], [0.14, 0.98, 0.64, undefined, 0.06], [0.27, 0.97, 0.7], [0.3, 0.96, 0.72, 0.76], [0.42, 0.95, 0.78, 1.22], [0.55, 0.97, 0.84, 1.2], [0.68, 1, 0.9, 1.0], [0.88, 1, 0.92, 0.94], [0.97, 0.99, 0.92], [1, 0.94, 0.78]],
+    ride: 0.11, gb: 0.74, gt: 0.56, wheel: 0.35, axles: [0.2, 0.8], head: [0.74, 0.36], tail: [0.78, 0.4, 0.08],
+  },
+  // McLaren P1: low teardrop cabin, carbon roof, full-width tail light
+  p1: {
+    stations: [[0, 0.78, 0.42], [0.04, 0.92, 0.54, undefined, 0.06], [0.13, 0.98, 0.6, undefined, 0.1], [0.26, 0.95, 0.66], [0.29, 0.92, 0.68, 0.72], [0.42, 0.88, 0.74, 1.17], [0.54, 0.9, 0.8, 1.15], [0.66, 0.98, 0.86, 0.98], [0.86, 1, 0.88, 0.92], [0.96, 1, 0.86], [1, 0.94, 0.74]],
+    ride: 0.1, gb: 0.7, gt: 0.5, wheel: 0.35, axles: [0.2, 0.81], head: [0.72, 0.3], tail: [0, 1.6, 0.05], roofAccent: true,
+  },
+  // Koenigsegg Jesko: wide and low, carbon roof, a huge wing
+  jesko: {
+    stations: [[0, 0.8, 0.42], [0.04, 0.93, 0.55, undefined, 0.07], [0.14, 0.99, 0.62, undefined, 0.11], [0.27, 0.96, 0.68], [0.3, 0.92, 0.7, 0.74], [0.43, 0.88, 0.76, 1.2], [0.55, 0.9, 0.82, 1.18], [0.67, 0.99, 0.88, 1.0], [0.86, 1, 0.9, 0.94], [0.96, 1, 0.88], [1, 0.95, 0.76]],
+    ride: 0.1, gb: 0.68, gt: 0.5, wheel: 0.36, axles: [0.2, 0.81], head: [0.72, 0.32], tail: [0.82, 0.3, 0.06], roofAccent: true,
+  },
+  // Bugatti Chiron: two-tone (carbon nose and cabin), horseshoe grille, C-line, full-width tail light
+  chiron: {
+    stations: [[0, 0.8, 0.48], [0.04, 0.93, 0.6, undefined, 0.05], [0.14, 0.99, 0.68, undefined, 0.08], [0.28, 0.98, 0.74], [0.31, 0.95, 0.76, 0.8], [0.44, 0.92, 0.82, 1.21], [0.56, 0.93, 0.86, 1.2], [0.68, 1, 0.92, 1.04], [0.86, 1, 0.94, 0.98], [0.96, 1, 0.92], [1, 0.95, 0.8]],
+    ride: 0.11, gb: 0.7, gt: 0.52, wheel: 0.37, axles: [0.19, 0.79], head: [0.7, 0.36], tail: [0, 1.84, 0.06], hood: [0.04, 0.31], roofAccent: true,
+  },
   yaris: {
     stations: [[0, 0.84, 0.55], [0.04, 0.94, 0.72], [0.15, 0.98, 0.84], [0.27, 0.99, 0.9], [0.3, 1, 0.92, 0.94], [0.47, 1, 0.94, 1.48], [0.85, 0.99, 0.96, 1.46], [0.96, 0.97, 0.96, 1.26], [1, 0.92, 0.82, 0.86]],
     ride: 0.15, gb: 0.88, gt: 0.74, wheel: 0.3, axles: [0.17, 0.82], head: [0.68, 0.42], tail: [0.86, 0.2, 0.3],
@@ -271,9 +306,12 @@ function setTrails(meshes: (Mesh | null)[], model: CarModel, speed: number, wet:
   }
 }
 
-/** Tailpipe x offsets and height: GT3 RS twin centre pipes, Turbo S twin outer pipes, M4 quad pipes. */
-const EXHAUSTS: Record<PlayerModel, number[]> = { gt3rs: [-0.1, 0.1], turbos: [-0.62, 0.62], m4: [-0.68, -0.52, 0.52, 0.68] };
-const EXHAUST_Y: Record<PlayerModel, number> = { gt3rs: 0.4, turbos: 0.3, m4: 0.3 };
+/** Tailpipe x offsets and height per car (twin centre, twin outer, triple centre, quad outer, high centre on the hypercars). */
+const EXHAUSTS: Record<PlayerModel, number[]> = {
+  gr86: [-0.5, 0.5], typer: [-0.14, 0, 0.14], m4: [-0.68, -0.52, 0.52, 0.68], gtr: [-0.66, -0.5, 0.5, 0.66], c8: [-0.66, -0.52, 0.52, 0.66],
+  turbos: [-0.62, 0.62], gt3rs: [-0.1, 0.1], p1: [-0.09, 0.09], jesko: [-0.1, 0.1], chiron: [-0.21, -0.07, 0.07, 0.21],
+};
+const EXHAUST_Y: Record<PlayerModel, number> = { gr86: 0.3, typer: 0.34, m4: 0.3, gtr: 0.32, c8: 0.34, turbos: 0.3, gt3rs: 0.4, p1: 0.62, jesko: 0.55, chiron: 0.34 };
 
 export function PlayerCar({ model, color }: { model: PlayerModel; color: string }) {
   const engine = useEngine();
@@ -340,6 +378,57 @@ export function PlayerCar({ model, color }: { model: PlayerModel; color: string 
             <Box key={sx} m={M.trim} s={[0.3, 0.32, 0.06]} p={[sx * 0.18, at(model, 0.02).y - 0.2, -L / 2 + 0.02]} shadow={false} />
           ))}
           <Box m={M.carbon} s={[W * 0.7, 0.04, 0.12]} p={[0, deck + 0.04, L / 2 - 0.18]} r={[-0.3, 0, 0]} />
+        </>
+      )}
+      {/* GR86: a ducktail lip */}
+      {model === "gr86" && <Box m={paint} s={[W * 0.72, 0.03, 0.12]} p={[0, deck + 0.03, L / 2 - 0.14]} r={[-0.25, 0, 0]} />}
+      {/* Type R: hood scoop and a tall black wing on two posts */}
+      {model === "typer" && (
+        <>
+          <Box m={M.trim} s={[0.4, 0.05, 0.2]} p={[0, at(model, 0.2).y + 0.03, -L / 2 + 0.2 * L]} shadow={false} />
+          {[-1, 1].map((sx) => <Box key={sx} m={M.trim} s={[0.05, 0.3, 0.12]} p={[sx * 0.45, deck + 0.15, L / 2 - 0.22]} />)}
+          <Box m={M.trim} s={[W - 0.16, 0.04, 0.32]} p={[0, deck + 0.31, L / 2 - 0.2]} />
+        </>
+      )}
+      {/* GT-R: body-coloured wing on short posts */}
+      {model === "gtr" && (
+        <>
+          {[-1, 1].map((sx) => <Box key={sx} m={paint} s={[0.06, 0.16, 0.12]} p={[sx * 0.5, deck + 0.08, L / 2 - 0.25]} />)}
+          <Box m={paint} s={[W * 0.82, 0.04, 0.28]} p={[0, deck + 0.17, L / 2 - 0.24]} />
+        </>
+      )}
+      {/* C8: side intakes ahead of the rear wheels and a small spoiler */}
+      {model === "c8" && (
+        <>
+          {[-1, 1].map((sx) => <Box key={sx} m={M.trim} s={[0.04, 0.22, 0.6]} p={[sx * (at(model, 0.6).x + 0.005), 0.62, -L / 2 + 0.6 * L]} shadow={false} />)}
+          <Box m={paint} s={[W * 0.8, 0.03, 0.1]} p={[0, deck + 0.04, L / 2 - 0.1]} r={[-0.3, 0, 0]} />
+        </>
+      )}
+      {/* P1: a wide carbon wing rising out of the deck */}
+      {model === "p1" && (
+        <>
+          {[-1, 1].map((sx) => <Box key={sx} m={M.carbon} s={[0.05, 0.16, 0.18]} p={[sx * 0.55, deck + 0.08, L / 2 - 0.26]} />)}
+          <Box m={M.carbon} s={[W * 0.86, 0.04, 0.36]} p={[0, deck + 0.17, L / 2 - 0.24]} r={[-0.12, 0, 0]} />
+        </>
+      )}
+      {/* Jesko: the huge swan-neck wing, posts and end plates */}
+      {model === "jesko" && (
+        <>
+          {[-1, 1].map((sx) => (
+            <group key={sx}>
+              <Box m={M.carbon} s={[0.05, 0.62, 0.16]} p={[sx * 0.4, deck + 0.31, L / 2 - 0.34]} />
+              <Box m={M.carbon} s={[0.04, 0.26, 0.6]} p={[sx * (W / 2 - 0.02), deck + 0.58, L / 2 - 0.26]} />
+            </group>
+          ))}
+          <Box m={M.carbon} s={[W, 0.05, 0.54]} p={[0, deck + 0.64, L / 2 - 0.26]} />
+        </>
+      )}
+      {/* Chiron: horseshoe grille, the polished C-line on each side, a flat active wing */}
+      {model === "chiron" && (
+        <>
+          <Box m={M.steel} s={[0.4, 0.3, 0.06]} p={[0, at(model, 0.02).y - 0.2, -L / 2 + 0.03]} shadow={false} />
+          {[-1, 1].map((sx) => <Box key={sx} m={M.steel} s={[0.04, 0.44, 0.9]} p={[sx * (at(model, 0.46).x + 0.01), 0.62, -L / 2 + 0.46 * L]} r={[0, 0, sx * 0.08]} shadow={false} />)}
+          <Box m={paint} s={[W * 0.78, 0.04, 0.42]} p={[0, deck + 0.06, L / 2 - 0.3]} r={[-0.08, 0, 0]} />
         </>
       )}
       {pipes.map((x) => (

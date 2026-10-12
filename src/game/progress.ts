@@ -26,6 +26,10 @@ export const ACHIEVEMENTS: Achievement[] = [
   { id: "rush", name: "Gridlock", desc: "50 passes in Rush hour", met: (s) => s.mode === "rush" && s.stats.passes >= 50 },
   { id: "zen", name: "Zen garden", desc: "Drive 10 km in Zen", met: (s) => s.mode === "zen" && s.player.s >= 10_000 },
   { id: "daily", name: "Daily driver", desc: "Finish a daily challenge", met: (s) => s.mode === "daily" && s.status === "over" },
+  // The hard three: each one unlocks a hypercar (see CARS).
+  { id: "cut10", name: "Scalpel", desc: "10 clean cuts in one run · unlocks the McLaren P1", met: (s) => s.stats.cleanCuts >= 10 },
+  { id: "clean10k", name: "Untouchable", desc: "10 km without a crash · unlocks the Koenigsegg Jesko", met: (s) => s.stats.bestClean >= 10_000 },
+  { id: "score100k", name: "Six figures", desc: "100,000 points in one run · unlocks the Bugatti Chiron", met: (s) => s.stats.score >= 100_000 },
 ];
 
 /** Unlocks by lifetime score (every finished run, every mode). */
@@ -39,11 +43,21 @@ export const PAINTS = [
 ] as const;
 export type PaintId = (typeof PAINTS)[number]["id"];
 
-export const CARS: { id: PlayerModel; name: string; cost: number }[] = [
-  { id: "gt3rs", name: "911 GT3 RS", cost: 0 },
-  { id: "turbos", name: "911 Turbo S", cost: 100_000 },
-  { id: "m4", name: "M4 Competition", cost: 200_000 },
+/** Every car drives the same; they only look different. Seven unlock by lifetime score, three hypercars by an achievement (`needs`). */
+export const CARS: { id: PlayerModel; name: string; cost: number; needs?: string }[] = [
+  { id: "gr86", name: "Toyota GR86", cost: 0 },
+  { id: "typer", name: "Honda Civic Type R", cost: 25_000 },
+  { id: "m4", name: "BMW M4 Competition", cost: 60_000 },
+  { id: "gtr", name: "Nissan GT-R", cost: 120_000 },
+  { id: "c8", name: "Corvette C8", cost: 200_000 },
+  { id: "turbos", name: "Porsche 911 Turbo S", cost: 300_000 },
+  { id: "gt3rs", name: "Porsche 911 GT3 RS", cost: 450_000 },
+  { id: "p1", name: "McLaren P1", cost: 0, needs: "cut10" },
+  { id: "jesko", name: "Koenigsegg Jesko", cost: 0, needs: "clean10k" },
+  { id: "chiron", name: "Bugatti Chiron", cost: 0, needs: "score100k" },
 ];
+
+export const carUnlocked = (c: (typeof CARS)[number], p: Progress) => c.cost <= p.total && (!c.needs || c.needs in p.earned);
 
 export interface Progress {
   total: number; // lifetime score
@@ -86,6 +100,6 @@ export const earn = (p: Progress, list: Achievement[], date: number): Progress =
   earned: { ...p.earned, ...Object.fromEntries(list.map((a) => [a.id, date])) },
 });
 
-/** Paints and cars whose cost lies in (before, after]: what a run's score just unlocked. */
+/** Paints and cars whose cost lies in (before, after]: what a run's score just unlocked (hypercars come with their achievement). */
 export const unlockedBetween = (before: number, after: number) =>
   [...PAINTS, ...CARS].filter((u) => u.cost > before && u.cost <= after).map((u) => u.name);

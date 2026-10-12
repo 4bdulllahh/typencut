@@ -1,6 +1,6 @@
 import assert from "node:assert/strict";
 import { test } from "node:test";
-import { ACHIEVEMENTS, earn, fresh, parseProgress, unlockedBetween } from "./progress.ts";
+import { ACHIEVEMENTS, CARS, carUnlocked, earn, fresh, parseProgress, unlockedBetween } from "./progress.ts";
 import { applyCommand, createState } from "./sim.ts";
 
 test("parseProgress keeps a valid total and known achievements only", () => {
@@ -31,7 +31,22 @@ test("achievements: earned once, mode-specific ones only in their mode", () => {
 
 test("unlockedBetween lists what a run's score crossed", () => {
   assert.deepEqual(unlockedBetween(0, 14_999), []);
-  assert.deepEqual(unlockedBetween(10_000, 45_000), ["Guards red", "Shark blue"]);
-  assert.deepEqual(unlockedBetween(90_000, 100_000), ["911 Turbo S"]);
-  assert.deepEqual(unlockedBetween(100_000, 100_000), []);
+  assert.deepEqual(unlockedBetween(10_000, 45_000), ["Guards red", "Shark blue", "Honda Civic Type R"]);
+  assert.deepEqual(unlockedBetween(400_000, 1_000_000), ["Porsche 911 GT3 RS"]);
+  assert.deepEqual(unlockedBetween(300_000, 300_000), []);
+});
+
+test("garage: ten cars, the GT3 RS late on the points ladder, hypercars only by their achievement", () => {
+  assert.equal(CARS.length, 10);
+  const unlocked = (total: number, earned: Record<string, number> = {}) => CARS.filter((c) => carUnlocked(c, { total, earned })).map((c) => c.id);
+  assert.deepEqual(unlocked(0), ["gr86"]);
+  assert.deepEqual(unlocked(449_999).length, 6);
+  assert.deepEqual(unlocked(10_000_000), ["gr86", "typer", "m4", "gtr", "c8", "turbos", "gt3rs"]);
+  assert.deepEqual(unlocked(0, { score100k: 1 }), ["gr86", "chiron"]);
+  for (const c of CARS) if (c.needs) assert.ok(ACHIEVEMENTS.some((a) => a.id === c.needs), c.id);
+  const s = createState(2);
+  applyCommand(s, { type: "key", correct: true });
+  Object.assign(s.stats, { cleanCuts: 10, bestClean: 10_000, score: 100_000 });
+  const got = fresh({ total: 0, earned: {} }, s).map((a) => a.id);
+  for (const id of ["cut10", "clean10k", "score100k"]) assert.ok(got.includes(id), id);
 });

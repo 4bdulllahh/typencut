@@ -4,7 +4,7 @@ import { useCallback, useEffect, useMemo, useRef, useState } from "react";
 import { attachAudio } from "@/game/audio";
 import { GameEngine } from "@/game/engine";
 import { boardKey, loadBoard, saveRun } from "@/game/leaderboard";
-import { CARS, PAINTS, earn, fresh, loadProgress, saveProgress, unlockedBetween } from "@/game/progress";
+import { CARS, PAINTS, carUnlocked, earn, fresh, loadProgress, saveProgress, unlockedBetween } from "@/game/progress";
 import { loadSettings, saveSettings } from "@/game/settings";
 import { rollWeather, seedFromDate, snapshot } from "@/game/sim";
 import type { Weather } from "@/game/types";
@@ -69,8 +69,8 @@ export function Game() {
   const [progress, setProgress] = useState(progressRef.current);
   const [news, setNews] = useState<RunNews>({ achievements: [], unlocks: [] });
   const [toast, setToast] = useState<{ id: number; text: string }>();
-  // A locked choice (only possible by editing storage) falls back to the starting car and paint.
-  const car = CARS.find((c) => c.id === settings.car && c.cost <= progress.total)?.id ?? "gt3rs";
+  // A locked choice (only possible by editing storage, or a car that moved up the ladder) falls back to the starting car and paint.
+  const car = CARS.find((c) => c.id === settings.car && carUnlocked(c, progress))?.id ?? CARS[0].id;
   const paint = (PAINTS.find((p) => p.id === settings.paint && p.cost <= progress.total) ?? PAINTS[0]).color;
   // "random" weather is rolled from each new run's seed, so the daily challenge has the same weather for everyone.
   const [rolled, setRolled] = useState<Weather>("clear");
@@ -144,8 +144,9 @@ export function Game() {
         if (got.length) {
           p = earn(p, got, Date.now());
           const names = got.map((a) => a.name);
-          setToast({ id: Date.now(), text: names.join(" · ") });
-          setNews((n) => ({ ...n, achievements: [...n.achievements, ...names] }));
+          const cars = CARS.filter((c) => got.some((a) => a.id === c.needs)).map((c) => c.name); // hypercars come with their achievement
+          setToast({ id: Date.now(), text: [...names, ...cars.map((c) => `${c} unlocked`)].join(" · ") });
+          setNews((n) => ({ ...n, achievements: [...n.achievements, ...names], unlocks: [...n.unlocks, ...cars] }));
         }
         if (e.type === "gameOver") {
           const s = snapshot(engine.state);
@@ -153,7 +154,7 @@ export function Game() {
           setBoard(saveRun({ score: s.score, accuracy: s.accuracy, maxSpeedMph: s.maxSpeedMph, cleanCuts: s.cleanCuts, date }, keyRef.current));
           setRunDate(date);
           const unlocks = unlockedBetween(p.total, p.total + s.score);
-          setNews((n) => ({ ...n, unlocks }));
+          setNews((n) => ({ ...n, unlocks: [...n.unlocks, ...unlocks] }));
           p = { ...p, total: p.total + s.score };
         }
         if (p === progressRef.current) return;

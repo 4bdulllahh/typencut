@@ -2,11 +2,11 @@
 
 # Typencut
 
-Type to weave a Porsche 911 GT3 RS through highway traffic.
+Type to weave a sports car through highway traffic.
 
 A browser speed-typing game inspired by *Assetto Corsa: No Hesi* highway weaving, drawn in the flat-shaded, low-poly style of *Art of Rally*. Every word you type moves you: finish it with a comma to go one lane left, a full stop to go right, or Enter to hold your lane with a burst of speed. Shout it in ALL CAPS for nitro, and tap Enter twice to brake. Slip past black cruisers and lane-hopping red mergers, chain close passes into a 5× multiplier, and cut out from right behind a car for a 500-point CLEAN CUT. Not in the mood to type? Switch any mode to Driving and play it with a throttle, a brake and WASD or the arrow keys instead. Play it to fifteen drum & bass tracks made in code. No account, no server and no downloads: every car, tree, sign and sound effect is generated in code.
 
-**Live:** https://typencut-two.vercel.app · **Version:** 1.14.0
+**Live:** https://typencut-two.vercel.app · **Version:** 1.15.0
 
 [![Deploy with Vercel](https://vercel.com/button)](https://vercel.com/new/clone?repository-url=https%3A%2F%2Fgithub.com%2F4bdulllahh%2Ftypencut&project-name=typencut&repository-name=typencut)
 [![CI](https://github.com/4bdulllahh/typencut/actions/workflows/ci.yml/badge.svg)](https://github.com/4bdulllahh/typencut/actions/workflows/ci.yml)
@@ -30,12 +30,12 @@ A browser speed-typing game inspired by *Assetto Corsa: No Hesi* highway weaving
 - **Daily challenge.** A run seeded from today's date (UTC), so everyone starts on the same road with the same words, under Classic rules. It keeps a separate best for each day.
 - **Pause.** **Esc** pauses a run: Continue (or Esc again), Play again, or End run. With a menu section open, Esc closes that instead.
 - **Word packs.** Driving, Common English, Programming, Spanish, French or German, or paste your own list. Every pack is sorted by word length, so the difficulty still ramps from short words to long ones.
-- **Achievements.** Sixteen of them, from your first clean cut to 5 km without a crash, five speed traps in a run or 20,000 points in Time attack. They pop up the moment you earn them, and the menu lists which you have.
-- **Garage.** Every finished run adds its score to your lifetime points, which unlock five more paints (Guards red, Shark blue, Python green, Lava orange, Black) and two more cars: a Porsche 911 Turbo S and a BMW M4 Competition. Pick them in the menu.
+- **Achievements.** Nineteen of them, from your first clean cut to 5 km without a crash, five speed traps in a run or 20,000 points in Time attack. The three hardest (10 clean cuts in one run, 10 km without a crash, 100,000 points in one run) each unlock a hypercar. They pop up the moment you earn them, and the menu lists which you have.
+- **Garage.** Ten cars. You start in a Toyota GR86; every finished run adds its score to your lifetime points, which unlock five more paints (Guards red, Shark blue, Python green, Lava orange, Black) and six more cars on the way up: Honda Civic Type R, BMW M4 Competition, Nissan GT-R, Corvette C8, Porsche 911 Turbo S and, last, the Porsche 911 GT3 RS. Three hypercars, the McLaren P1, Koenigsegg Jesko and Bugatti Chiron, can't be bought with points: each comes with one of the three hardest achievements. Every car drives exactly the same; only the looks change. Pick them in the menu.
 - **Share card.** The game-over card's Share button makes a square image of your run (score, mode, accuracy, top speed, clean cuts, distance). On a phone it opens the share sheet; on a computer it downloads.
 - **Gets harder as you go.** Your cruising speed climbs from 100 to 140 mph, traffic gets about 70% denser, and words grow from three letters to seven or more, with mixed casing (`DrIft`) that must be typed exactly.
 - **Cars you can recognise.** Every model has its own shaped body, built from its real side profile and plan taper: the 911's fastback and raised front wings, the Yaris's short hatch, the Civic's sloping fastback, the Malibu's long three-box sedan, the Rogue's tall SUV body with roof rails, the F-150's cab and open bed, and the sporty M3, C63 and A5. Each has glass where its windows are, mirrors, its own wheelbase and its own head- and taillight layout.
-- **A car that shows the damage.** The starting GT3 RS has a white body, carbon hood and roof, fender louvers, a swan-neck wing, dual centre exhausts and a red LED tail strip. After one crash it carries scuffs and trails light smoke; after two it is dented, with a popped hood, a hanging bumper and thick black smoke. Hard lane changes and braking leave skid marks on the asphalt.
+- **Cars with character, and damage.** Each car has its own details: the GT3 RS's carbon hood and roof, fender louvers, swan-neck wing and LED tail strip; the Type R's tall wing and triple exhaust; the Corvette's side intakes; the P1's and Chiron's full-width tail lights; the Jesko's giant wing; the Chiron's horseshoe grille, polished C-line and two-tone body. After one crash it carries scuffs and trails light smoke; after two it is dented, with a popped hood, a hanging bumper and thick black smoke. Hard lane changes and braking leave skid marks on the asphalt.
 - **Day and night.** A warm pastel day with soft shadows, or a night drive with lit streetlights, headlight beams, a real spotlight from your car, and a soft red glow on the road behind each taillight, placed where that car's lamps really are (corner lamps on most cars, tall slim lamps on the F-150, one full-width strip on the GT3 RS) and stretching with speed. The Day/Night switch is at the foot of the menu pill, and your choice is remembered.
 - **Weather.** Rain brings falling streaks, spray kicked up behind every car, a darker glossy road where taillights and streetlights stretch into long reflections at night, a grey overcast sky and the hiss of rain. Fog hangs a thick haze over the road that swallows traffic about 100 m ahead, so cars appear later. Pick Clear, Rain or Fog in Settings, or leave it on Random for a new roll each run (half clear, 30% rain, 20% fog). The weather changes only what you see and hear; the car drives the same.
 - **Music.** Fifteen drum & bass tracks synthesised live in your browser (168 to 178 BPM two-step breaks, a sub bass line, reese bass on the darker ones, a soft pad and, on some, a plucked lead). Pick one in Settings or skip with the now-playing pill (under the leaderboard island on wide screens, beside the road on smaller ones, under it on phones), which has previous, play/pause and next. Music starts with your first run, at 10% for new players; the Music slider and Mute change only the level and never stop the track. Turn it Off in Settings.
@@ -123,13 +123,20 @@ Points are multiplied by your multiplier when scored. The multiplier is 1 + 0.2 
 - **Player-relative.** The player car always sits at the origin and everything else is placed at `z = −(s − player.s)`, so the numbers stay small at any distance. Forward is −z.
 - **Infinite road from a few copies.** A `Repeat` component keeps only the copies inside a window from 25 m behind to 140 m ahead and moves them as you drive: lane dashes every 12 m, trees every 6 m (each keeps its look by hashing its index), streetlights every 42 m, speed cameras every 360 m and gantry signs every 520 m. Fog hides the far end of the window.
 - **Camera.** 90 m up and 10 m behind, tilted 20° from straight down, following 35% of your sideways movement. It shakes on crashes, nitro and clean cuts, and widens its field of view by 8° during nitro. A speed-scaled blur on the screen edges and a vignette sit on top.
-- **Cars from profiles.** Each model's body is lofted through about ten cross-sections traced from the real car: for each one, its position along the car, its width, the waist height, the roof height where there is a cabin, and how far the front wings stand above the hood. Every cross-section is a 12-point ring (sill, side, shoulder, wing, glasshouse base, roof edge, mirrored), and neighbouring rings are joined into faces. Steep roof segments become the windscreen and rear window, and cabin sides become side windows. Each geometry is built once per model and shared. Wheels, mirrors, lamps, roof rails and the F-150's bed are added on top, and footprints use real-world dimensions, so what you see is what you hit (the unlockable player cars share the GT3 RS's hitbox, so they change only the looks):
+- **Cars from profiles.** Each model's body is lofted through about ten cross-sections traced from the real car: for each one, its position along the car, its width, the waist height, the roof height where there is a cabin, and how far the front wings stand above the hood. Every cross-section is a 12-point ring (sill, side, shoulder, wing, glasshouse base, roof edge, mirrored), and neighbouring rings are joined into faces. Steep roof segments become the windscreen and rear window, and cabin sides become side windows. Each geometry is built once per model and shared. Wheels, mirrors, lamps, roof rails and the F-150's bed are added on top, and footprints use real-world dimensions, so what you see is what you hit (every player car shares one 4.57 × 1.90 m hitbox, so they change only the looks):
 
 | Model | Role | Length × width (m) |
 | --- | --- | --- |
-| Porsche 911 GT3 RS (2022) | Player | 4.57 × 1.90 |
-| Porsche 911 Turbo S (2021) | Player, unlocked at 100,000 lifetime points | 4.54 × 1.90 |
-| BMW M4 Competition (2021) | Player, unlocked at 200,000 lifetime points | 4.79 × 1.89 |
+| Toyota GR86 (2022) | Player, from the start | 4.27 × 1.78 |
+| Honda Civic Type R (2023) | Player, 25,000 lifetime points | 4.59 × 1.89 |
+| BMW M4 Competition (2021) | Player, 60,000 lifetime points | 4.79 × 1.89 |
+| Nissan GT-R (2017) | Player, 120,000 lifetime points | 4.71 × 1.90 |
+| Chevrolet Corvette C8 (2020) | Player, 200,000 lifetime points | 4.63 × 1.93 |
+| Porsche 911 Turbo S (2021) | Player, 300,000 lifetime points | 4.54 × 1.90 |
+| Porsche 911 GT3 RS (2022) | Player, 450,000 lifetime points | 4.57 × 1.90 |
+| McLaren P1 (2013) | Player, Scalpel achievement | 4.59 × 1.95 |
+| Koenigsegg Jesko (2021) | Player, Untouchable achievement | 4.61 × 2.03 |
+| Bugatti Chiron (2016) | Player, Six figures achievement | 4.54 × 2.04 |
 | Toyota Yaris (2015) | Cruiser | 3.95 × 1.70 |
 | Honda Civic (2020) | Cruiser | 4.67 × 1.80 |
 | Chevrolet Malibu (2015) | Cruiser | 4.92 × 1.85 |
@@ -168,18 +175,22 @@ Points are multiplied by your multiplier when scored. The multiplier is 1 + 0.2 
 
 ## Progression
 
-[`src/game/progress.ts`](src/game/progress.ts) holds the achievements, the unlock costs and your lifetime points. Achievements are checked against the live run on every game event (and once more at game over), so each one pops up the moment it is earned; each is earned once and stored with its date. A finished run adds its score to your lifetime points, and the game-over card lists anything that crossed. The stored record is validated on load like the leaderboard: a total that isn't a non-negative number becomes 0, and unknown or malformed achievements are dropped. A car or paint you haven't unlocked can't be picked, and a locked one in edited storage falls back to the white GT3 RS.
+[`src/game/progress.ts`](src/game/progress.ts) holds the achievements, the unlock costs and your lifetime points. Achievements are checked against the live run on every game event (and once more at game over), so each one pops up the moment it is earned; each is earned once and stored with its date. A finished run adds its score to your lifetime points, and the game-over card lists anything that crossed. The stored record is validated on load like the leaderboard: a total that isn't a non-negative number becomes 0, and unknown or malformed achievements are dropped. A car or paint you haven't unlocked can't be picked, and a locked one (from edited storage, or a GT3 RS picked before v1.15 moved it up the ladder) falls back to the white GR86 until you reach it.
 
 | Unlock | Lifetime points |
 | --- | --- |
-| White 911 GT3 RS | from the start |
+| White Toyota GR86 | from the start |
 | Guards red paint | 15,000 |
+| Honda Civic Type R | 25,000 |
 | Shark blue paint | 40,000 |
+| BMW M4 Competition | 60,000 |
 | Python green paint | 80,000 |
-| 911 Turbo S | 100,000 |
+| Nissan GT-R | 120,000 |
 | Lava orange paint | 150,000 |
-| M4 Competition | 200,000 |
+| Corvette C8 | 200,000 |
 | Black paint | 250,000 |
+| Porsche 911 Turbo S | 300,000 |
+| Porsche 911 GT3 RS | 450,000 |
 
 | Achievement | How |
 | --- | --- |
@@ -195,6 +206,9 @@ Points are multiplied by your multiplier when scored. The multiplier is 1 + 0.2 
 | Gridlock | 50 passes in Rush hour |
 | Zen garden | 10 km in Zen |
 | Daily driver | finish a daily challenge |
+| Scalpel | 10 clean cuts in one run · unlocks the McLaren P1 |
+| Untouchable | 10 km without a crash · unlocks the Koenigsegg Jesko |
+| Six figures | 100,000 points in one run · unlocks the Bugatti Chiron |
 
 The share card is a 1080 × 1080 canvas drawn in the page's own font ([`src/components/shareCard.ts`](src/components/shareCard.ts)). It goes to `navigator.share` when the browser can share image files, and is downloaded as `typencut-run.png` otherwise.
 
@@ -243,7 +257,7 @@ npm run dev        # http://localhost:3000
 | `npm run dev` | Development server with hot reload |
 | `npm run build` | Production build |
 | `npm start` | Serve the production build |
-| `npm test` | Simulation, modes, word packs, input, leaderboard, achievements and unlocks, settings, weather, sound-mix, engine-sound, driving, driving-physics, heart, key-binding and nitro-recharge tests (35, with `node --test`) |
+| `npm test` | Simulation, modes, word packs, input, leaderboard, achievements and unlocks, settings, weather, sound-mix, engine-sound, driving, driving-physics, heart, key-binding, nitro-recharge and garage tests (36, with `node --test`) |
 | `npm run typecheck` | Type check with `tsc --noEmit` |
 | `node scripts/shot.mjs <url> <outDir> [--night]` | Plays a run in headless Chrome (eight words including two nitros and one Enter submit, a brake, then idles until game over), saves six screenshots and prints any console errors. Set `CHROME` if Chrome isn't in its default Windows location |
 
@@ -286,7 +300,7 @@ CI runs the type check, tests and production build on every push and pull reques
 - [x] **M17** Score popups moved to the top right, a Words picker that matches the panel, Esc pause, clean cuts and full drafts recharge nitro instead of firing it, hearts on a 20% roll every 8 seconds (v1.12.0)
 - [x] **M18** Typing or Driving controls for every mode, and realistic driving: 45 mph minimum, geared acceleration, lane changes that cost speed, understeer at speed, braking to turn (v1.13.0)
 - [x] **M19** Spotify replaced by fifteen tracks made in code (10% to start, a live Music slider), click outside to close the menu, arcade driving (no understeer or speed loss on lane changes, hold to keep changing lanes, much stronger brakes, quicker acceleration), nitro recharge 3.5 s (v1.14.0)
-- [ ] **M20** Ten cars in the garage: seven by lifetime points, three hypercars behind hard achievements
+- [x] **M20** Ten cars in the garage, all driving the same: seven by lifetime points (GR86 to start, GT3 RS last), three hypercars (P1, Jesko, Chiron) behind three hard new achievements (v1.15.0)
 - [ ] **M21** Snow, sandstorm and wind; more grass and animals beside the road
 - [ ] **M22** The same layout on laptops as on big monitors; swipe controls for Driving on phones and tablets
 
